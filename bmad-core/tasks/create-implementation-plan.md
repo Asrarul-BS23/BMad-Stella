@@ -204,18 +204,15 @@ As a senior developer, document key technical decisions:
 #### 6.4 Dependencies and Risks
 
 **If dependency file was loaded (Step 4):**
-- Integrate all dependencies from the analysis file
-- Add any additional dependencies discovered during planning
-- Incorporate identified blockers with severity levels
-- Include integration points with protocols and error handling
-- Document risks with likelihood, impact, and mitigation strategies
+- Integrate all dependencies from the analysis file into Dependencies subsection
+- Incorporate identified blockers with severity levels into Blockers subsection
+- Add any additional dependencies or blockers discovered during planning
+- Document mitigation strategies for high-risk items
 
 **If no dependency file exists:**
-- Identify technical dependencies
-- List third-party libraries needed
-- Note potential blockers
+- Identify technical dependencies for Dependencies subsection
+- Note potential blockers for Blockers subsection (optional - only if applicable)
 - Highlight areas of uncertainty requiring investigation
-- Document integration points with other systems
 
 ### 7. Create Detailed Implementation Task List
 
@@ -264,7 +261,7 @@ Break down the implementation into sequential, actionable tasks with checkboxes.
   - [ ] Validate environment variables are configured
 ```
 
-### 8. Define Testing Strategy for This Ticket
+### 8. Define Testing for This Ticket
 
 Based on testing-strategy.md and ticket type:
 
@@ -292,36 +289,49 @@ Testing:
 
 Compile all technical details that the dev agent will need:
 
-**Include:**
+**Main Technical Context Section:**
 - **Previous Implementation Notes:** Relevant learnings from similar tickets
 - **Data Models:** Complete specifications with source refs
 - **API Specifications:** Endpoint details with source refs
 - **Component Specifications:** UI details with source refs
-- **File Locations:** Exact paths based on project structure
 - **Code Patterns:** Specific patterns to follow from coding standards
-- **Testing Requirements:** Detailed test specifications
 - **Technical Constraints:** Versions, performance targets, security rules
-- **Dependencies:** Libraries, services, other components
-- **Dependencies and Blockers:** Complete dependency analysis with sources, blockers with severity, and mitigation plans
 - **Integration Requirements:** Integration points with protocols, error handling, and fallback strategies
 - **Risk Mitigation:** Strategies for identified risks with monitoring requirements
 
-**CRITICAL:** Every technical detail MUST include source reference or note if derived
+**Subsection: File Locations and Project Structure**
+- Exact file paths and structure based on architecture docs
+- Where to create new files
+- Naming conventions to follow
+- Directory structure to maintain
+- Include source reference: `[Source: architecture/unified-project-structure.md#{section}]`
+
+**Subsection: Testing Standards**
+- Testing requirements and standards from architecture
+- Test file locations
+- Testing frameworks and patterns to use
+- Coverage requirements
+- Any specific testing requirements for this ticket
+- Include source reference: `[Source: architecture/testing-strategy.md#{section}]`
+
+**CRITICAL:** Every technical detail MUST include source reference or note if derived. Do not invent information - only include what was extracted from actual architecture documents or derived from ticket requirements.
 
 ### 10. Populate Implementation Plan Template
 
 - Use `{root}/templates/implementation-plan-tmpl.yaml` structure
 - Fill all sections completely:
-  - Ticket Information (number, type, title, description)
-  - Acceptance Criteria (derived or provided)
+  - Status (set to "Draft - Awaiting Review")
+  - Ticket Information (number, type, title, description, original source)
   - Requirements (explicit or derived)
+  - Acceptance Criteria (derived or provided)
   - Technical Approach
-  - Implementation Tasks (with checkboxes)
-  - Testing Strategy
-  - Technical Context / Dev Notes
-  - Dependencies and Risks (from dependency analysis or derived)
-  - File Structure Changes
-  - Dependency Cleanup Action (what was done with temporary file)
+  - Tasks / Subtasks (with checkboxes)
+  - Technical Context / Dev Notes (with subsections: File Locations, Testing Standards)
+  - Dependencies and Risks (with subsections: Dependencies, Blockers)
+  - Files to Change
+  - Change Log (initialize with creation entry)
+  - Dev Agent Record (leave empty - populated by dev agent)
+  - Feedback (leave empty initially)
 
 ### 11. Save Implementation Plan
 
@@ -360,7 +370,7 @@ Provide summary including:
 - **Ticket Type:** Feature/Bug/Migration
 - **Status:** Draft - Awaiting Review
 - **Acceptance Criteria:** List all ACs
-- **Number of Implementation Tasks:** X tasks with Y subtasks
+- **Number of Tasks / Subtasks:** X tasks with Y subtasks
 - **Key Technical Components:** Brief summary
 - **Dependencies Identified:** [X technical, Y infrastructure, Z third-party dependencies]
 - **Critical Blockers:** List any critical blockers that must be resolved

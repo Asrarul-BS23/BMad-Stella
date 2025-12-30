@@ -296,7 +296,7 @@ After creating the file, provide a summary to the user:
 
 ### 8. Integration with Implementation Plan
 
-The `create-implementation-plan` task will read `{{ticket_no}}-dependency-tmp.md` and integrate dependencies into the implementation plan's "Dependencies and Risks" section, "Technical Approach", and "Implementation Tasks".
+The `create-implementation-plan` task will read `{{ticket_no}}-dependency-tmp.md` and integrate dependencies into the implementation plan's "Dependencies and Risks" section, "Technical Approach", and "Tasks / Subtasks".
 
 #### 8.1 Cleanup Logic
 

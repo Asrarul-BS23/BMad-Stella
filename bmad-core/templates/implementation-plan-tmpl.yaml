@@ -20,11 +20,11 @@ agent_config:
     - Requirements
     - Acceptance Criteria
     - Technical Approach
-    - Implementation Tasks
-    - Testing Strategy
-    - Technical Context
+    - Tasks / Subtasks
+    - Technical Context / Dev Notes
     - Dependencies and Risks
     - Files to Change
+    - Change Log
 
 sections:
   - id: status
@@ -108,46 +108,27 @@ sections:
 
   - id: technical-approach
     title: Technical Approach
+    type: multiline-text
     instruction: |
       High-level technical strategy and key decisions.
       Written by planner as a senior developer guiding junior developers.
+
+      Include:
+      - Overall strategy for implementing this ticket
+      - Major components involved
+      - Component design approach
+      - Data flow and state management
+      - API design (if applicable)
+      - Database schema changes (if applicable)
+      - Design patterns to apply
+      - Specific technologies, frameworks, or libraries to use
+      - Include reasoning and cite architecture docs where applicable
+    elicit: true
     owner: planner
     editors: [planner]
-    sections:
-      - id: overview
-        title: Overview
-        instruction: |
-          Overall strategy for implementing this ticket.
-          What is the general approach? Which major components are involved?
-        elicit: true
-        owner: planner
-        editors: [planner]
 
-      - id: architecture-decisions
-        title: Architecture Decisions
-        instruction: |
-          Key technical decisions made:
-          - Component design approach
-          - Data flow and state management
-          - API design (if applicable)
-          - Database schema changes (if applicable)
-          - Design patterns to apply
-          Include reasoning and cite architecture docs where applicable.
-        elicit: true
-        owner: planner
-        editors: [planner]
-
-      - id: technology-choices
-        title: Technology and Library Choices
-        instruction: |
-          Specific technologies, frameworks, or libraries to use.
-          Include versions if important.
-          Cite architecture/tech-stack docs.
-        owner: planner
-        editors: [planner]
-
-  - id: implementation-tasks
-    title: Implementation Tasks
+  - id: tasks-subtasks
+    title: Tasks / Subtasks
     type: bullet-list
     instruction: |
       Detailed, sequential task breakdown with checkboxes [ ].
@@ -156,129 +137,44 @@ sections:
       Reference acceptance criteria numbers where relevant (AC: #).
       Group related subtasks under parent tasks.
     template: |
-      - [ ] Task 1: Setup and Preparation (AC: # if applicable)
-        - [ ] Subtask 1.1: Specific action with file path
-        - [ ] Subtask 1.2: Specific action with technical detail
-      - [ ] Task 2: Core Implementation (AC: # if applicable)
-        - [ ] Subtask 2.1: Create/modify specific file with details
-        - [ ] Subtask 2.2: Implement specific function/component
-      - [ ] Task 3: Testing (AC: #)
-        - [ ] Subtask 3.1: Write unit tests
-        - [ ] Subtask 3.2: Write integration tests
-      - [ ] Task 4: Documentation and Cleanup
-        - [ ] Subtask 4.1: Update relevant documentation
-        - [ ] Subtask 4.2: Code cleanup and refactoring
+      - [ ] Task 1 (AC: # if applicable)
+        - [ ] Subtask 1.1...
+      - [ ] Task 2 (AC: # if applicable)
+        - [ ] Subtask 2.1...
+      - [ ] Task 3 (AC: # if applicable)
+        - [ ] Subtask 3.1...
     elicit: true
     owner: planner
     editors: [planner, dev-agent]
 
-  - id: testing-strategy
-    title: Testing Strategy
-    instruction: |
-      Comprehensive testing approach for this ticket.
-      Based on testing-strategy.md from architecture.
-      Include specific test files, test cases, and frameworks.
-    owner: planner
-    editors: [planner]
-    sections:
-      - id: test-files
-        title: Test Files to Create/Modify
-        instruction: |
-          List of test files with full paths:
-          - Unit test files
-          - Integration test files
-          - E2E test files (if applicable)
-        owner: planner
-        editors: [planner]
-
-      - id: test-cases
-        title: Test Cases
-        instruction: |
-          Specific test cases to implement:
-          - Happy path scenarios
-          - Error/edge cases
-          - Boundary conditions
-          - Security test cases (if applicable)
-        owner: planner
-        editors: [planner]
-
-      - id: test-frameworks
-        title: Testing Frameworks and Patterns
-        instruction: |
-          Frameworks, libraries, and patterns to use.
-          Cite testing-strategy.md.
-        owner: planner
-        editors: [planner]
-
-      - id: coverage-requirements
-        title: Coverage Requirements
-        instruction: |
-          Expected test coverage level.
-          Any specific coverage requirements for this ticket.
-        owner: planner
-        editors: [planner]
-
-      - id: manual-testing
-        title: Manual Testing Steps
-        instruction: |
-          Any manual testing steps required (if applicable).
-          Include browser testing, visual regression, etc.
-        owner: planner
-        editors: [planner]
-
   - id: technical-context
     title: Technical Context / Dev Notes
+    type: multiline-text
     instruction: |
       Comprehensive technical details extracted from architecture docs.
       This section must provide ALL information the dev agent needs
       without requiring additional document lookups.
+
+      Include relevant details about:
+      - Data models, schemas, and validation rules
+      - API specifications (endpoints, requests, responses)
+      - Component specifications and UI requirements
+      - Code patterns and standards to follow
+      - Technical constraints (versions, performance, security)
+      - Integration points with external systems
+      - Previous implementation notes and learnings
+
       CRITICAL: Do not invent information. Only include what was
       extracted from actual architecture documents or derived from
       ticket requirements. Always cite sources.
-      NOTE: Only include subsections relevant to this ticket. Omit subsections that don't apply.
+    elicit: true
     owner: planner
     editors: [planner]
     sections:
-      - id: data-models
-        title: Data Models and Schemas
-        instruction: |
-          Relevant data models, schemas, validation rules, relationships.
-          Include complete specifications with source references.
-          Format: Clear structure definitions with field types, constraints, etc.
-          [Source: architecture/data-models.md#{section}]
-        owner: planner
-        editors: [planner]
-
-      - id: api-specifications
-        title: API Specifications
-        instruction: |
-          Relevant API endpoint details:
-          - Endpoint paths and HTTP methods
-          - Request/response formats
-          - Authentication/authorization requirements
-          - Error responses
-          - Rate limiting or caching considerations
-          [Source: architecture/rest-api-spec.md#{section}]
-        owner: planner
-        editors: [planner]
-
-      - id: component-specifications
-        title: Component Specifications (Frontend)
-        instruction: |
-          UI component details:
-          - Component names and locations
-          - Props and state requirements
-          - Event handlers
-          - Styling approach
-          - Accessibility requirements
-          [Source: architecture/components.md#{section}]
-        owner: planner
-        editors: [planner]
-
       - id: file-locations
         title: File Locations and Project Structure
         instruction: |
-          Exact file paths based on unified-project-structure.md:
+          Exact file paths and structure based on architecture docs:
           - Where to create new files
           - Naming conventions to follow
           - Directory structure to maintain
@@ -286,51 +182,15 @@ sections:
         owner: planner
         editors: [planner]
 
-      - id: code-patterns
-        title: Code Patterns and Standards
+      - id: testing-standards
+        title: Testing Standards
         instruction: |
-          Specific coding patterns and standards to follow:
-          - Code style requirements
-          - Import/export patterns
-          - Error handling patterns
-          - Logging patterns
-          - Security patterns
-          [Source: architecture/coding-standards.md#{section}]
-        owner: planner
-        editors: [planner]
-
-      - id: technical-constraints
-        title: Technical Constraints
-        instruction: |
-          Version requirements, performance targets, security rules:
-          - Minimum/maximum versions
-          - Performance benchmarks
-          - Security requirements
-          - Browser/platform compatibility
-          [Source: various architecture docs]
-        owner: planner
-        editors: [planner]
-
-      - id: integration-points
-        title: Integration Points
-        instruction: |
-          External systems, APIs, or services to integrate with:
-          - Third-party APIs and their documentation
-          - Internal service dependencies
-          - Authentication flows
-          - Data synchronization requirements
-          [Source: architecture/external-apis.md#{section}]
-        owner: planner
-        editors: [planner]
-
-      - id: previous-implementation-notes
-        title: Previous Implementation Notes
-        instruction: |
-          Relevant learnings from similar tickets or previous work:
-          - Common pitfalls to avoid
-          - Recommended approaches
-          - Performance considerations learned
-          - Known issues or workarounds
+          Testing requirements and standards from architecture:
+          - Test file locations
+          - Testing frameworks and patterns to use
+          - Coverage requirements
+          - Any specific testing requirements for this ticket
+          [Source: architecture/testing-strategy.md#{section}]
         owner: planner
         editors: [planner]
 
@@ -397,17 +257,6 @@ sections:
         owner: dev-agent
         editors: [dev-agent]
 
-      - id: implementation-notes
-        title: Implementation Notes
-        instruction: |
-          Notes during implementation:
-          - Deviations from plan
-          - Issues encountered and solutions
-          - Optimizations made
-          - Additional technical decisions
-        owner: dev-agent
-        editors: [dev-agent]
-
       - id: debug-log-references
         title: Debug Log References
         instruction: Reference any debug logs or traces generated during development
@@ -415,14 +264,14 @@ sections:
         editors: [dev-agent]
 
       - id: completion-notes
-        title: Completion Notes
-        instruction: Final notes about the implementation and any follow-up needed
+        title: Completion Notes List
+        instruction: Notes about the completion of tasks and any issues encountered
         owner: dev-agent
         editors: [dev-agent]
 
-      - id: actual-file-list
-        title: Actual Files Changed
-        instruction: Complete list of files actually created, modified, or deleted during implementation
+      - id: file-list
+        title: File List
+        instruction: List all files created, modified, or affected during story implementation
         owner: dev-agent
         editors: [dev-agent]
 
