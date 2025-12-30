@@ -122,7 +122,33 @@ Extract ONLY information directly relevant to this ticket:
 
 ALWAYS cite source documents: `[Source: architecture/{filename}.md#{section}]`
 
-### 4. Derive or Validate Acceptance Criteria
+### 4. Load Dependency Analysis (If Available)
+
+#### 4.1 Check for Temporary Dependency File
+
+- Check if `docs/temporary/{ticket-no}-dependency-tmp.md` exists
+- If exists: Read the complete dependency analysis
+- If not exists: Proceed without pre-analyzed dependencies (will analyze during planning)
+
+#### 4.2 Extract Dependency Information
+
+If dependency file exists, extract:
+- Technical dependencies (code, APIs, modules)
+- Infrastructure dependencies (databases, services, configs)
+- Third-party dependencies (packages, external APIs)
+- Data dependencies (schemas, migrations, transformations)
+- Identified blockers (with severity levels)
+- Integration points (internal and external)
+- Risk assessments (with mitigation strategies)
+- Recommended approach and critical path items
+
+#### 4.3 Note Dependency Source
+
+Track whether dependencies came from:
+- Pre-existing dependency analysis file
+- Derived during this planning process
+
+### 5. Derive or Validate Acceptance Criteria
 
 Based on ticket type and information gathered:
 
@@ -152,37 +178,46 @@ Based on ticket type and information gathered:
 - Rollback successfully tested
 - Performance maintained or improved
 
-### 5. Identify Technical Approach and Decisions
+### 6. Identify Technical Approach and Decisions
 
 As a senior developer, document key technical decisions:
 
-#### 5.1 High-Level Approach
+#### 6.1 High-Level Approach
 - Overall strategy for implementing the ticket
 - Major components or modules affected
 - Technology/framework choices
 - Design patterns to apply
 
-#### 5.2 File Structure Planning
+#### 6.2 File Structure Planning
 - New files to create (with full paths)
 - Existing files to modify
 - Files to delete (for migrations)
 - Directory structure changes
 
-#### 5.3 Architecture Decisions
+#### 6.3 Architecture Decisions
 - Component design
 - Data flow
 - State management approach
 - API design (if applicable)
 - Database schema changes (if applicable)
 
-#### 5.4 Dependencies and Risks
-- Technical dependencies
-- Third-party libraries needed
-- Potential blockers
-- Areas of uncertainty requiring investigation
-- Integration points with other systems
+#### 6.4 Dependencies and Risks
 
-### 6. Create Detailed Implementation Task List
+**If dependency file was loaded (Step 4):**
+- Integrate all dependencies from the analysis file
+- Add any additional dependencies discovered during planning
+- Incorporate identified blockers with severity levels
+- Include integration points with protocols and error handling
+- Document risks with likelihood, impact, and mitigation strategies
+
+**If no dependency file exists:**
+- Identify technical dependencies
+- List third-party libraries needed
+- Note potential blockers
+- Highlight areas of uncertainty requiring investigation
+- Document integration points with other systems
+
+### 7. Create Detailed Implementation Task List
 
 Break down the implementation into sequential, actionable tasks with checkboxes.
 
@@ -217,8 +252,19 @@ Break down the implementation into sequential, actionable tasks with checkboxes.
 5. Testing tasks (unit, integration, e2e as applicable)
 6. Documentation updates (if needed)
 7. Cleanup/refactoring tasks
+8. Dependency validation tasks (if critical dependencies identified)
+9. Risk mitigation tasks (for high-risk items)
 
-### 7. Define Testing Strategy for This Ticket
+**Example dependency validation task:**
+```
+- [ ] Task X: Validate Critical Dependencies (from Dependency Analysis)
+  - [ ] Verify database schema exists and is compatible
+  - [ ] Test connection to external API service
+  - [ ] Confirm required npm packages are installed
+  - [ ] Validate environment variables are configured
+```
+
+### 8. Define Testing Strategy for This Ticket
 
 Based on testing-strategy.md and ticket type:
 
@@ -242,7 +288,7 @@ Testing:
 - Run full test suite before marking complete
 ```
 
-### 8. Create Technical Context Section (Dev Notes)
+### 9. Create Technical Context Section (Dev Notes)
 
 Compile all technical details that the dev agent will need:
 
@@ -256,10 +302,13 @@ Compile all technical details that the dev agent will need:
 - **Testing Requirements:** Detailed test specifications
 - **Technical Constraints:** Versions, performance targets, security rules
 - **Dependencies:** Libraries, services, other components
+- **Dependencies and Blockers:** Complete dependency analysis with sources, blockers with severity, and mitigation plans
+- **Integration Requirements:** Integration points with protocols, error handling, and fallback strategies
+- **Risk Mitigation:** Strategies for identified risks with monitoring requirements
 
 **CRITICAL:** Every technical detail MUST include source reference or note if derived
 
-### 9. Populate Implementation Plan Template
+### 10. Populate Implementation Plan Template
 
 - Use `{root}/templates/implementation-plan-tmpl.yaml` structure
 - Fill all sections completely:
@@ -270,16 +319,41 @@ Compile all technical details that the dev agent will need:
   - Implementation Tasks (with checkboxes)
   - Testing Strategy
   - Technical Context / Dev Notes
-  - Dependencies and Risks
+  - Dependencies and Risks (from dependency analysis or derived)
   - File Structure Changes
+  - Dependency Cleanup Action (what was done with temporary file)
 
-### 10. Save Implementation Plan
+### 11. Save Implementation Plan
 
 - Create directory if not exists: `/docs/impl-plan/`
 - Save plan as: `/docs/impl-plan/{ticket-number}-implementation-plan.md`
 - Update plan status to "Draft - Awaiting Review"
 
-### 11. Present Plan to User for Review
+### 12. Clean Up Temporary Dependency File
+
+If a dependency file was loaded in Step 4:
+
+#### 12.1 Determine Cleanup Action
+
+**Scenario 1: All dependencies addressed in current plan**
+- If all dependencies from `{ticket-no}-dependency-tmp.md` are incorporated into this implementation plan
+- **Action:** Delete `docs/temporary/{ticket-no}-dependency-tmp.md` completely
+- **Reason:** All dependencies have been addressed and documented in the implementation plan
+
+**Scenario 2: Dependencies span multiple tasks**
+- If the ticket is large (multiple story points) and will be decomposed using `decompose-task.md`
+- Some dependencies may apply to future subtasks not yet planned
+- **Action:**
+  - Remove only the dependencies addressed in this implementation plan from the temporary file
+  - Keep dependencies that apply to other subtasks that haven't been planned yet
+  - Update the temporary file with remaining dependencies
+- **Reason:** The temporary file will be reused when creating implementation plans for subsequent subtasks
+
+#### 12.2 Log Cleanup Action
+
+Document which action was taken and why in a comment at the end of the implementation plan.
+
+### 13. Present Plan to User for Review
 
 Provide summary including:
 - **Plan created:** `/docs/impl-plan/{ticket-number}-implementation-plan.md`
@@ -288,11 +362,13 @@ Provide summary including:
 - **Acceptance Criteria:** List all ACs
 - **Number of Implementation Tasks:** X tasks with Y subtasks
 - **Key Technical Components:** Brief summary
-- **Dependencies Identified:** List any blockers or dependencies
+- **Dependencies Identified:** [X technical, Y infrastructure, Z third-party dependencies]
+- **Critical Blockers:** List any critical blockers that must be resolved
+- **Risk Level:** [Low/Medium/High/Critical] based on dependency analysis
 - **Estimated Complexity:** Simple/Moderate/Complex (based on task count and dependencies)
 - **Next Steps:** "Please review the plan. Use *refine-plan to provide feedback, or approve to proceed with implementation."
 
-### 12. Await User Feedback
+### 14. Await User Feedback
 
 HALT and wait for user to:
 - Approve the plan (ready for dev agent)
