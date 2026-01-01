@@ -2,7 +2,7 @@
 
 # Implementation Plan Validation Checklist
 
-The Planner should use this checklist to validate that each implementation plan provides comprehensive guidance enabling a dev agent to implement the ticket confidently without requiring additional research or context gathering.
+The Planner should use this checklist to validate that each implementation plan provides sufficient context for a dev agent to implement the ticket confidently without requiring additional research or architecture document lookups.
 
 [[LLM: INITIALIZATION INSTRUCTIONS - IMPLEMENTATION PLAN VALIDATION
 
@@ -10,215 +10,112 @@ Before proceeding with this checklist, ensure you have access to:
 
 1. The implementation plan document being validated (in /docs/impl-plan/)
 2. The original JIRA ticket or input source
-3. Referenced architecture documents
+3. Referenced architecture documents for verification
 4. Project coding standards and conventions
 
 IMPORTANT: This checklist validates implementation plans BEFORE handing off to dev agent.
 
 VALIDATION PRINCIPLES:
 
-1. Completeness - Plan contains ALL information needed for implementation
-2. Clarity - Tasks are clear, specific, and actionable by dev agents
-3. Technical Depth - Sufficient technical detail provided (file paths, patterns, specifics)
-4. Logical Sequence - Tasks are ordered correctly with proper dependencies
-5. Testability - Testing approach is comprehensive and clear
-6. Self-Sufficiency - Dev agent will NOT read architecture docs unless explicitly told to in the plan
+1. Clarity - Dev agent understands WHAT to implement and HOW
+2. Completeness - All necessary technical details are embedded in the plan
+3. Actionability - Tasks are specific enough to execute without ambiguity
+4. Self-Sufficiency - Dev agent won't need to read architecture docs (context is embedded)
+5. Testability - Testing approach is clear and comprehensive
 
-IMPORTANT: The validator (Planner) CAN and SHOULD reference architecture docs to verify correctness, but the resulting plan must be self-contained for the dev agent.
+REMEMBER: We're creating plans for dev agents who need complete technical context embedded, explicit file paths and patterns, clear task breakdown, all architectural decisions made, and no external document hunting.
 
-REMEMBER: We're targeting dev agents who need:
+We're checking for COMPREHENSIVE detail that eliminates ambiguity and external lookups.]]
 
-- Explicit file paths and locations following project structure
-- Specific technical patterns to follow
-- Clear step-by-step instructions
-- Complete context embedded in the plan (no external doc hunting)
-- All necessary information to implement without reading architecture docs
+## 1. REQUIREMENTS & ACCEPTANCE CLARITY
 
-Source references [Source: ...] are for validator traceability, NOT for dev agent to read.
+[[LLM: Without clear requirements, dev agents build the wrong thing. Verify:
 
-We're checking for COMPREHENSIVE detail that eliminates ambiguity.]]
+1. Requirements are explicit and complete
+2. Acceptance criteria are specific and testable
+3. Success conditions are measurable
+4. Scope boundaries are clear
+5. Edge cases are addressed]]
 
-## 1. REQUIREMENTS & ACCEPTANCE CRITERIA QUALITY
-
-[[LLM: Requirements and acceptance criteria must be clear and complete. Verify:
-
-1. All requirements are explicitly stated (functional and non-functional)
-2. Acceptance criteria are specific, testable, and measurable
-3. Scope boundaries are clear (what's included and excluded)
-4. Success conditions are unambiguous
-5. Edge cases and error scenarios are addressed]]
-
-- [ ] All requirements are explicitly listed and clear
+- [ ] Requirements are clearly stated and complete
 - [ ] Acceptance criteria are specific and testable
-- [ ] Scope is well-defined with clear boundaries
-- [ ] Success conditions are measurable
+- [ ] Success conditions are measurable and unambiguous
+- [ ] Scope is well-defined (what's included/excluded)
 - [ ] Edge cases and error scenarios are identified
-- [ ] Requirements align with ticket description and type (feature/bug/migration)
 
-## 2. TECHNICAL APPROACH & IMPLEMENTATION DETAILS
+## 2. TECHNICAL COMPLETENESS & ACTIONABILITY
 
-[[LLM: The plan must provide complete technical guidance without requiring dev agent to read architecture docs. Verify:
+[[LLM: Dev agents need all technical decisions made and context embedded. Check:
 
-APPROACH LEVEL:
-1. Overall strategy is explained clearly
-2. Key architecture decisions are documented with reasoning
-3. Technology/framework/library choices are specified
-4. Component design is outlined
-5. Data flow and integration points are explained
-6. Approach aligns with project architecture and standards
+1. Implementation strategy is clear and justified
+2. All architectural decisions are made (not deferred to dev agent)
+3. Tasks are specific with file paths, not vague
+4. Technical context is embedded inline (no doc lookups needed)
+5. Code patterns and standards are explicitly stated
+6. Data models, APIs, components are fully specified
+7. No placeholders or "TBD" items remain]]
 
-DETAILED SPECIFICATIONS:
-7. Data models/schemas are fully specified with source refs
-8. API specifications are complete with all details
-9. Component specs include props, state, events
-10. File locations follow project structure guidelines
-11. Code patterns and standards are explicitly stated
-12. Technical constraints are clearly documented
-13. Integration points with external systems are detailed
+- [ ] Implementation strategy clearly explained with justification
+- [ ] All technical decisions made (technology, patterns, architecture)
+- [ ] Tasks are specific and actionable with complete file paths
+- [ ] Task sequence is logical and dependency-aware
+- [ ] Complex tasks broken into manageable subtasks
+- [ ] Technical context fully embedded inline (data models, APIs, components, patterns)
+- [ ] Code standards and patterns explicitly described in the plan
+- [ ] All file changes documented inline (new files, modifications, deletions)
+- [ ] No placeholders or unresolved decisions remain
 
-VALIDATOR NOTE: Check architecture docs for correctness, but ensure plan includes all context inline.]]
+## 3. SELF-SUFFICIENCY & EMBEDDED CONTEXT
 
-- [ ] High-level implementation strategy is clear
-- [ ] Architecture decisions are documented with justification
-- [ ] Technology and library choices are specified (with versions if relevant)
-- [ ] Component/module design is outlined
-- [ ] Data flow and state management approach is explained
-- [ ] Integration points with existing code are identified
-- [ ] Approach aligns with project conventions and standards
-- [ ] Data models/schemas are fully specified with validation rules
-- [ ] API specifications include endpoints, methods, request/response formats, authentication
-- [ ] Component specifications include complete technical details
-- [ ] File locations are explicit with full paths following project structure
-- [ ] Code patterns and coding standards are described with examples
-- [ ] Technical constraints (versions, performance, security) are documented
-- [ ] Integration points are detailed with connection information
-- [ ] All technical details cite architecture sources [Source: ...] for validator verification
-- [ ] No placeholders or "TBD" items remain
+[[LLM: The plan must be self-contained - dev agent cannot read architecture docs. Verify:
 
-## 3. IMPLEMENTATION TASKS QUALITY
+1. Dev agent can implement without external document lookups
+2. Critical information is in the plan (not just referenced)
+3. Source citations [Source: ...] are for validator verification only
+4. Instructions are clear and unambiguous]]
 
-[[LLM: Tasks must be detailed enough for dev agents to execute without ambiguity. Verify:
-
-1. Each task is specific and actionable
-2. File paths are complete and accurate
-3. Sequence is logical with dependencies respected
-4. Subtasks break down complex work appropriately
-5. Technical details are included (not just "implement X")
-6. Tasks reference relevant acceptance criteria
-7. Checkbox format [ ] is used correctly]]
-
-- [ ] All tasks are specific and actionable (not vague)
-- [ ] File paths are complete and follow project structure
-- [ ] Task sequence is logical and respects dependencies
-- [ ] Complex tasks are broken into appropriate subtasks
-- [ ] Each task includes sufficient technical detail
-- [ ] Tasks reference relevant acceptance criteria (AC: #)
-- [ ] Checkbox format [ ] is used for all tasks and subtasks
-- [ ] No task requires the dev agent to "figure out" major technical decisions
+- [ ] Dev agent can implement without reading architecture docs
+- [ ] Critical information is in the plan (not just referenced)
+- [ ] Instructions are clear and unambiguous
+- [ ] No treasure hunting required for essential information
+- [ ] Source citations present for validator verification (not for dev agent use)
 
 ## 4. TESTING STRATEGY COMPLETENESS
 
-[[LLM: Testing must be comprehensive and actionable. Verify:
+[[LLM: Testing ensures implementation actually works. Verify:
 
-1. Test files are specified with full paths
-2. Specific test cases are listed (not just "write tests")
+1. Test approach is specified with file paths
+2. Specific test cases are detailed
 3. Testing frameworks and patterns are specified
 4. Coverage requirements are stated
-5. Manual testing steps are included if needed
-6. Test approach covers unit, integration, and e2e as appropriate]]
+5. Testing tasks are included in the task breakdown]]
 
-- [ ] Test files to create/modify are listed with full paths
-- [ ] Specific test cases are detailed (happy path, errors, edge cases)
-- [ ] Testing frameworks and libraries are specified
-- [ ] Test patterns to follow are explained or referenced
-- [ ] Coverage requirements or expectations are stated
-- [ ] Manual testing steps are included if applicable
-- [ ] Testing approach aligns with testing-strategy.md
+- [ ] Test files specified with full paths
+- [ ] Specific test cases detailed (happy path, errors, edge cases)
+- [ ] Testing frameworks, libraries, and patterns specified
+- [ ] Coverage requirements stated
+- [ ] Manual testing steps included (if applicable)
+- [ ] Testing tasks included in task breakdown with checkboxes
 
-## 5. DEPENDENCIES & RISKS IDENTIFICATION
+## 5. DEPENDENCIES, RISKS & COMPLETENESS
 
-[[LLM: Dependencies and risks must be surfaced early. Check:
+[[LLM: Dependencies must be identified and plan must be complete. Check:
 
-1. Technical dependencies are identified
-2. Potential blockers are listed
-3. Areas of uncertainty are explicitly noted
-4. Risk mitigation strategies are provided
-5. External dependencies (APIs, services) are documented]]
+1. Technical dependencies and blockers are identified
+2. External dependencies are documented
+3. Risk mitigation strategies provided
+4. All template sections are populated
+5. Metadata and initialization are complete]]
 
-- [ ] Technical dependencies are clearly identified
-- [ ] Potential blockers are listed with severity
-- [ ] Areas of uncertainty are explicitly called out
-- [ ] Risk mitigation strategies are provided
-- [ ] External dependencies (APIs, services, infrastructure) are documented
-- [ ] Dependencies on other tickets or work are noted
-
-## 6. FILE STRUCTURE CLARITY
-
-[[LLM: File changes must be complete and organized. Verify:
-
-1. All new files are listed with full paths
-2. All files to modify are identified
-3. Files to delete are noted (if applicable)
-4. Directory changes are specified
-5. File organization follows project structure guidelines]]
-
-- [ ] All new files to create are listed with full paths
-- [ ] All existing files to modify are identified
-- [ ] Files to delete are noted (for migrations/refactoring)
-- [ ] New directories to create are specified
-- [ ] File organization follows project structure standards
-- [ ] Naming conventions are followed
-
-## 7. SELF-SUFFICIENCY ASSESSMENT
-
-[[LLM: The plan should be fully self-contained for the dev agent. Verify:
-
-1. Dev agent can implement without reading architecture docs (unless explicitly instructed in plan)
-2. All necessary context is included inline in the plan
-3. No critical information requires external lookups
-4. Technical decisions are already made (not deferred to dev agent)
-5. Examples or patterns are provided where helpful]]
-
-- [ ] Plan contains all context needed (dev agent won't read external docs unless told to)
-- [ ] Critical information is included inline, not just referenced
-- [ ] Technical decisions are made, not left to dev agent
-- [ ] Code patterns or examples are provided where helpful
-- [ ] Dev agent can start implementation immediately without research
-
-## 8. DEV AGENT READINESS
-
-[[LLM: Can a dev agent implement this plan without confusion? Consider:
-
-1. Are instructions clear and unambiguous?
-2. Are file paths, function names, and specifics provided?
-3. Are technical choices already made (not requiring additional research)?
-4. Is the sequence logical and dependency-aware?
-5. Would the dev agent have all information needed to execute each step?]]
-
-- [ ] Instructions are clear and unambiguous for autonomous execution
-- [ ] Specific details eliminate need for additional research or judgment calls
-- [ ] Technical complexity is broken down into manageable steps
-- [ ] Sequence guides dev agent through logical progression
-- [ ] Plan provides complete context rather than requiring inference
-- [ ] Examples or patterns are provided where helpful for clarity
-
-## 9. QUALITY & CONSISTENCY
-
-[[LLM: Plan quality and consistency matter. Check:
-
-1. Writing is clear and professional
-2. Formatting is consistent throughout
-3. No spelling/grammar errors in critical sections
-4. Terminology is consistent
-5. All sections of template are populated
-6. No contradictory information]]
-
-- [ ] Writing is clear, professional, and well-organized
-- [ ] Formatting is consistent (headers, lists, code blocks)
-- [ ] Technical terminology is used correctly and consistently
-- [ ] All template sections are populated (no empty required sections)
-- [ ] No contradictory information between sections
-- [ ] Plan follows implementation-plan template structure
+- [ ] Technical dependencies clearly identified
+- [ ] External dependencies documented (APIs, services, infrastructure)
+- [ ] Potential blockers listed with mitigation strategies (if applicable)
+- [ ] Temporary dependency file integrated (if existed)
+- [ ] All required template sections populated
+- [ ] Plan metadata complete (ticket info, status, change log)
+- [ ] Dev Agent Record section exists and is empty
+- [ ] Feedback section exists and is empty initially
+- [ ] Formatting consistent throughout (headers, lists, checkboxes)
 
 ## VALIDATION RESULT
 
@@ -228,51 +125,37 @@ Generate a comprehensive validation report:
 
 1. Quick Summary
    - Plan readiness: READY / NEEDS REFINEMENT / BLOCKED
-   - Completeness score (1-10)
-   - Clarity score (1-10)
-   - Dev agent readiness score (1-10)
    - Major gaps identified
 
 2. Fill in the validation table with:
-   - PASS: Requirements clearly met, excellent quality
-   - PARTIAL: Some gaps or areas needing enhancement
+   - PASS: Section complete, clear, and actionable
+   - PARTIAL: Some gaps but workable with minor fixes
    - FAIL: Critical information missing or insufficient
 
 3. Specific Issues (if any)
    - List concrete problems to fix
    - Suggest specific improvements
    - Identify missing information
-   - Note areas needing more detail
 
 4. Dev Agent Perspective
    - Could a dev agent implement this plan as written?
    - What questions or ambiguities might arise?
-   - Where might the dev agent get stuck or need additional context?
-   - What additional detail would help?
+   - Where might the dev agent get stuck?
 
 5. Recommendations
-   - If READY: Confirm plan can be handed to dev agent
-   - If NEEDS REFINEMENT: Specific refinements needed (use *refine-plan)
-   - If BLOCKED: What information is blocking completion
+   - If READY: Confirm plan ready for dev agent
+   - If NEEDS REFINEMENT: Use *refine-plan with specific issues
+   - If BLOCKED: What external information is needed
 
-Be thorough - the goal is a plan that enables confident, efficient implementation without confusion or constant questions.]]
+Be thorough - the goal is a plan enabling confident, efficient implementation without confusion.]]
 
-| Category                                    | Status | Issues |
-| ------------------------------------------- | ------ | ------ |
-| 1. Requirements & Acceptance Criteria       | _TBD_  |        |
-| 2. Technical Approach & Implementation      | _TBD_  |        |
-| 3. Implementation Tasks Quality             | _TBD_  |        |
-| 4. Testing Strategy Completeness            | _TBD_  |        |
-| 5. Dependencies & Risks                     | _TBD_  |        |
-| 6. File Structure Clarity                   | _TBD_  |        |
-| 7. Self-Sufficiency Assessment              | _TBD_  |        |
-| 8. Dev Agent Readiness                      | _TBD_  |        |
-| 9. Quality & Consistency                    | _TBD_  |        |
-
-**Scores:**
-- Completeness: ___/10
-- Clarity: ___/10
-- Dev Agent Readiness: ___/10
+| Category                                 | Status       | Issues                                   |
+|------------------------------------------|--------------|------------------------------------------|
+| 1. Requirements & Acceptance Clarity     | _TBD_        |                                          |
+| 2. Technical Completeness & Actionability| _TBD_        |                                          |
+| 3. Self-Sufficiency & Embedded Context   | _TBD_        |                                          |
+| 4. Testing Strategy Completeness         | _TBD_        |                                          |
+| 5. Dependencies, Risks & Completeness    | _TBD_        |                                          |
 
 **Final Assessment:**
 
