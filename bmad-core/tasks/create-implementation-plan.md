@@ -6,6 +6,12 @@
 
 To transform JIRA tickets (features, bugs, migrations) into comprehensive, actionable implementation plans that provide junior developers with all the technical details, step-by-step tasks, and context needed to implement the solution without additional research. This task handles variable input quality - from complete requirements to just ticket titles or screenshots.
 
+## CRITICAL RULES
+
+  **NEVER SCAN CODE FILES:** This task must NEVER use Glob, Grep, Read, or any other tools to scan actual source code files. Architecture documents and configuration files only. When file locations are needed, ASK the user.
+
+  **ASK FOR FILE LOCATIONS:** Never attempt to discover file locations through scanning. Always ask the user: "Which specific files should be created/modified for this ticket? Please provide full paths."
+
 ## SEQUENTIAL Task Execution (Do not proceed until current Task is complete)
 
 ### 0. Load Core Configuration
@@ -50,14 +56,14 @@ If critical information is missing, ask the user targeted questions:
 - Are there specific UI/UX requirements?
 - What data needs to be captured/displayed?
 - Are there integration requirements?
-- Which components/files are likely affected?
+- **Which specific files should I create or modify? Please provide full file paths** (e.g., src/components/Auth.jsx, src/api/users.js)
 
 **For Bugs:**
 - What is the expected behavior vs. actual behavior?
 - Can you provide steps to reproduce?
 - What is the impact and severity?
 - Are there error messages or stack traces?
-- Which components/files are likely affected?
+- **Which specific files contain the bug? Please provide full file paths** (e.g., src/services/payment.js:line-number)
 
 **For Migrations:**
 - What is being migrated (code, data, infrastructure)?
@@ -74,6 +80,8 @@ If critical information is missing, ask the user targeted questions:
 
 - **If `architectureVersion: >= v4` and `architectureSharded: true`**: Read `{architectureShardedLocation}/index.md` then follow structured reading
 - **Else**: Use monolithic `architectureFile`
+
+**Fallback for Architecture Documentation:** If no `architecture/` folder exists inside `docs/` folder, check for `Claude.md` in the root directory of the project if it exists. This file may contain architecture and project information.
 
 #### 3.2 Read Relevant Architecture Documents
 
@@ -189,9 +197,12 @@ As a senior developer, document key technical decisions:
 - Design patterns to apply
 
 #### 6.2 File Structure Planning
-- New files to create (with full paths)
-- Existing files to modify
-- Files to delete (for migrations)
+
+**🚨 REMINDER:** Do NOT use Glob, Grep, or Read to discover files. ASK the user for specific file paths.
+
+- New files to create (with full paths) - **ASK USER**
+- Existing files to modify - **ASK USER**
+- Files to delete (for migrations) - **ASK USER**
 - Directory structure changes
 
 #### 6.3 Architecture Decisions
@@ -215,6 +226,8 @@ As a senior developer, document key technical decisions:
 - Highlight areas of uncertainty requiring investigation
 
 ### 7. Create Detailed Implementation Task List
+
+**🚨 REMINDER:** All file paths in tasks must come from user input or architecture docs, NEVER from code scanning.
 
 Break down the implementation into sequential, actionable tasks with checkboxes.
 
@@ -363,7 +376,20 @@ If a dependency file was loaded in Step 4:
 
 Document which action was taken and why in a comment at the end of the implementation plan.
 
-### 13. Present Plan to User for Review
+### 13. Verify No Code Scanning Occurred
+
+**MANDATORY CHECK - Confirm compliance with critical rules:**
+
+✓ **Self-Audit Checklist:**
+- [ ] I did NOT use Glob tool on source code directories
+- [ ] I did NOT use Grep tool on source code files
+- [ ] I did NOT use Read tool on source code files (only architecture docs and config files)
+- [ ] All file locations came from: user responses OR architecture documentation
+- [ ] If I needed file locations, I ASKED the user explicitly
+
+**If any check fails:** You have violated critical rules. Delete any information obtained through code scanning and ask the user for the information properly.
+
+### 14. Present Plan to User for Review
 
 Provide summary including:
 - **Plan created:** `/docs/impl-plan/{ticket-number}-implementation-plan.md`
@@ -378,7 +404,7 @@ Provide summary including:
 - **Estimated Complexity:** Simple/Moderate/Complex (based on task count and dependencies)
 - **Next Steps:** "Please review the plan. Use *refine-plan to provide feedback, or approve to proceed with implementation."
 
-### 14. Await User Feedback
+### 15. Await User Feedback
 
 HALT and wait for user to:
 - Approve the plan (ready for dev agent)
