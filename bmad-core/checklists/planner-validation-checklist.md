@@ -121,7 +121,7 @@ We're checking for COMPREHENSIVE detail that eliminates ambiguity and external l
 
 [[LLM: FINAL IMPLEMENTATION PLAN VALIDATION REPORT
 
-Generate a comprehensive validation report:
+Generate a very concise validation report:
 
 1. Quick Summary
    - Plan readiness: READY / NEEDS REFINEMENT / BLOCKED

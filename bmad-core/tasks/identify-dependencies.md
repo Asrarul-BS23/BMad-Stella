@@ -57,6 +57,8 @@ When identifying items in sections 2-5, document the following for each item:
 First, read the architecture index to understand available documentation:
 - Read `architecture/index.md` - Contains brief descriptions of all architecture documents
 
+**Fallback for Architecture Documentation:** If no `architecture/` folder exists inside `docs/` folder, check for `Claude.md` in the root directory of the project if it exists. This file may contain architecture and project information.
+
 Based on the ticket context and the briefs in the index, decide which architecture files are relevant to explore:
 - For technology/package dependencies → Review tech stack documentation
 - For project structure/module dependencies → Review structure documentation
