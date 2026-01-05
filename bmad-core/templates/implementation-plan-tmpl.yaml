@@ -1,0 +1,286 @@
+# <!-- Powered by Stella Development Team -->
+
+template:
+  id: implementation-plan-template-v1
+  name: Implementation Plan Document
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/impl-plan/{{story_number}}/{{ticket_number}}-{{ticket_title_short}}.md
+    title: "Implementation Plan: {{ticket_number}} - {{title}}"
+
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+
+agent_config:
+  editable_sections:
+    - Status
+    - Ticket Information
+    - Requirements
+    - Acceptance Criteria
+    - Technical Approach
+    - Tasks / Subtasks
+    - Technical Context / Dev Notes
+    - Dependencies and Risks
+    - Files to Change
+    - Change Log
+
+sections:
+  - id: status
+    title: Status
+    type: choice
+    choices: [Draft - Awaiting Review, Approved, In Progress, Under Review, Completed]
+    instruction: Select the current status of the implementation plan
+    owner: planner
+    editors: [planner, dev-agent]
+
+  - id: ticket-info
+    title: Ticket Information
+    instruction: Core information about the JIRA ticket
+    owner: planner
+    editors: [planner]
+    sections:
+      - id: ticket-number
+        title: Ticket Number
+        type: text
+        template: "{{ticket_number}}"
+        instruction: JIRA ticket number (e.g., PROJ-123)
+        elicit: true
+        owner: planner
+        editors: [planner]
+
+      - id: ticket-type
+        title: Ticket Type
+        type: choice
+        choices: [Feature, Bug, Migration]
+        instruction: Type of work to be performed
+        elicit: true
+        owner: planner
+        editors: [planner]
+
+      - id: title
+        title: Title
+        type: text
+        template: "{{title}}"
+        instruction: Brief, descriptive title of the ticket
+        elicit: true
+        owner: planner
+        editors: [planner]
+
+      - id: description
+        title: Description
+        type: multiline-text
+        instruction: Full description from JIRA ticket or derived from analysis
+        elicit: true
+        owner: planner
+        editors: [planner]
+
+      - id: original-source
+        title: Original Source
+        instruction: |
+          Reference to original input (file path, screenshot, or inline text).
+          This helps track where the ticket information came from.
+        owner: planner
+        editors: [planner]
+
+  - id: requirements
+    title: Requirements
+    type: numbered-list
+    instruction: |
+      Explicit functional and non-functional requirements.
+      If not provided in ticket, derive from description and acceptance criteria.
+      Each requirement should be clear, specific, and testable.
+    elicit: true
+    owner: planner
+    editors: [planner]
+
+  - id: acceptance-criteria
+    title: Acceptance Criteria
+    type: numbered-list
+    instruction: |
+      Specific, testable conditions that must be met for the ticket to be considered complete.
+      If not provided in ticket, derive based on requirements and ticket type.
+      Format: Clear, actionable statements that can be verified.
+    elicit: true
+    owner: planner
+    editors: [planner]
+
+  - id: technical-approach
+    title: Technical Approach
+    type: multiline-text
+    instruction: |
+      High-level technical strategy and key decisions.
+      Written by planner as a senior developer guiding junior developers.
+
+      Include:
+      - Overall strategy for implementing this ticket
+      - Major components involved
+      - Component design approach
+      - Data flow and state management
+      - API design (if applicable)
+      - Database schema changes (if applicable)
+      - Design patterns to apply
+      - Specific technologies, frameworks, or libraries to use
+      - Include reasoning and cite architecture docs where applicable
+    elicit: true
+    owner: planner
+    editors: [planner]
+
+  - id: tasks-subtasks
+    title: Tasks / Subtasks
+    type: bullet-list
+    instruction: |
+      Detailed, sequential task breakdown with checkboxes [ ].
+      Each task should be actionable by a junior developer.
+      Include specific file paths, function names, and technical details.
+      Reference acceptance criteria numbers where relevant (AC: #).
+      Group related subtasks under parent tasks.
+    template: |
+      - [ ] Task 1 (AC: # if applicable)
+        - [ ] Subtask 1.1...
+      - [ ] Task 2 (AC: # if applicable)
+        - [ ] Subtask 2.1...
+      - [ ] Task 3 (AC: # if applicable)
+        - [ ] Subtask 3.1...
+    elicit: true
+    owner: planner
+    editors: [planner, dev-agent]
+
+  - id: technical-context
+    title: Technical Context / Dev Notes
+    type: multiline-text
+    instruction: |
+      Comprehensive technical details extracted from architecture docs.
+      This section must provide ALL information the dev agent needs
+      without requiring additional document lookups.
+
+      Include relevant details about:
+      - Data models, schemas, and validation rules
+      - API specifications (endpoints, requests, responses)
+      - Component specifications and UI requirements
+      - Code patterns and standards to follow
+      - Technical constraints (versions, performance, security)
+      - Integration points with external systems
+      - Previous implementation notes and learnings
+
+      CRITICAL: Do not invent information. Only include what was
+      extracted from actual architecture documents or derived from
+      ticket requirements. Always cite sources.
+    elicit: true
+    owner: planner
+    editors: [planner]
+    sections:
+      - id: file-locations
+        title: File Locations and Project Structure
+        instruction: |
+          Exact file paths and structure based on architecture docs:
+          - Where to create new files
+          - Naming conventions to follow
+          - Directory structure to maintain
+          [Source: architecture/unified-project-structure.md#{section}]
+        owner: planner
+        editors: [planner]
+
+      - id: testing-standards
+        title: Testing Standards
+        instruction: |
+          Testing requirements and standards from architecture:
+          - Test file locations
+          - Testing frameworks and patterns to use
+          - Coverage requirements
+          - Any specific testing requirements for this ticket
+          [Source: architecture/testing-strategy.md#{section}]
+        owner: planner
+        editors: [planner]
+
+  - id: dependencies-and-risks
+    title: Dependencies and Risks
+    instruction: |
+      Technical dependencies and potential blockers.
+      Identifies what must be in place and what might prevent smooth implementation.
+    owner: planner
+    editors: [planner]
+    sections:
+      - id: dependencies
+        title: Dependencies
+        instruction: |
+          Dependencies that must be in place:
+          - Other tickets that must be completed first
+          - Infrastructure requirements
+          - Third-party service availability
+          - Library or framework versions needed
+          - External dependencies
+        owner: planner
+        editors: [planner]
+
+      - id: blockers
+        title: Blockers
+        instruction: |
+          Known blockers or significant risks (optional - only include if applicable):
+          - Missing requirements or unclear specifications
+          - Technical limitations that need resolution
+          - Critical resource constraints
+          - Blocking external dependencies
+          - Rollback plans needed (especially for migrations)
+        owner: planner
+        editors: [planner]
+
+  - id: files-to-change
+    title: Files to Change
+    instruction: |
+      List of files provided by user that need to be modified or created.
+      This captures the user's specification of what files are in scope for this ticket.
+      The dev agent will populate the actual files changed in their record section.
+    type: bullet-list
+    owner: planner
+    editors: [planner]
+
+  - id: change-log
+    title: Change Log
+    type: table
+    columns: [Date, Version, Description, Author]
+    instruction: Track changes made to this implementation plan
+    owner: planner
+    editors: [planner, dev-agent]
+
+  - id: dev-agent-record
+    title: Dev Agent Record
+    instruction: This section is populated by the development agent during implementation
+    owner: dev-agent
+    editors: [dev-agent]
+    sections:
+      - id: agent-model
+        title: Agent Model Used
+        template: "{{agent_model_name_version}}"
+        instruction: Record the specific AI agent model and version used for development
+        owner: dev-agent
+        editors: [dev-agent]
+
+      - id: debug-log-references
+        title: Debug Log References
+        instruction: Reference any debug logs or traces generated during development
+        owner: dev-agent
+        editors: [dev-agent]
+
+      - id: completion-notes
+        title: Completion Notes List
+        instruction: Notes about the completion of tasks and any issues encountered
+        owner: dev-agent
+        editors: [dev-agent]
+
+      - id: file-list
+        title: File List
+        instruction: List all files created, modified, or affected during story implementation
+        owner: dev-agent
+        editors: [dev-agent]
+
+  - id: feedback
+    title: Feedback
+    type: multiline-text
+    instruction: |
+      Consolidated feedback from reviews and refinements.
+      Include feedback from planner reviews, code reviews, or QA testing.
+      Use Change Log to track when feedback was incorporated.
+    owner: planner
+    editors: [planner, dev-agent, qa-agent]
