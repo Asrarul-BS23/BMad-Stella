@@ -6,7 +6,7 @@ template:
   version: 1.0
   output:
     format: markdown
-    filename: docs/impl-plan/{{story_number}}/{{ticket_number}}-{{ticket_title_short}}.md
+    filename: docs/impl-plan/{{ticket_number}}-{{ticket_title_short}}.md
     title: "Implementation Plan: {{ticket_number}} - {{title}}"
 
 workflow:
@@ -21,9 +21,7 @@ agent_config:
     - Acceptance Criteria
     - Technical Approach
     - Tasks / Subtasks
-    - Technical Context / Dev Notes
     - Dependencies and Risks
-    - Files to Change
     - Change Log
 
 sections:
@@ -110,19 +108,16 @@ sections:
     title: Technical Approach
     type: multiline-text
     instruction: |
-      High-level technical strategy and key decisions.
+      Concise technical strategy and essential implementation details.
       Written by planner as a senior developer guiding junior developers.
 
       Include:
-      - Overall strategy for implementing this ticket
-      - Major components involved
-      - Component design approach
-      - Data flow and state management
-      - API design (if applicable)
-      - Database schema changes (if applicable)
-      - Design patterns to apply
-      - Specific technologies, frameworks, or libraries to use
-      - Include reasoning and cite architecture docs where applicable
+      - Overall strategy and major components
+      - File locations (new files to create, existing files to modify)
+      - Key design patterns and code patterns to follow
+      - API/database design (if applicable)
+      - Technologies and frameworks to use
+      - Cite architecture docs where applicable
     elicit: true
     owner: planner
     editors: [planner]
@@ -131,11 +126,11 @@ sections:
     title: Tasks / Subtasks
     type: bullet-list
     instruction: |
-      Detailed, sequential task breakdown with checkboxes [ ].
-      Each task should be actionable by a junior developer.
-      Include specific file paths, function names, and technical details.
+      Sequential task breakdown with checkboxes [ ].
+      Tasks should be logical implementation steps, not overly granular.
+      Subtasks shouldn't be micro-tasks like "create file" or "add xyz to file".
+      Number of tasks and subtasks should be based on ticket length and complexity - Simple (3-5 tasks), Medium (5-8 tasks), Complex (8-12 tasks).
       Reference acceptance criteria numbers where relevant (AC: #).
-      Group related subtasks under parent tasks.
     template: |
       - [ ] Task 1 (AC: # if applicable)
         - [ ] Subtask 1.1...
@@ -146,53 +141,6 @@ sections:
     elicit: true
     owner: planner
     editors: [planner, dev-agent]
-
-  - id: technical-context
-    title: Technical Context / Dev Notes
-    type: multiline-text
-    instruction: |
-      Comprehensive technical details extracted from architecture docs.
-      This section must provide ALL information the dev agent needs
-      without requiring additional document lookups.
-
-      Include relevant details about:
-      - Data models, schemas, and validation rules
-      - API specifications (endpoints, requests, responses)
-      - Component specifications and UI requirements
-      - Code patterns and standards to follow
-      - Technical constraints (versions, performance, security)
-      - Integration points with external systems
-      - Previous implementation notes and learnings
-
-      CRITICAL: Do not invent information. Only include what was
-      extracted from actual architecture documents or derived from
-      ticket requirements. Always cite sources.
-    elicit: true
-    owner: planner
-    editors: [planner]
-    sections:
-      - id: file-locations
-        title: File Locations and Project Structure
-        instruction: |
-          Exact file paths and structure based on architecture docs:
-          - Where to create new files
-          - Naming conventions to follow
-          - Directory structure to maintain
-          [Source: architecture/unified-project-structure.md#{section}]
-        owner: planner
-        editors: [planner]
-
-      - id: testing-standards
-        title: Testing Standards
-        instruction: |
-          Testing requirements and standards from architecture:
-          - Test file locations
-          - Testing frameworks and patterns to use
-          - Coverage requirements
-          - Any specific testing requirements for this ticket
-          [Source: architecture/testing-strategy.md#{section}]
-        owner: planner
-        editors: [planner]
 
   - id: dependencies-and-risks
     title: Dependencies and Risks
@@ -226,16 +174,6 @@ sections:
         owner: planner
         editors: [planner]
 
-  - id: files-to-change
-    title: Files to Change
-    instruction: |
-      List of files provided by user that need to be modified or created.
-      This captures the user's specification of what files are in scope for this ticket.
-      The dev agent will populate the actual files changed in their record section.
-    type: bullet-list
-    owner: planner
-    editors: [planner]
-
   - id: change-log
     title: Change Log
     type: table
@@ -254,18 +192,6 @@ sections:
         title: Agent Model Used
         template: "{{agent_model_name_version}}"
         instruction: Record the specific AI agent model and version used for development
-        owner: dev-agent
-        editors: [dev-agent]
-
-      - id: debug-log-references
-        title: Debug Log References
-        instruction: Reference any debug logs or traces generated during development
-        owner: dev-agent
-        editors: [dev-agent]
-
-      - id: completion-notes
-        title: Completion Notes List
-        instruction: Notes about the completion of tasks and any issues encountered
         owner: dev-agent
         editors: [dev-agent]
 
