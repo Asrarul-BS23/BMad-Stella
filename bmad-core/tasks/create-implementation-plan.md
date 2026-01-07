@@ -8,9 +8,9 @@ To transform JIRA tickets (features, bugs, migrations) into comprehensive, actio
 
 ## CRITICAL RULES
 
-  **NEVER SCAN CODE FILES:** This task must NEVER use Glob, Grep, Read, or any other tools to scan actual source code files. Architecture documents and configuration files only. When file locations are needed, ASK the user.
+**NEVER SCAN CODE FILES:** This task must NEVER use Glob, Grep, Read, or any other tools to scan actual source code files. Architecture documents and configuration files only. When file locations are needed, ASK the user.
 
-  **ASK FOR FILE LOCATIONS:** Never attempt to discover file locations through scanning. Always ask the user: "Which specific files should be created/modified for this ticket? Please provide full paths."
+**ASK FOR FILE LOCATIONS:** Never attempt to discover file locations through scanning. Always ask the user: "Which specific files should be created/modified for this ticket? Please provide full paths."
 
 ## SEQUENTIAL Task Execution (Do not proceed until current Task is complete)
 
@@ -31,6 +31,7 @@ To transform JIRA tickets (features, bugs, migrations) into comprehensive, actio
 #### 1.2 Extract Core Ticket Information
 
 Extract the following (or derive if missing):
+
 - **Ticket Number:** Required for filename (e.g., PROJ-123)
 - **Ticket Type:** Identify as Feature, Bug, or Migration
 - **Title:** The ticket summary
@@ -42,6 +43,7 @@ Extract the following (or derive if missing):
 #### 1.3 Alert User on Input Quality
 
 Based on what's available, inform the user:
+
 - "✓ Complete ticket with requirements and acceptance criteria"
 - "⚠ Partial information - will derive requirements and acceptance criteria"
 - "⚠ Minimal information (title only) - will need to ask clarifying questions"
@@ -51,6 +53,7 @@ Based on what's available, inform the user:
 If critical information is missing, ask the user targeted questions:
 
 **For Features:**
+
 - What is the expected user workflow?
 - What are the key functional requirements?
 - Are there specific UI/UX requirements?
@@ -59,6 +62,7 @@ If critical information is missing, ask the user targeted questions:
 - **Which specific files should I create or modify? Please provide full file paths** (e.g., src/components/Auth.jsx, src/api/users.js)
 
 **For Bugs:**
+
 - What is the expected behavior vs. actual behavior?
 - Can you provide steps to reproduce?
 - What is the impact and severity?
@@ -66,6 +70,7 @@ If critical information is missing, ask the user targeted questions:
 - **Which specific files contain the bug? Please provide full file paths** (e.g., src/services/payment.js:line-number)
 
 **For Migrations:**
+
 - What is being migrated (code, data, infrastructure)?
 - What is the source and target state?
 - Are there data transformation requirements?
@@ -114,11 +119,13 @@ ALWAYS cite source documents: `[Source: architecture/{filename}.md#{section}]`
 ### 4. Handle Dependency Analysis (If Available)
 
 **Check and Load:**
+
 - Check if `docs/temporary/{ticket-no}-dependency-tmp.md` exists
 - If exists: Read and extract all dependency information (technical, infrastructure, third-party, data dependencies, blockers, risks)
 - If not exists: Proceed without pre-analyzed dependencies
 
 **After Planning Completion:**
+
 - If all dependencies addressed: Delete `docs/temporary/{ticket-no}-dependency-tmp.md`
 - If ticket will be decomposed into subtasks: Keep file with remaining dependencies for future subtasks
 - Document cleanup action in implementation plan
@@ -132,6 +139,7 @@ Based on ticket type and information gathered:
 **If NOT provided, derive them:**
 
 **For Features:**
+
 - Functional requirements (what the feature does)
 - UI/UX requirements (how it looks/behaves)
 - Data validation requirements
@@ -140,6 +148,7 @@ Based on ticket type and information gathered:
 - Security requirements (if applicable)
 
 **For Bugs:**
+
 - Reproduce the bug consistently
 - Verify root cause is identified
 - Implement fix that addresses root cause
@@ -147,6 +156,7 @@ Based on ticket type and information gathered:
 - Add tests to prevent recurrence
 
 **For Migrations:**
+
 - Successful migration of all affected components/data
 - No data loss or corruption
 - Backward compatibility maintained (if required)
@@ -158,6 +168,7 @@ Based on ticket type and information gathered:
 As a senior developer, document the complete technical approach:
 
 #### 6.1 Overall Strategy
+
 - Implementation strategy and major components affected
 - Technology/framework choices and design patterns to apply
 - Component design and data flow (only if complex interactions)
@@ -176,11 +187,13 @@ As a senior developer, document the complete technical approach:
 #### 6.3 Code Patterns and Technical Details
 
 Extract relevant patterns and specifications from architecture documents:
+
 - Specific patterns and examples to follow from architecture docs
 - Security or performance considerations
 - Integration points and third-party libraries
 
 **CRITICAL:**
+
 - Every technical detail MUST cite source: `[Source: architecture/{filename}.md#{section}]`
 - Do not invent information - only include what was extracted from architecture docs or derived from requirements
 - Keep focused on essential information directly relevant to this ticket
@@ -190,12 +203,14 @@ Extract relevant patterns and specifications from architecture documents:
 Include this subsection ONLY if there are actual dependencies, blockers, or risks to document. It will be in `Dependencies and Risks` section of the template, not subsection of `Technical Approach`.
 
 **If dependency file was loaded (Step 4):**
+
 - Integrate all dependencies from the analysis file
 - Incorporate identified blockers with severity levels
 - Add any additional dependencies or blockers discovered during planning
 - Document mitigation strategies for high-risk items
 
 **If no dependency file exists but risks/dependencies identified:**
+
 - Identify technical dependencies
 - Note potential blockers with severity
 - Highlight areas of uncertainty requiring investigation
@@ -209,11 +224,13 @@ Include this subsection ONLY if there are actual dependencies, blockers, or risk
 Break down implementation into sequential tasks with checkboxes. Reference acceptance criteria (AC: #).
 
 **Granularity Based on Complexity:**
+
 - **Simple ticket (1-2 story points):** 3-5 tasks with minimal subtasks
 - **Medium ticket (3-5 story points):** 5-8 tasks with subtasks
 - **Complex ticket (8+ story points):** 8-12 tasks with subtasks
 
 **Task Guidelines:**
+
 - Tasks should be logical implementation steps, not overly granular
 - DO NOT include code snippets in tasks
 - Avoid micro-tasks like "create file X" or "add import statement"
@@ -221,6 +238,7 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 - Reference architecture docs where applicable [Source: {doc}]
 
 **Task Categories to Include:**
+
 1. Setup/preparation (if needed)
 2. Core implementation (main features)
 3. Integration (connecting components)
@@ -257,8 +275,8 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
   - **Summary:** Brief overview of acceptance criteria and key technical decisions
   - Any deviations or conflicts noted between task and architecture
   - **Dependencies/Risks:** If any were identified
-  - **Next Steps:** "Please review the plan. Use *refine-plan to provide feedback, or approve to proceed with implementation."
+  - **Next Steps:** "Please review the plan. Use \*refine-plan to provide feedback, or approve to proceed with implementation."
 - HALT and await user to:
   - Approve the plan (ready for dev agent)
-  - Request refinements (use *refine-plan command)
+  - Request refinements (use \*refine-plan command)
   - Ask questions or provide additional context

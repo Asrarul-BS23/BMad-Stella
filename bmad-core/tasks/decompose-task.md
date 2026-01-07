@@ -20,6 +20,7 @@ To break down a complex task into smaller, manageable subtasks that are easier t
 #### 1.2 Gather Context
 
 Ask the user for additional context if needed:
+
 - What is the technical scope?
 - Are there specific files or components involved?
 - Are there dependencies or integration points?
@@ -32,6 +33,7 @@ Break down the complex task into logical components:
 #### 2.1 Identify Distinct Concerns
 
 Look for:
+
 - **Setup/Preparation** - Configuration, dependencies, scaffolding
 - **Data Layer** - Models, schemas, database changes
 - **Business Logic** - Core functionality, algorithms, processing
@@ -46,6 +48,7 @@ Look for:
 #### 2.2 Determine Logical Sequence
 
 Order components by:
+
 - Dependencies (what must come first)
 - Complexity (simple to complex, or vice versa if building confidence)
 - Risk (high-risk items first for early validation)
@@ -58,6 +61,7 @@ For each identified component, create specific subtasks:
 #### 3.1 Subtask Characteristics
 
 Each subtask should be:
+
 - **Atomic** - Focused on one specific thing
 - **Clear** - Obvious what needs to be done
 - **Completable** - Can be finished in a reasonable time
@@ -67,6 +71,7 @@ Each subtask should be:
 #### 3.2 Subtask Format
 
 Use checkbox format:
+
 ```
 - [ ] Parent Task: [High-level description]
   - [ ] Subtask 1: [Specific action with technical detail]
@@ -77,6 +82,7 @@ Use checkbox format:
 #### 3.3 Include Technical Details
 
 For each subtask, include:
+
 - **File paths** - Where the work happens
 - **Specific actions** - What exactly to do
 - **Technical patterns** - How to do it (if non-obvious)
@@ -88,6 +94,7 @@ For each subtask, include:
 #### Example 1: Complex Task - "Implement user authentication in .NET API"
 
 **Decomposed:**
+
 ```
 - [ ] Implement user authentication system
   - [ ] Create User entity in `Models/User.cs` with properties: Id, Email, PasswordHash, CreatedAt
@@ -106,6 +113,7 @@ For each subtask, include:
 #### Example 2: Bug Task - "Fix data corruption in CSV export feature"
 
 **Decomposed:**
+
 ```
 - [ ] Fix data corruption bug in CSV export (PROJ-456)
   - [ ] Reproduce bug with test data in `Tests/TestData/ExportTestData.json`
@@ -121,6 +129,7 @@ For each subtask, include:
 ### 5. Validate Decomposition
 
 Check that the decomposition is:
+
 - [ ] **Complete** - All aspects of the complex task are covered
 - [ ] **Non-overlapping** - Subtasks don't duplicate work
 - [ ] **Properly sequenced** - Dependencies are respected
@@ -131,6 +140,7 @@ Check that the decomposition is:
 ### 6. Present Decomposition to User
 
 Provide the decomposed task breakdown with:
+
 - **Original Complex Task:** [Description]
 - **Decomposed into:** [N] subtasks
 - **Estimated Complexity:** [Simple/Moderate/Complex]

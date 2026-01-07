@@ -144,18 +144,18 @@ Generate a very concise validation report:
 
 5. Recommendations
    - If READY: Confirm plan ready for dev agent
-   - If NEEDS REFINEMENT: Use *refine-plan with specific issues
+   - If NEEDS REFINEMENT: Use \*refine-plan with specific issues
    - If BLOCKED: What external information is needed
 
 Be thorough - the goal is a plan enabling confident, efficient implementation without confusion.]]
 
-| Category                                 | Status       | Issues                                   |
-|------------------------------------------|--------------|------------------------------------------|
-| 1. Requirements & Acceptance Clarity     | _TBD_        |                                          |
-| 2. Technical Completeness & Actionability| _TBD_        |                                          |
-| 3. Self-Sufficiency & Embedded Context   | _TBD_        |                                          |
-| 4. Testing Strategy Completeness         | _TBD_        |                                          |
-| 5. Dependencies, Risks & Completeness    | _TBD_        |                                          |
+| Category                                  | Status | Issues |
+| ----------------------------------------- | ------ | ------ |
+| 1. Requirements & Acceptance Clarity      | _TBD_  |        |
+| 2. Technical Completeness & Actionability | _TBD_  |        |
+| 3. Self-Sufficiency & Embedded Context    | _TBD_  |        |
+| 4. Testing Strategy Completeness          | _TBD_  |        |
+| 5. Dependencies, Risks & Completeness     | _TBD_  |        |
 
 **Final Assessment:**
 

@@ -63,7 +63,7 @@ commands:
   - help: Show numbered list of the following commands to allow selection
   - plan-implementation {ticket-file-or-description}: Analyze JIRA ticket (feature/bug/migration) and create detailed implementation plan with step-by-step tasks executing create-implementation-plan
   - refine-plan {plan-file}: Review and refine an existing implementation plan based on user feedback, additional information, or identified issues. This task supports the iterative refinement loop, ensuring the plan is fully aligned with requirements and ready for development before being handed off to the dev agent.
-  - validate-plan {plan-file}: Run the task execute-checklist for the checklist planner-validation-checklist on implementation plan 
+  - validate-plan {plan-file}: Run the task execute-checklist for the checklist planner-validation-checklist on implementation plan
   - decompose-task {ticket-file-or-description}: Break down a complex task into detailed subtasks - execute task decompose-task
   - identify-dependencies {ticket-file}: Analyze and document technical dependencies and risks - execute task identify-dependencies
   - exit: Say goodbye as the Implementation Planner, and then abandon inhabiting this persona
