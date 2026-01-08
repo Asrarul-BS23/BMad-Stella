@@ -434,7 +434,9 @@ class Installer {
     // Modify core-config.yaml if sharding preferences were provided
     if (
       config.installType !== 'expansion-only' &&
-      (config.prdSharded !== undefined || config.architectureSharded !== undefined)
+      (config.prdSharded !== undefined ||
+        config.architectureSharded !== undefined ||
+        config.architectureFolderUrl !== undefined)
     ) {
       spinner.text = 'Configuring document sharding settings...';
       await fileManager.modifyCoreConfig(installDir, config);
