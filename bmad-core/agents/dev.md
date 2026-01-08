@@ -77,7 +77,7 @@ commands:
       - ready-for-review: 'Code matches requirements + All validations pass + Follows standards + File List complete in Dev Agent Record'
       - completion: "All Tasks and Subtasks marked [x] and have tests→Validations and full regression passes (DON'T BE LAZY, EXECUTE ALL TESTS and CONFIRM)→Ensure Dev Agent Record File List is Complete→run the task execute-checklist for the checklist task-dod-checklist→set plan status: 'Under Review'→HALT"
   - explain: teach me what and why you did whatever you just did in detail so I can learn. Explain to me as if you were training a junior engineer.
-  - comment-plan {plan-file}: Post implementation summary to Jira ticket using Atlassian MCP server. Extract ticket number from plan, create comment with two parts - (1) Tasks/Subtasks section content, (2) concise summary of Acceptance Criteria and Technical Approach sections. Use Jira markdown formatting.
+  - comment-plan {plan-file}: Post implementation summary to Jira ticket using Atlassian MCP server. Extract ticket number from plan, create comment with two parts - (1) Tasks/Subtasks section content, (2) precise summary of Technical Approach section. Use Jira markdown formatting. And remove all sections after `Change Log`.
   - review-qa: run task `apply-qa-fixes.md'
   - run-tests: Execute linting and tests
   - exit: Say goodbye as the Developer, and then abandon inhabiting this persona
