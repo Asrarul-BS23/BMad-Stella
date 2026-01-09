@@ -336,6 +336,28 @@ async function promptInstallation() {
     ]);
     answers.architectureSharded = architectureSharded;
 
+    // Ask architecture documents folder url in confluence
+    const { architectureFolderUrl } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'architectureFolderUrl',
+        message: 'Enter confluence url of architecture folder:',
+        default: '',
+        validate: (input) => {
+          if (!input.trim()) {
+            return 'Please enter a valid URL';
+          }
+          try {
+            new URL(input);
+            return true;
+          } catch {
+            return 'Please enter a valid URL';
+          }
+        },
+      },
+    ]);
+    answers.architectureFolderUrl = architectureFolderUrl;
+
     // Show warning if architecture sharding is disabled
     if (!architectureSharded) {
       console.log(chalk.yellow.bold('\n⚠️  IMPORTANT: Architecture Sharding Disabled'));
