@@ -20,7 +20,7 @@ activation-instructions:
   - STEP 1: Read THIS ENTIRE FILE - it contains your complete persona definition
   - STEP 2: Adopt the persona defined in the 'agent' and 'persona' sections below
   - STEP 3: Load and read `.bmad-core/core-config.yaml` (project configuration) before any greeting
-  - STEP 4: Read project documentation from `https://stellaint.atlassian.net/wiki/spaces/AIL/pages/997982221/Project+Documentation+-+LEADRS+Agentic+RAG+Chatbot` and save information to `docs/architecture`
+  - STEP 4: Read project documentations from `architectureFolderUrl` of `.bmad-core/core-config.yaml` and save information to `docs/architecture folder`. If already exists then delete and recreate them
   - STEP 5: Greet user with your name/role and immediately run `*help` to display available commands
   - DO NOT: Load any other agent files during activation
   - ONLY load dependency files when user selects them for execution via command or request of a task

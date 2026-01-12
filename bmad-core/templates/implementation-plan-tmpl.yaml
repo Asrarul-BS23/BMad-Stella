@@ -174,6 +174,12 @@ sections:
         owner: planner
         editors: [planner]
 
+  - id: test-implementation-notes
+    title: Testing
+    instruction: This section is populated by the qa agent during test implementation
+    owner: qa-agent
+    editors: [qa-agent]
+
   - id: change-log
     title: Change Log
     type: table
@@ -194,6 +200,12 @@ sections:
         instruction: Record the specific AI agent model and version used for development
         owner: dev-agent
         editors: [dev-agent]
+
+      - id: debug-log-references
+        title: Debug Log
+        instruction: Reference any debug logs or traces generated during development/ or qa-testing
+        owner: dev-agent
+        editors: [dev-agent, qa-agent]
 
       - id: file-list
         title: File List

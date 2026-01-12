@@ -17,7 +17,8 @@ customTechnicalDocuments: null
 devLoadAlwaysFiles:
   - docs/architecture/coding-standards.md
   - docs/architecture/tech-stack.md
-  - docs/architecture/source-tree.md
+  - docs/architecture/project-structure.md
+  - docs/architecture/git-workflow.md
 devDebugLog: .ai/debug-log.md
 devStoryLocation:
   - docs/stories
