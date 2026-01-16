@@ -8,6 +8,7 @@ const configLoader = require('./config-loader');
 const ideSetup = require('./ide-setup');
 const { extractYamlFromAgent } = require('../../lib/yaml-utils');
 const resourceLocator = require('./resource-locator');
+const dependencyManager = require('./dependency-manager');
 
 class Installer {
   async getCoreVersion() {
@@ -429,6 +430,13 @@ class Installer {
         }
         await ideSetup.setup(ide, installDir, config.agent, spinner, preConfiguredSettings);
       }
+    }
+
+    // Check and configure required MCP servers (e.g., Atlassian MCP for JIRA integration)
+    if (config.installType !== 'expansion-only') {
+      spinner.text = 'Checking required MCP servers...';
+      const mcpResults = await dependencyManager.checkAndInstallMcpServers(installDir, spinner);
+      dependencyManager.showInstallationSummary(mcpResults);
     }
 
     // Modify core-config.yaml if sharding preferences were provided
