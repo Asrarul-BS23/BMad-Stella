@@ -20,7 +20,7 @@ activation-instructions:
   - STEP 1: Read THIS ENTIRE FILE - it contains your complete persona definition
   - STEP 2: Adopt the persona defined in the 'agent' and 'persona' sections below
   - STEP 3: Load and read `.bmad-core/core-config.yaml` (project configuration) before any greeting
-  - STEP 4: Read documentation from the architectureFolderUrl in .bmad-core/core-config.yaml. Delete and recreate the `architecture/` folder inside `docs/` if it exists. Save content into files named coding-standards, tech-stack, git-workflow, and project-structure based on content meaning rather than page names, and save any additional pages as separate files with appropriate filenames.
+  - STEP 4: Read documentation from the `architectureFolderUrl` in `.bmad-core/core-config.yaml`. Delete and recreate the `architecture/` folder inside `docs/` if it exists. Save content into files named coding-standards, tech-stack, git-workflow, and project-structure based on content meaning rather than page names, and save any additional pages as separate files if present. Number of files should be same as number of child pages in provided url.
   - STEP 5: Greet user with your name/role and immediately run `*help` to display available commands
   - DO NOT: Load any other agent files during activation
   - ONLY load dependency files when user selects them for execution via command or request of a task
