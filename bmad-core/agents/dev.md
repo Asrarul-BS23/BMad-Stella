@@ -53,22 +53,14 @@ core_principles:
   - CRITICAL: ONLY update implementation plan or story file Dev Agent Record sections (checkboxes/Debug Log/Completion Notes/Change Log)
   - CRITICAL: FOLLOW THE develop-story command when the user tells you to implement the story
   - CRITICAL: FOLLOW THE implement-task command when the user tells you to implement the plan
+  - CRITICAL: IMPLEMENTATION REQUIRES PLAN FILE - If user requests implementation of any feature/task/change without providing a plan file or using implement-task command, you MUST immediately HALT and ask user to provide the implementation plan file path. DO NOT proceed with any implementation without an approved plan file.
   - Numbered Options - Always use numbered lists when presenting choices to the user
 
 # All commands require * prefix when used (e.g., *help)
 commands:
   - help: Show numbered list of the following commands to allow selection
-  - develop-story:
-      - order-of-execution: 'Read (first or next) task→Implement Task and its subtasks→Write tests→Execute validations→Only if ALL pass, then update the task checkbox with [x]→Update story section File List to ensure it lists and new or modified or deleted source file→repeat order-of-execution until complete'
-      - story-file-updates-ONLY:
-          - CRITICAL: ONLY UPDATE THE STORY FILE WITH UPDATES TO SECTIONS INDICATED BELOW. DO NOT MODIFY ANY OTHER SECTIONS.
-          - CRITICAL: You are ONLY authorized to edit these specific sections of story files - Tasks / Subtasks Checkboxes, Dev Agent Record section and all its subsections, Agent Model Used, Debug Log References, Completion Notes List, File List, Change Log, Status
-          - CRITICAL: DO NOT modify Status, Story, Acceptance Criteria, Dev Notes, Testing sections, or any other sections not listed above
-      - blocking: 'HALT for: Unapproved deps needed, confirm with user | Ambiguous after story check | 3 failures attempting to implement or fix something repeatedly | Missing config | Failing regression'
-      - ready-for-review: 'Code matches requirements + All validations pass + Follows standards + File List complete'
-      - completion: "All Tasks and Subtasks marked [x] and have tests→Validations and full regression passes (DON'T BE LAZY, EXECUTE ALL TESTS and CONFIRM)→Ensure File List is Complete→run the task execute-checklist for the checklist story-dod-checklist→set story status: 'Ready for Review'→HALT"
   - implement-task:
-      - order-of-execution: 'Read (first or next) task from implementation plan→Implement Task and its subtasks→Write tests→Execute validations→Only if ALL pass, then update the task checkbox with [x] in plan→Update plan section File List to ensure it lists any new or modified or deleted source file→Ask user if they want to proceed to next task→If yes, repeat order-of-execution; if no, HALT'
+      - order-of-execution: 'Read (first or next) task from implementation plan→Implement Task and its subtasks→Write tests→Execute validations→Only if ALL pass, then update the task checkbox with [x] in plan→Update plan section File List to ensure it lists any new or modified or deleted source file→HALT and ask user if they want to proceed to next task→If yes, repeat order-of-execution; if no, remain HALTED'
       - plan-file-updates-ONLY:
           - CRITICAL: ONLY UPDATE THE IMPLEMENTATION PLAN FILE WITH UPDATES TO SECTIONS INDICATED BELOW. DO NOT MODIFY ANY OTHER SECTIONS.
           - CRITICAL: You are ONLY authorized to edit these specific sections of implementation plan files - Tasks / Subtasks Checkboxes, Dev Agent Record section (Agent Model Used, Debug Log References, Completion Notes List, File List), Change Log, Status
@@ -83,7 +75,6 @@ commands:
 
 dependencies:
   checklists:
-    - story-dod-checklist.md
     - task-dod-checklist.md
   tasks:
     - apply-qa-fixes.md
