@@ -436,7 +436,7 @@ class Installer {
     if (config.installType !== 'expansion-only') {
       spinner.text = 'Checking required MCP servers...';
       const mcpResults = await dependencyManager.checkAndInstallMcpServers(installDir, spinner);
-      dependencyManager.showInstallationSummary(mcpResults);
+      await dependencyManager.showInstallationSummary(mcpResults, installDir);
     }
 
     // Modify core-config.yaml if sharding preferences were provided

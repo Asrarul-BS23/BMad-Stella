@@ -38,9 +38,9 @@ class DependencyManager {
   }
 
   /**
-   * Get list of installed MCP servers
+   * Get list of installed MCP servers with their status
    * @param {string} installDir - Target installation directory
-   * @returns {Promise<Array<string>>} - Array of installed MCP server names
+   * @returns {Promise<Array<{name: string, connected: boolean}>>} - Array of MCP servers with status
    */
   async getInstalledMcpServers(installDir) {
     try {
@@ -50,19 +50,22 @@ class DependencyManager {
         stdio: 'pipe',
       });
 
-      // Parse the output to extract server names
-      const serverNames = [];
+      // Parse the output to extract server names and status
+      const servers = [];
       const lines = output.split('\n');
       for (const line of lines) {
         // Look for lines that contain server names
-        // Adjust this regex based on actual output format
+        // Check if line indicates connected status (✓, connected, etc.)
         const match = line.trim().match(/^(\w+)/);
         if (match && match[1]) {
-          serverNames.push(match[1].toLowerCase());
+          servers.push({
+            name: match[1].toLowerCase(),
+            connected: line.includes('connected') || line.includes('✓'),
+          });
         }
       }
 
-      return serverNames;
+      return servers;
     } catch (error) {
       console.warn(chalk.yellow('Warning: Could not list MCP servers'), error.message);
       return [];
@@ -78,7 +81,23 @@ class DependencyManager {
   async isMcpServerInstalled(installDir, serverName) {
     try {
       const installedServers = await this.getInstalledMcpServers(installDir);
-      return installedServers.includes(serverName.toLowerCase());
+      return installedServers.some((s) => s.name === serverName.toLowerCase());
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if a specific MCP server is connected/authenticated
+   * @param {string} installDir - Target installation directory
+   * @param {string} serverName - MCP server name to check
+   * @returns {Promise<boolean>}
+   */
+  async isMcpServerConnected(installDir, serverName) {
+    try {
+      const installedServers = await this.getInstalledMcpServers(installDir);
+      const server = installedServers.find((s) => s.name === serverName.toLowerCase());
+      return server ? server.connected : false;
     } catch {
       return false;
     }
@@ -113,6 +132,16 @@ class DependencyManager {
       });
 
       console.log(chalk.green(`✓ Successfully added ${serverConfig.name}`));
+
+      // Show authentication instructions for servers that require it
+      if (serverName === 'atlassian') {
+        console.log(chalk.yellow('\n⚠️  Authentication Required:'));
+        console.log(chalk.cyan('   1. Open Claude Code CLI in your project directory'));
+        console.log(chalk.cyan('   2. Run: /mcp'));
+        console.log(chalk.cyan('   3. Follow the browser authentication flow for Atlassian'));
+        console.log(chalk.dim('   Note: You must authenticate to use JIRA integration features\n'));
+      }
+
       return true;
     } catch (error) {
       console.error(chalk.red(`\n✗ Failed to add ${serverConfig.name}:`), error.message);
@@ -253,12 +282,31 @@ class DependencyManager {
   /**
    * Show MCP server installation summary
    * @param {object} results - Installation results
+   * @param {string} installDir - Target installation directory
    */
-  showInstallationSummary(results) {
+  async showInstallationSummary(results, installDir) {
     if (results.installed.length > 0) {
       console.log(chalk.green(`\n✓ Configured ${results.installed.length} MCP server(s):`));
       for (const server of results.installed) {
         console.log(chalk.green(`  - ${server}`));
+      }
+
+      // Check connection status for installed servers
+      console.log(chalk.cyan('\n🔐 Checking authentication status...'));
+      for (const server of results.installed) {
+        const isConnected = await this.isMcpServerConnected(installDir, server);
+        if (isConnected) {
+          console.log(chalk.green(`✓ ${server} is authenticated`));
+        } else {
+          const serverConfig = this.requiredMcpServers[server];
+          console.log(chalk.yellow(`\n⚠️  ${serverConfig.name} is not authenticated yet`));
+          console.log(chalk.cyan('   To authenticate:'));
+          console.log(chalk.cyan('   1. Open Claude Code CLI in your project directory'));
+          console.log(chalk.cyan('   2. Run: /mcp'));
+          console.log(
+            chalk.cyan(`   3. Follow the browser authentication flow for ${serverConfig.name}`),
+          );
+        }
       }
     }
 
@@ -296,6 +344,35 @@ class DependencyManager {
             command += ` --env ${envVar}=<${envVar.toLowerCase()}>`;
           }
           console.log(chalk.cyan(`  ${command}`));
+          console.log(chalk.dim(`  Then run '/mcp' in Claude Code CLI to authenticate\n`));
+        }
+      }
+    }
+
+    // Check for already configured servers that might not be authenticated
+    if (
+      results.checked.length > 0 &&
+      results.installed.length === 0 &&
+      results.skipped.length > 0
+    ) {
+      console.log(chalk.cyan('\n🔐 Checking authentication status for existing servers...'));
+      for (const server of results.skipped) {
+        if (this.requiredMcpServers[server]) {
+          const isConnected = await this.isMcpServerConnected(installDir, server);
+          if (isConnected) {
+            console.log(chalk.green(`✓ ${server} is authenticated`));
+          } else {
+            const serverConfig = this.requiredMcpServers[server];
+            console.log(
+              chalk.yellow(`\n⚠️  ${serverConfig.name} is configured but not authenticated`),
+            );
+            console.log(chalk.cyan('   To authenticate:'));
+            console.log(chalk.cyan('   1. Open Claude Code CLI in your project directory'));
+            console.log(chalk.cyan('   2. Run: /mcp'));
+            console.log(
+              chalk.cyan(`   3. Follow the browser authentication flow for ${serverConfig.name}`),
+            );
+          }
         }
       }
     }
