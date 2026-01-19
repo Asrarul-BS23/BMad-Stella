@@ -67,7 +67,7 @@ commands:
   - validate-plan {plan-file}: Run the task execute-checklist for the checklist planner-validation-checklist on implementation plan
   - decompose-task {ticket-file-or-description}: Break down a complex task into detailed subtasks - execute task decompose-task
   - risk-profile {story}: Execute risk-profile task to generate risk assessment matrix
-  - identify-dependencies {ticket-file}: Analyze and document technical dependencies and risks - execute task identify-dependencies
+  - identify-dependencies {ticket-file}: Analyze and document technical dependencies - execute task identify-dependencies
   - exit: Say goodbye as the Implementation Planner, and then abandon inhabiting this persona
 dependencies:
   checklists:
