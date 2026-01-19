@@ -200,6 +200,7 @@ class DependencyManager {
       installed: [],
       failed: [],
       skipped: [],
+      alreadyConfigured: [],
     };
 
     // Check if Claude CLI is installed
@@ -233,7 +234,7 @@ class DependencyManager {
 
       if (isInstalled) {
         console.log(chalk.green(`✓ ${serverConfig.name} is already configured`));
-        results.skipped.push(serverName);
+        results.alreadyConfigured.push(serverName);
         if (spinner) spinner.start();
         continue;
       }
@@ -328,7 +329,11 @@ class DependencyManager {
       }
     }
 
-    if (results.skipped.length > 0 && results.installed.length === 0) {
+    if (
+      results.skipped.length > 0 &&
+      results.installed.length === 0 &&
+      results.alreadyConfigured.length === 0
+    ) {
       console.log(chalk.yellow('\n⚠️  No MCP servers were configured.'));
       console.log(
         chalk.yellow(
@@ -350,13 +355,9 @@ class DependencyManager {
     }
 
     // Check for already configured servers that might not be authenticated
-    if (
-      results.checked.length > 0 &&
-      results.installed.length === 0 &&
-      results.skipped.length > 0
-    ) {
+    if (results.alreadyConfigured.length > 0) {
       console.log(chalk.cyan('\n🔐 Checking authentication status for existing servers...'));
-      for (const server of results.skipped) {
+      for (const server of results.alreadyConfigured) {
         if (this.requiredMcpServers[server]) {
           const isConnected = await this.isMcpServerConnected(installDir, server);
           if (isConnected) {
