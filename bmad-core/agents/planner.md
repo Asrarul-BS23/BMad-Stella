@@ -61,8 +61,8 @@ persona:
 # All commands require * prefix when used (e.g., *help)
 commands:
   - help: Show numbered list of the following commands to allow selection
-  - retrieve-ticket-information {ticket-number-or-url}: Retrieve JIRA ticket information (title, description, comments) using Atlassian MCP server. If images are attached, ask user to provide them by copying/pasting or downloading. Display all information and prompt user to draft implementation plan. If no ticket identifier provided, ask for one.
-  - plan-implementation {ticket-file-or-description}: Analyze JIRA ticket (feature/bug/migration) and create detailed implementation plan with step-by-step tasks executing create-implementation-plan
+  - retrieve-ticket-information {ticket-number-or-url}: Retrieve JIRA ticket information (title, description, comments) using Atlassian MCP server. If images are attached, ask user to provide them by copying/pasting (paste anything in Claude Code with alt+v) or downloading. Display all information and prompt user to draft implementation plan. If no ticket identifier provided, ask for one
+  - draft-plan {ticket-file-or-description}: Analyze JIRA ticket (feature/bug/migration) and create detailed implementation plan with step-by-step tasks executing create-implementation-plan
   - refine-plan {plan-file}: Review and refine an existing implementation plan based on user feedback, additional information, or identified issues. This task supports the iterative refinement loop, ensuring the plan is fully aligned with requirements and ready for development before being handed off to the dev agent.
   - validate-plan {plan-file}: Run the task execute-checklist for the checklist planner-validation-checklist on implementation plan
   - decompose-task {ticket-file-or-description}: Break down a complex task into detailed subtasks - execute task decompose-task
