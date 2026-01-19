@@ -8,9 +8,14 @@ To transform JIRA tickets (features, bugs, migrations) into comprehensive, actio
 
 ## CRITICAL RULES
 
-**NEVER SCAN CODE FILES:** This task must NEVER use Glob, Grep, Read, or any other tools to scan actual source code files. Architecture documents and configuration files only. When file locations are needed, ASK the user.
+**FILE LOCATION DISCOVERY:** When file locations are needed, ALWAYS ASK the user first which approach they prefer:
 
-**ASK FOR FILE LOCATIONS:** Never attempt to discover file locations through scanning. Always ask the user: "Which specific files should be created/modified for this ticket? Please provide full paths."
+1. **User provides paths:** User can directly specify full file paths if they know them
+
+2. **System scans codebase:** Use Glob/Grep to search and detect relevant files if user doesn't know exact locations
+   - **Get search hints first:** Ask user for helpful hints to narrow the search (e.g., "Look in services folder", "Related to authentication", "Files with 'payment' in name", "Backend API files")
+   - **Check project structure docs:** ALWAYS read `docs/architecture/project-structure.md` (or `project-structure.md`) FIRST to understand file locations and naming conventions
+   - **Perform targeted search:** Use hints + structure knowledge to create focused Glob/Grep searches instead of broad codebase scans
 
 ## SEQUENTIAL Task Execution (Do not proceed until current Task is complete)
 
@@ -59,7 +64,7 @@ If critical information is missing, ask the user targeted questions:
 - Are there specific UI/UX requirements?
 - What data needs to be captured/displayed?
 - Are there integration requirements?
-- **Which specific files should I create or modify? Please provide full file paths** (e.g., src/components/Auth.jsx, src/api/users.js)
+- **Which files need modification?** (Offer both options as per CRITICAL RULES)
 
 **For Bugs:**
 
@@ -67,7 +72,7 @@ If critical information is missing, ask the user targeted questions:
 - Can you provide steps to reproduce?
 - What is the impact and severity?
 - Are there error messages or stack traces?
-- **Which specific files contain the bug? Please provide full file paths** (e.g., src/services/payment.js:line-number)
+- **Which files contain the bug?** (Offer both options as per CRITICAL RULES)
 
 **For Migrations:**
 
@@ -177,11 +182,11 @@ As a senior developer, document the complete technical approach:
 
 #### 6.2 File Structure Planning
 
-**🚨 REMINDER:** Do NOT use Glob, Grep, or Read to discover files. ASK the user for specific file paths.
+**🚨 REMINDER:** Follow the FILE LOCATION DISCOVERY approach from CRITICAL RULES (offer both options to user).
 
 - **New files to create** (with full paths) - **AS Project Structure**
-- **Existing files to modify** - **ASK USER**
-- **Files to delete** (for migrations) - **ASK USER**
+- **Existing files to modify** - **Use FILE LOCATION DISCOVERY approach**
+- **Files to delete** (for migrations) - **Use FILE LOCATION DISCOVERY approach**
 - **Directory structure changes**
 
 #### 6.3 Code Patterns and Technical Details
@@ -219,7 +224,7 @@ Include this subsection ONLY if there are actual dependencies, blockers, or risk
 
 ### 7. Create Implementation Task List
 
-**🚨 REMINDER:** All file paths must come from user input or architecture docs, NEVER from code scanning.
+**🚨 REMINDER:** Follow the FILE LOCATION DISCOVERY approach from CRITICAL RULES for all file paths.
 
 Break down implementation into sequential tasks with checkboxes. Reference acceptance criteria (AC: #).
 
