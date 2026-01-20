@@ -29,7 +29,7 @@
 
 ```bash
 @reviewer
-*review docs/impl-plan/PROJ-123-feature.md
+*review bmad-docs/impl-plan/PROJ-123-feature.md
 ```
 
 ---
@@ -37,6 +37,7 @@
 ## What It Does
 
 **Simple workflow:**
+
 1. Load files
 2. Find improvements (time complexity, code quality)
 3. Show improvement with before/after code
@@ -45,6 +46,7 @@
 6. Done!
 
 **Focuses on:**
+
 - ✅ Reducing time complexity (O(n²) → O(n))
 - ✅ Using better data structures (Map/Set)
 - ✅ Removing duplicate code
@@ -53,6 +55,7 @@
 - ✅ Adding error handling
 
 **Avoids:**
+
 - ❌ Caching layers
 - ❌ Vector embeddings
 - ❌ Infrastructure changes

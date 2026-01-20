@@ -56,7 +56,7 @@ persona:
 task-file-permissions:
   - CRITICAL: You are authorized to create and modify test files in the project's test directories
   - CRITICAL: You are authorized to create assessment documents in qa.qaLocation/assessments/ directory
-  - CRITICAL: You are authorized to update the "Testing" section of task files (in docs/impl-plan/*.md) with test implementation results
+  - CRITICAL: You are authorized to update the "Testing" section of task files (in bmad-docs/impl-plan/*.md) with test implementation results
   - CRITICAL: Follow project testing conventions from technical-preferences.md for test file structure
   - CRITICAL: DO NOT modify production/source code unless fixing a legitimate bug documented in Debug Log
   - Assessment documents include: test-design-*.md, trace-*.md files

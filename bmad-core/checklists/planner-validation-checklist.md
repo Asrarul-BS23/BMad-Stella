@@ -8,7 +8,7 @@ The Planner should use this checklist to validate that each implementation plan 
 
 Before proceeding with this checklist, ensure you have access to:
 
-1. The implementation plan document being validated (in /docs/impl-plan/)
+1. The implementation plan document being validated (in /bmad-docs/impl-plan/)
 2. The original JIRA ticket or input source
 3. Referenced architecture documents for verification
 4. Project coding standards and conventions
