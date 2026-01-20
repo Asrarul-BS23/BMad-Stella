@@ -450,6 +450,14 @@ class Installer {
       await fileManager.modifyCoreConfig(installDir, config);
     }
 
+    // Update .gitignore with BMad directories
+    if (config.installType !== 'expansion-only') {
+      spinner.text = 'Updating .gitignore...';
+      spinner.stop();
+      await this.updateGitignore(installDir);
+      spinner.start();
+    }
+
     // Create manifest (skip for expansion-only installations)
     if (config.installType !== 'expansion-only') {
       spinner.text = 'Creating installation manifest...';
@@ -1968,6 +1976,71 @@ class Installer {
       }
     } catch (error) {
       console.warn(`Warning: Could not cleanup legacy .yml files: ${error.message}`);
+    }
+  }
+
+  async updateGitignore(installDir) {
+    try {
+      const gitignorePath = path.join(installDir, '.gitignore');
+      const bmadIgnoreEntries = ['bmad-docs/', '.claude/', '.bmad-core/'];
+
+      // Check if .gitignore exists
+      const exists = await fileManager.pathExists(gitignorePath);
+
+      let content = '';
+      if (exists) {
+        content = await fileManager.readFile(gitignorePath);
+      }
+
+      // Parse .gitignore line by line to find existing patterns
+      const lines = content.split('\n');
+      const existingPatterns = new Set();
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        // Skip empty lines and comments
+        if (trimmed && !trimmed.startsWith('#')) {
+          existingPatterns.add(trimmed);
+        }
+      }
+
+      // Check which entries are missing
+      const missingEntries = bmadIgnoreEntries.filter((entry) => {
+        // Check exact match and without trailing slash
+        const withoutSlash = entry.endsWith('/') ? entry.slice(0, -1) : entry;
+        const withSlash = entry.endsWith('/') ? entry : entry + '/';
+
+        // Pattern exists if we find exact match, with slash, without slash, or with wildcards
+        return (
+          !existingPatterns.has(entry) &&
+          !existingPatterns.has(withoutSlash) &&
+          !existingPatterns.has(withSlash) &&
+          !existingPatterns.has(`/${entry}`) && // root-only pattern
+          !existingPatterns.has(`**/${entry}`) && // any depth pattern
+          !existingPatterns.has(`${withoutSlash}/*`)
+        ); // contents pattern
+      });
+
+      if (missingEntries.length > 0) {
+        // Check if BMad header already exists
+        const hasBmadHeader = lines.some((line) => {
+          const trimmed = line.trim();
+          return trimmed === '# BMad directories' || trimmed === '# BMad';
+        });
+
+        // Build new content
+        const separator = content.length > 0 && !content.endsWith('\n') ? '\n' : '';
+        const header = hasBmadHeader ? '' : '\n# BMad directories\n';
+        const newContent = content + separator + header + missingEntries.join('\n') + '\n';
+
+        await fileManager.writeFile(gitignorePath, newContent);
+        console.log(chalk.green('✓ Updated .gitignore with BMad directories'));
+        console.log(chalk.dim(`  Added: ${missingEntries.join(', ')}`));
+      } else {
+        console.log(chalk.dim('  .gitignore already includes BMad directories'));
+      }
+    } catch (error) {
+      console.log(chalk.yellow(`⚠️  Could not update .gitignore: ${error.message}`));
     }
   }
 
