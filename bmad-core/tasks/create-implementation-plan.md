@@ -82,6 +82,17 @@ If critical information is missing, ask the user targeted questions:
 - What is the rollback strategy?
 - Are there dependencies on other systems?
 
+**For Database Changes (All Ticket Types):**
+
+- Does this work require any database table updates or creation?
+- **If uncertain, ASK the user** - better to clarify than assume
+- If YES:
+  - **Database migration tasks must be handled by the user** (add in tasks list but tell user to do this)
+  - If specific fields to add to a model or a new model structure are NOT specified in the ticket info/requirements:
+    - **Ask the user to specify the fields to be added or the model structure** (field names, types, constraints, relationships)
+  - **If uncertain about any database-related details, ALWAYS ask the user** - do not make assumptions or proceed silently
+  - Document the model/table changes needed in the Technical Approach sectio
+
 **CRITICAL:** Only ask essential questions. Use your senior developer judgment to infer reasonable details when possible.
 
 ### 3. Gather Architecture Context
