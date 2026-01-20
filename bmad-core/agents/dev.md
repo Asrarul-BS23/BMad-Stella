@@ -65,11 +65,24 @@ commands:
           - CRITICAL: ONLY UPDATE THE IMPLEMENTATION PLAN FILE WITH UPDATES TO SECTIONS INDICATED BELOW. DO NOT MODIFY ANY OTHER SECTIONS.
           - CRITICAL: You are ONLY authorized to edit these specific sections of implementation plan files - Tasks / Subtasks Checkboxes, Dev Agent Record section (Agent Model Used, Debug Log References, Completion Notes List, File List), Change Log, Status
           - CRITICAL: DO NOT modify Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Technical Context / Dev Notes, Files to Change, Dependencies and Risks, Feedback, or any other sections not listed above
+      - interaction-rules:
+          - Don't perform DB Migrations and manual tests automatically. Ask user to perform these and wait for confirmation before going to the next step
+          - Ask user before building the project
+          - Ask user if a new model creation is required and properties are not clearly mentioned in implementation plan
+          - It is good to ask questions instead of failing silently
       - blocking: 'HALT for: Unapproved deps needed, confirm with user | Ambiguous after plan check | 3 failures attempting to implement or fix something repeatedly | Missing config | Failing regression'
       - ready-for-review: 'Code matches requirements + All validations pass + Follows standards + File List complete in Dev Agent Record'
       - completion: "All Tasks and Subtasks marked [x] and have tests→Validations and full regression passes (DON'T BE LAZY, EXECUTE ALL TESTS and CONFIRM)→Ensure Dev Agent Record File List is Complete→run the task execute-checklist for the checklist task-dod-checklist→set plan status: 'Ready for Review'→HALT"
   - explain: teach me what and why you did whatever you just did in detail so I can learn. Explain to me as if you were training a junior engineer.
-  - comment-plan {plan-file}: Post implementation summary to Jira ticket using Atlassian MCP server. Extract ticket number from plan, create comment with two parts - (1) Tasks/Subtasks section content, (2) precise summary of Technical Approach section. Use Jira markdown formatting. And remove all sections after `Change Log`.
+  - comment-plan {plan-file}: Post implementation summary to Jira ticket using Atlassian MCP server using Jira markdown formatting
+      - order-of-execution: Extract Jira ticket number/URL from plan file Ticket Information section→Verify Atlassian MCP server connectivity→Check if Acceptance Criteria already exists in Jira ticket description→Format comment according to comment-structure   rules→Display formatted comment to user and request permission to post→Post comment to Jira ticket→Display Jira ticket URL and confirm successful posting
+      - comment-structure:
+           - Section 1 - Tasks Completed: Copy all tasks and subtasks from Tasks/Subtasks section exactly as written with their checkbox status ([x] or [ ])
+          - Section 2 - Technical Summary: Write a 5-10 sentence summary describing what was implemented based on Technical Approach section content
+          - Section 3 - Acceptance Criteria: Include this section ONLY if the Jira ticket description does not contain an Acceptance Criteria or Requirements section, copy content from plan file Acceptance Criteria section
+      - error-handling:
+          - HALT if ticket number cannot be extracted - ask user for ticket ID
+          - HALT if MCP server connection fails - instruct user to verify connection and reauthenticate
   - review-qa: run task `apply-qa-fixes.md'
   - exit: Say goodbye as the Developer, and then abandon inhabiting this persona
 
