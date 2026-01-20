@@ -2,21 +2,21 @@
 
 # risk-profile
 
-Generate a comprehensive risk assessment matrix for a story implementation using probability × impact analysis.
+Generate a comprehensive risk assessment matrix for a task implementation using probability × impact analysis.
 
 ## Inputs
 
 ```yaml
 required:
-  - story_id: '{epic}.{story}' # e.g., "1.3"
-  - story_path: 'docs/stories/{epic}.{story}.*.md'
-  - story_title: '{title}' # If missing, derive from story file H1
-  - story_slug: '{slug}' # If missing, derive from title (lowercase, hyphenated)
+  - ticket_number: '{ticket_number}' # e.g., "PROJ-123"
+  - plan_path: 'docs/impl-plan/{ticket_number}-*.md'
+  - ticket_title: '{title}' # If missing, derive from plan file H1
+  - ticket_slug: '{slug}' # If missing, derive from title (lowercase, hyphenated)
 ```
 
 ## Purpose
 
-Identify, assess, and prioritize risks in the story implementation. Provide risk mitigation strategies and testing focus areas based on risk levels.
+Identify, assess, and prioritize risks in the task implementation. Provide risk mitigation strategies and testing focus areas based on risk levels.
 
 ## Risk Assessment Framework
 
@@ -184,10 +184,10 @@ risk_summary:
 
 ### Output 2: Markdown Report
 
-**Save to:** `qa.qaLocation/assessments/{epic}.{story}-risk-{YYYYMMDD}.md`
+**Save to:** `qa.qaLocation/assessments/{ticket_number}-risk-{YYYYMMDD}.md`
 
 ```markdown
-# Risk Profile: Story {epic}.{story}
+# Risk Profile: Task {ticket_number}
 
 Date: {date}
 Reviewer: Quinn (Test Architect)
@@ -290,7 +290,7 @@ Review and update risk profile when:
 
 ## Risk Scoring Algorithm
 
-Calculate overall story risk score:
+Calculate overall task risk score:
 
 ```text
 Base Score = 100
@@ -337,12 +337,12 @@ Based on risk profile, recommend:
 - Else → Gate = PASS
 - Unmitigated risks → Document in gate
 
-### Output 3: Story Hook Line
+### Output 3: Task Hook Line
 
 **Print this line for review task to quote:**
 
 ```text
-Risk profile: qa.qaLocation/assessments/{epic}.{story}-risk-{YYYYMMDD}.md
+Risk profile: qa.qaLocation/assessments/{ticket_number}-risk-{YYYYMMDD}.md
 ```
 
 ## Key Principles
@@ -352,4 +352,4 @@ Risk profile: qa.qaLocation/assessments/{epic}.{story}-risk-{YYYYMMDD}.md
 - Provide actionable mitigation strategies
 - Link risks to specific test requirements
 - Track residual risk after mitigation
-- Update risk profile as story evolves
+- Update risk profile as task evolves
