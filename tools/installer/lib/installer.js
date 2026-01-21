@@ -976,13 +976,11 @@ class Installer {
 
     // Important notice to read the user guide
     console.log(
-      chalk.red.bold(
-        '\n📖 IMPORTANT: Please read the user guide at docs/user-guide.md (also installed at .bmad-core/user-guide.md)',
-      ),
+      chalk.red.bold('\n📖 IMPORTANT: Please read the user guide at .bmad-core/stella-user-guide'),
     );
     console.log(
       chalk.red(
-        'This guide contains essential information about the BMad workflow and how to use the agents effectively.',
+        'This guide contains essential information about the BMad-Stella workflow and how to use the agents effectively.',
       ),
     );
   }
