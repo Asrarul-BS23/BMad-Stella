@@ -622,7 +622,7 @@ Each status change requires user verification and approval before proceeding.
 3. **Integration Focus**: Emphasize compatibility and non-breaking changes
 4. **Incremental Approach**: Plan for gradual rollout and testing
 
-**For detailed guide**: See `bmad-docs/working-in-the-brownfield.md`
+**For detailed guide**: See `docs/working-in-the-brownfield.md`
 
 ## Document Creation Best Practices
 
@@ -732,7 +732,7 @@ For full details, see `CONTRIBUTING.md`. Key points:
 - Atomic commits - one logical change per commit
 - Must align with guiding principles
 
-**Core Principles** (from bmad-docs/GUIDING-PRINCIPLES.md):
+**Core Principles** (from docs/GUIDING-PRINCIPLES.md):
 
 - **Dev Agents Must Be Lean**: Minimize dependencies, save context for code
 - **Natural Language First**: Everything in markdown, no code in core
@@ -779,7 +779,7 @@ Expansion packs extend BMAD-METHOD™ beyond traditional software development in
 ### Using Expansion Packs
 
 1. **Browse Available Packs**: Check `expansion-packs/` directory
-2. **Get Inspiration**: See `bmad-docs/expansion-packs.md` for detailed examples and ideas
+2. **Get Inspiration**: See `docs/expansion-packs.md` for detailed examples and ideas
 3. **Install via CLI**:
 
    ```bash
