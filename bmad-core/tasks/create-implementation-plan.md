@@ -14,7 +14,7 @@ To transform JIRA tickets (features, bugs, migrations) into comprehensive, actio
 
 2. **System scans codebase:** Use Glob/Grep to search and detect relevant files if user doesn't know exact locations
    - **Get search hints first:** Ask user for helpful hints to narrow the search (e.g., "Look in services folder", "Related to authentication", "Files with 'payment' in name", "Backend API files")
-   - **Check project structure docs:** ALWAYS read `docs/architecture/project-structure.md` (or `project-structure.md`) FIRST to understand file locations and naming conventions
+   - **Check project structure docs:** ALWAYS read `bmad-docs/architecture/project-structure.md` (or `project-structure.md`) FIRST to understand file locations and naming conventions
    - **Perform targeted search:** Use hints + structure knowledge to create focused Glob/Grep searches instead of broad codebase scans
 
 ## SEQUENTIAL Task Execution (Do not proceed until current Task is complete)
@@ -136,13 +136,13 @@ ALWAYS cite source documents: `[Source: architecture/{filename}.md#{section}]`
 
 **Check and Load:**
 
-- Check if `docs/temporary/{ticket-no}-dependency-tmp.md` exists
+- Check if `bmad-docs/temporary/{ticket-no}-dependency-tmp.md` exists
 - If exists: Read and extract all dependency information (technical, infrastructure, third-party, data dependencies, blockers, risks)
 - If not exists: Proceed without pre-analyzed dependencies
 
 **After Planning Completion:**
 
-- If all dependencies addressed: Delete `docs/temporary/{ticket-no}-dependency-tmp.md`
+- If all dependencies addressed: Delete `bmad-docs/temporary/{ticket-no}-dependency-tmp.md`
 - If ticket will be decomposed into subtasks: Keep file with remaining dependencies for future subtasks
 - Document cleanup action in implementation plan
 
@@ -283,10 +283,10 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 - Review all sections for completeness and accuracy
 - Verify all technical details include source citations
 - Ensure tasks align with requirements, acceptance criteria, and architecture constraints
-- Create directory if not exists: `/docs/impl-plan/`
-- Update plan status to "Draft - Awaiting Review" and save as: `docs/impl-plan/{{ticket_number}}-{{ticket_title_short}}.md`
+- Create directory if not exists: `/bmad-docs/impl-plan/`
+- Update plan status to "Draft - Awaiting Review" and save as: `bmad-docs/impl-plan/{{ticket_number}}-{{ticket_title_short}}.md`
 - Provide summary to user including:
-  - **Plan created:** `docs/impl-plan//{{ticket_number}}-{{ticket_title_short}}.md`
+  - **Plan created:** `bmad-docs/impl-plan//{{ticket_number}}-{{ticket_title_short}}.md`
   - **Tasks / Subtasks:** Total count of main tasks and subtasks and Checklist Tasks
   - **Summary:** Brief overview of acceptance criteria and key technical decisions
   - Any deviations or conflicts noted between task and architecture

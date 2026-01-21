@@ -58,8 +58,8 @@ Which NFRs should I assess? (Enter numbers or press Enter for default)
 Look for NFR requirements in:
 
 - Story acceptance criteria
-- `docs/architecture/*.md` files
-- `docs/technical-preferences.md`
+- `bmad-docs/architecture/*.md` files
+- `bmad-docs/technical-preferences.md`
 
 **Interactive mode:** Ask for missing thresholds
 **Non-interactive mode:** Mark as CONCERNS with "Target unknown"

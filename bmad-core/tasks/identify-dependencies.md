@@ -62,7 +62,7 @@ First, read the architecture index to understand available documentation:
 
 - Read `architecture/index.md` - Contains brief descriptions of all architecture documents
 
-**Fallback for Architecture Documentation:** If no `architecture/` folder exists inside `docs/` folder, check for `Claude.md` in the root directory of the project if it exists. This file may contain architecture and project information.
+**Fallback for Architecture Documentation:** If no `architecture/` folder exists inside `bmad-docs/` folder, check for `Claude.md` in the root directory of the project if it exists. This file may contain architecture and project information.
 
 Based on the ticket context and the briefs in the index, decide which architecture files are relevant to explore:
 
@@ -240,10 +240,10 @@ Create a temporary file to store the dependency analysis:
 #### 7.1 File Creation
 
 - **File name:** `{{ticket_no}}-dependency-tmp.md`
-- **Location:** `docs/temporary/`
+- **Location:** `bmad-docs/temporary/`
 - **Purpose:** Store dependencies for use by create-implementation-plan task
 
-**Note:** If the `docs/temporary` folder doesn't exist, create it first.
+**Note:** If the `bmad-docs/temporary` folder doesn't exist, create it first.
 
 #### 7.2 File Content Structure
 
@@ -338,7 +338,7 @@ After integration, the create-implementation-plan task performs cleanup:
 
 - This task is typically run as part of create-implementation-plan workflow
 - Can also be run standalone for existing plans or tickets
-- Creates a temporary file `{{ticket_no}}-dependency-tmp.md` in `docs/temporary/` for use by subsequent tasks
+- Creates a temporary file `{{ticket_no}}-dependency-tmp.md` in `bmad-docs/temporary/` for use by subsequent tasks
 - Temporary file persists across decomposed subtasks and is cleaned up once all dependencies are addressed
 - Supports BMAD decomposition workflow where large tasks (multiple story points) are broken into smaller tasks (max 1 story point each)
 - Dependency identification helps set realistic timelines

@@ -9,7 +9,7 @@ Create comprehensive test scenarios with appropriate test level recommendations 
 ```yaml
 required:
   - task_id: '{ticket_number}-{ticket_title_short}' # e.g., "1.3"
-  - task_path: 'docs/impl-plan/{ticket_number}-*.md' # Path from core-config.yaml
+  - task_path: 'bmad-docs/impl-plan/{ticket_number}-*.md' # Path from core-config.yaml
   - task_title: '{title}' # If missing, derive from task file H1
   - task_slug: '{slug}' # If missing, derive from title (lowercase, hyphenated)
 ```

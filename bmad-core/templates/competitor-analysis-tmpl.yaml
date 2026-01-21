@@ -5,7 +5,7 @@ template:
   version: 2.0
   output:
     format: markdown
-    filename: docs/competitor-analysis.md
+    filename: bmad-docs/competitor-analysis.md
     title: "Competitive Analysis Report: {{project_product_name}}"
 
 workflow:

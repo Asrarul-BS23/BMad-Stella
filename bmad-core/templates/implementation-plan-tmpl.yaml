@@ -6,7 +6,7 @@ template:
   version: 1.0
   output:
     format: markdown
-    filename: docs/impl-plan/{{ticket_number}}-{{ticket_title_short}}.md
+    filename: bmad-docs/impl-plan/{{ticket_number}}-{{ticket_title_short}}.md
     title: "Implementation Plan: {{ticket_number}} - {{title}}"
 
 workflow:
