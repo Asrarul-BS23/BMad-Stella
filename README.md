@@ -6,8 +6,6 @@
 
 A customized implementation of BMAD-METHOD™ optimized for **Claude Code CLI**, providing a streamlined development workflow with specialized AI agents for planning, development, testing, and code review.
 
-⭐ **If you find this project helpful, please give it a star!** It helps others discover BMad-Stella and you'll be notified of updates.
-
 ## Overview
 
 **BMad-Stella** is a focused, implementation-oriented workflow built on BMAD-METHOD™ foundations. It provides four specialized agents that work together seamlessly in Claude Code CLI to deliver high-quality software:
