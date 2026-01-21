@@ -157,5 +157,3 @@ Built on the foundations of [BMAD-METHOD™](https://github.com/bmadcode/bmad-me
 Special thanks to the BMad community for their continuous support and contributions.
 
 ---
-
-<sub>Built with ❤️ for agile development teams using Claude Code CLI</sub>

@@ -1776,7 +1776,7 @@ class Installer {
     // Specific documentation files to copy
     const documentFiles = [
       'enhanced-ide-development-workflow.md',
-      'user-guide.md',
+      'stella-user-guide.md',
       'working-in-the-brownfield.md',
     ];
 
