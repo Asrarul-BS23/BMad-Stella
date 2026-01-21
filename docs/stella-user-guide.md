@@ -14,7 +14,7 @@ Stella is an AI-powered development workflow system that guides you through the 
 
 Before installing BMad-Stella, ensure you have:
 
-- [ ] **Node.js** installed (v16 or higher)
+- [ ] **Node.js** installed (v20 or higher)
 - [ ] **Claude Code CLI** installed and configured
 - [ ] **JIRA account** with access to your organization's instance
 - [ ] **Confluence page URL** for architecture documentation (optional but recommended)
