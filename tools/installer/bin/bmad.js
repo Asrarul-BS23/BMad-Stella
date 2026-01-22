@@ -23,6 +23,7 @@ try {
   console.log(`Installer context not found (${error.message}), trying root context...`);
   try {
     version = require('../../../package.json').version;
+    packageName = require('../package.json').name;
     installer = require('../../../tools/installer/lib/installer');
   } catch (error) {
     console.error(
@@ -39,12 +40,12 @@ try {
 
 program
   .version(version)
-  .description('BMad Method installer - Universal AI agent framework for any domain');
+  .description('BMad Stella installer - Universal AI agent framework for any domain');
 
 program
   .command('install')
-  .description('Install BMad Method agents and tools')
-  .option('-f, --full', 'Install complete BMad Method')
+  .description('Install BMad Stella agents and tools')
+  .option('-f, --full', 'Install complete BMad Stella')
   .option('-x, --expansion-only', 'Install only expansion packs (no bmad-core)')
   .option('-d, --directory <path>', 'Installation directory')
   .option(
@@ -86,7 +87,7 @@ program
 
 program
   .command('update')
-  .description('Update existing BMad installation')
+  .description('Update existing BMad Stella installation')
   .option('--force', 'Force update, overwriting modified files')
   .option('--dry-run', 'Show what would be updated without making changes')
   .action(async () => {
@@ -101,7 +102,7 @@ program
 // Command to check if updates are available
 program
   .command('update-check')
-  .description('Check for BMad Update')
+  .description('Check for BMad Stella Update')
   .action(async () => {
     console.log('Checking for updates...');
 
@@ -196,13 +197,13 @@ async function promptInstallation() {
   // Display ASCII logo
   console.log(
     chalk.bold.cyan(`
-██████╗ ███╗   ███╗ █████╗ ██████╗       ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ 
-██╔══██╗████╗ ████║██╔══██╗██╔══██╗      ████╗ ████║██╔════╝╚══██╔══╝██║  ██║██╔═══██╗██╔══██╗
-██████╔╝██╔████╔██║███████║██║  ██║█████╗██╔████╔██║█████╗     ██║   ███████║██║   ██║██║  ██║
-██╔══██╗██║╚██╔╝██║██╔══██║██║  ██║╚════╝██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██║   ██║██║  ██║
-██████╔╝██║ ╚═╝ ██║██║  ██║██████╔╝      ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝
-╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═════╝       ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ 
-  `),
+  ██████╗ ███╗   ███╗ █████╗ ██████╗       ███████╗████████╗███████╗██╗     ██╗      █████╗
+  ██╔══██╗████╗ ████║██╔══██╗██╔══██╗      ██╔════╝╚══██╔══╝██╔════╝██║     ██║     ██╔══██╗                                                   
+  ██████╔╝██╔████╔██║███████║██║  ██║█████╗███████╗   ██║   █████╗  ██║     ██║     ███████║
+  ██╔══██╗██║╚██╔╝██║██╔══██║██║  ██║╚════╝╚════██║   ██║   ██╔══╝  ██║     ██║     ██╔══██║
+  ██████╔╝██║ ╚═╝ ██║██║  ██║██████╔╝      ███████║   ██║   ███████╗███████╗███████╗██║  ██║
+  ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═════╝       ╚══════╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
+      `),
   );
 
   console.log(chalk.bold.magenta('🚀 Universal AI Agent Framework for Any Domain'));
@@ -309,68 +310,40 @@ async function promptInstallation() {
   answers.installType = selectedItems.includes('bmad-core') ? 'full' : 'expansion-only';
   answers.expansionPacks = selectedItems.filter((item) => item !== 'bmad-core');
 
-  // Ask sharding questions if installing BMad core
+  // Configure document sharding if installing BMad core
   if (selectedItems.includes('bmad-core')) {
-    console.log(chalk.cyan('\n📋 Document Organization Settings'));
-    console.log(chalk.dim('Configure how your project documentation should be organized.\n'));
+    // console.log(chalk.cyan('\n📋 Document Organization Settings'));
+    // console.log(
+    //   chalk.dim(
+    //     'PRD and Architecture documents will be automatically sharded into multiple files.\n',
+    //   ),
+    // );
 
-    // Ask about PRD sharding
-    const { prdSharded } = await inquirer.prompt([
+    // Automatically set PRD and architecture sharding to true
+    answers.prdSharded = true;
+    answers.architectureSharded = true;
+
+    // Ask architecture documents folder url in confluence
+    const { architectureFolderUrl } = await inquirer.prompt([
       {
-        type: 'confirm',
-        name: 'prdSharded',
-        message: 'Will the PRD (Product Requirements Document) be sharded into multiple files?',
-        default: true,
-      },
-    ]);
-    answers.prdSharded = prdSharded;
-
-    // Ask about architecture sharding
-    const { architectureSharded } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'architectureSharded',
-        message: 'Will the architecture documentation be sharded into multiple files?',
-        default: true,
-      },
-    ]);
-    answers.architectureSharded = architectureSharded;
-
-    // Show warning if architecture sharding is disabled
-    if (!architectureSharded) {
-      console.log(chalk.yellow.bold('\n⚠️  IMPORTANT: Architecture Sharding Disabled'));
-      console.log(
-        chalk.yellow(
-          'With architecture sharding disabled, you should still create the files listed',
-        ),
-      );
-      console.log(
-        chalk.yellow(
-          'in devLoadAlwaysFiles (like coding-standards.md, tech-stack.md, source-tree.md)',
-        ),
-      );
-      console.log(chalk.yellow('as these are used by the dev agent at runtime.'));
-      console.log(
-        chalk.yellow(
-          '\nAlternatively, you can remove these files from the devLoadAlwaysFiles list',
-        ),
-      );
-      console.log(chalk.yellow('in your core-config.yaml after installation.'));
-
-      const { acknowledge } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'acknowledge',
-          message: 'Do you acknowledge this requirement and want to proceed?',
-          default: false,
+        type: 'input',
+        name: 'architectureFolderUrl',
+        message: 'Enter confluence url of architecture folder:',
+        default: '',
+        validate: (input) => {
+          if (!input.trim()) {
+            return 'Please enter a valid URL';
+          }
+          try {
+            new URL(input);
+            return true;
+          } catch {
+            return 'Please enter a valid URL';
+          }
         },
-      ]);
-
-      if (!acknowledge) {
-        console.log(chalk.red('Installation cancelled.'));
-        process.exit(0);
-      }
-    }
+      },
+    ]);
+    answers.architectureFolderUrl = architectureFolderUrl;
   }
 
   // Ask for IDE configuration

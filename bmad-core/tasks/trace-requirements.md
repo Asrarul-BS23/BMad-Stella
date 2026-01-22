@@ -2,7 +2,7 @@
 
 # trace-requirements
 
-Map story requirements to test cases using Given-When-Then patterns for comprehensive traceability.
+Map task requirements to test cases using Given-When-Then patterns for comprehensive traceability.
 
 ## Purpose
 
@@ -12,7 +12,7 @@ Create a requirements traceability matrix that ensures every acceptance criterio
 
 ## Prerequisites
 
-- Story file with clear acceptance criteria
+- Task file with clear acceptance criteria
 - Access to test files or test specifications
 - Understanding of the implementation
 
@@ -23,7 +23,7 @@ Create a requirements traceability matrix that ensures every acceptance criterio
 Identify all testable requirements from:
 
 - Acceptance Criteria (primary source)
-- User story statement
+- Ticket descriptions
 - Tasks/subtasks with specific behaviors
 - Non-functional requirements mentioned
 - Edge cases documented
@@ -97,23 +97,23 @@ trace:
     full: Y
     partial: Z
     none: W
-  planning_ref: 'qa.qaLocation/assessments/{epic}.{story}-test-design-{YYYYMMDD}.md'
+  planning_ref: 'qa.qaLocation/assessments/{ticket_number}-*-test-design-{YYYYMMDD}.md'
   uncovered:
     - ac: 'AC3'
       reason: 'No test found for password reset timing'
-  notes: 'See qa.qaLocation/assessments/{epic}.{story}-trace-{YYYYMMDD}.md'
+  notes: 'See qa.qaLocation/assessments/{ticket_number}-*-trace-{YYYYMMDD}.md'
 ```
 
 ### Output 2: Traceability Report
 
-**Save to:** `qa.qaLocation/assessments/{epic}.{story}-trace-{YYYYMMDD}.md`
+**Save to:** `qa.qaLocation/assessments/{ticket_number}-{ticket_title_short}-trace-{YYYYMMDD}.md`
 
 Create a traceability report with:
 
 ```markdown
 # Requirements Traceability Matrix
 
-## Story: {epic}.{story} - {title}
+## Task: {ticket_number} - {title}
 
 ### Coverage Summary
 
@@ -247,12 +247,12 @@ This traceability feeds into quality gates:
 - Minor gaps → CONCERNS
 - Missing P0 tests from test-design → CONCERNS
 
-### Output 3: Story Hook Line
+### Output 3: Task Hook Line
 
 **Print this line for review task to quote:**
 
 ```text
-Trace matrix: qa.qaLocation/assessments/{epic}.{story}-trace-{YYYYMMDD}.md
+Trace matrix: qa.qaLocation/assessments/{ticket_number}-{ticket_title_short}-trace-{YYYYMMDD}.md
 ```
 
 - Full coverage → PASS contribution

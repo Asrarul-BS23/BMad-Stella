@@ -2,16 +2,16 @@
 
 # test-design
 
-Create comprehensive test scenarios with appropriate test level recommendations for story implementation.
+Create comprehensive test scenarios with appropriate test level recommendations for task implementation.
 
 ## Inputs
 
 ```yaml
 required:
-  - story_id: '{epic}.{story}' # e.g., "1.3"
-  - story_path: '{devStoryLocation}/{epic}.{story}.*.md' # Path from core-config.yaml
-  - story_title: '{title}' # If missing, derive from story file H1
-  - story_slug: '{slug}' # If missing, derive from title (lowercase, hyphenated)
+  - task_id: '{ticket_number}-{ticket_title_short}' # e.g., "1.3"
+  - task_path: 'bmad-docs/impl-plan/{ticket_number}-*.md' # Path from core-config.yaml
+  - task_title: '{title}' # If missing, derive from task file H1
+  - task_slug: '{slug}' # If missing, derive from title (lowercase, hyphenated)
 ```
 
 ## Purpose
@@ -28,7 +28,7 @@ data:
 
 ## Process
 
-### 1. Analyze Story Requirements
+### 1. Analyze Task Requirements
 
 Break down each acceptance criterion into testable scenarios. For each AC:
 
@@ -64,7 +64,7 @@ For each identified test need, create:
 
 ```yaml
 test_scenario:
-  id: '{epic}.{story}-{LEVEL}-{SEQ}'
+  id: '{ticket_number}-{LEVEL}-{SEQ}'
   requirement: 'AC reference'
   priority: P0|P1|P2|P3
   level: unit|integration|e2e
@@ -86,10 +86,10 @@ Ensure:
 
 ### Output 1: Test Design Document
 
-**Save to:** `qa.qaLocation/assessments/{epic}.{story}-test-design-{YYYYMMDD}.md`
+**Save to:** `qa.qaLocation/assessments/{ticket_number}-{ticket_title_short}-test-design-{YYYYMMDD}.md`
 
 ```markdown
-# Test Design: Story {epic}.{story}
+# Test Design: Task {ticket_number}-{ticket_title_short}
 
 Date: {date}
 Designer: Quinn (Test Architect)
@@ -152,7 +152,7 @@ test_design:
 Print for use by trace-requirements task:
 
 ```text
-Test design matrix: qa.qaLocation/assessments/{epic}.{story}-test-design-{YYYYMMDD}.md
+Test design matrix: qa.qaLocation/assessments/{ticket_number}-{ticket_title_short}-test-design-{YYYYMMDD}.md
 P0 tests identified: {count}
 ```
 

@@ -288,6 +288,11 @@ class FileManager {
         coreConfig.architecture.architectureSharded = config.architectureSharded;
       }
 
+      // Save architecture confluence URL
+      if (config.architectureFolderUrl !== undefined && config.architectureFolderUrl.trim()) {
+        coreConfig.architecture.architectureFolderUrl = config.architectureFolderUrl;
+      }
+
       // Write back the modified config
       await fs.writeFile(coreConfigPath, yaml.dump(coreConfig, { indent: 2 }));
 
