@@ -1,7 +1,7 @@
 {
-  "name": "bmad-method",
-  "version": "4.44.1",
-  "description": "BMad Method installer - AI-powered Agile development framework",
+  "name": "bmad-stella",
+  "version": "1.0.0",
+  "description": "BMad Stella installer - AI-powered Agile development framework",
   "keywords": [
     "bmad",
     "agile",
@@ -11,20 +11,23 @@
     "installer",
     "agents"
   ],
-  "homepage": "https://github.com/bmad-team/bmad-method#readme",
+  "homepage": "git+https://github.com/Asrarul-BS23/BMad-Stella#readme",
   "bugs": {
-    "url": "https://github.com/bmad-team/bmad-method/issues"
+    "url": "https://github.com/Asrarul-BS23/BMad-Stella/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bmad-team/bmad-method.git"
+    "url": "git+https://github.com/Asrarul-BS23/BMad-Stella.git"
   },
   "license": "MIT",
-  "author": "BMad Team",
+  "author": "Stella Team",
+  "contributors": [
+    "BMad Team"
+  ],
   "main": "lib/installer.js",
   "bin": {
-    "bmad": "./bin/bmad.js",
-    "bmad-method": "./bin/bmad.js"
+    "bmad-stella": "./bin/bmad.js",
+    "stella": "./bin/bmad.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -42,7 +42,7 @@ Planner → Dev → QA → Reviewer
 **Run the interactive installer:**
 
 ```bash
-npx github:Asrarul-BS23/BMad-Stella install
+npx bmad-stella install
 ```
 
 **Follow the prompts:**
