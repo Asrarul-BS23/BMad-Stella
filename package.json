@@ -1,27 +1,32 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "bmad-method",
-  "version": "4.44.1",
-  "description": "Breakthrough Method of Agile AI-driven Development",
+  "name": "bmad-stella",
+  "version": "1.0.0",
+  "description": "Breakthrough Method of Agile AI-driven Development (Customized for Stella)",
   "keywords": [
     "agile",
     "ai",
     "orchestrator",
     "development",
     "methodology",
+    "jira",
+    "confluence",
     "agents",
     "bmad"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bmadcode/BMAD-METHOD.git"
+    "url": "git+https://github.com/Asrarul-BS23/BMad-Stella.git"
   },
   "license": "MIT",
-  "author": "Brian (BMad) Madison",
+  "author": "Stella Team",
+  "contributors": [
+    "Brian (BMad) Madison"
+  ],
   "main": "tools/cli.js",
   "bin": {
-    "bmad": "tools/bmad-npx-wrapper.js",
-    "bmad-method": "tools/bmad-npx-wrapper.js"
+    "bmad-stella": "tools/bmad-npx-wrapper.js",
+    "stella": "tools/bmad-npx-wrapper.js"
   },
   "scripts": {
     "build": "node tools/cli.js build",
