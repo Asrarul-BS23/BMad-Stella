@@ -28,7 +28,7 @@ Before installing BMad-Stella, ensure you have:
 Open your terminal and run:
 
 ```bash
-npx github:Asrarul-BS23/BMad-Stella install
+npx bmad-stella install
 ```
 
 #### Step 2: Provide Project Directory
