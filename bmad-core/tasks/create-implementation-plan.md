@@ -16,6 +16,7 @@ To transform JIRA tickets (features, bugs, migrations) into comprehensive, actio
    - **Get search hints first:** Ask user for helpful hints to narrow the search (e.g., "Look in services folder", "Related to authentication", "Files with 'payment' in name", "Backend API files")
    - **Check project structure docs:** ALWAYS read `bmad-docs/architecture/project-structure.md` (or `project-structure.md`) FIRST to understand file locations and naming conventions
    - **Perform targeted search:** Use hints + structure knowledge to create focused Glob/Grep searches instead of broad codebase scans
+   - **Identify impacted files:** When modifying a function, component, or interface, search for its usages across codebase using targeted Glob/Grep before making changes. Update all impacted files accordingly.
 
 ## SEQUENTIAL Task Execution (Do not proceed until current Task is complete)
 
@@ -84,14 +85,14 @@ If critical information is missing, ask the user targeted questions:
 
 **For Database Changes (All Ticket Types):**
 
-- Does this work require any database table updates or creation?
-- **If uncertain, ASK the user** - better to clarify than assume
+- Analyze Does this work require any database table updates or creation?
+- **If not mentioned in ticket and uncertain, ASK the user** - better to clarify than assume
 - If YES:
   - **Database migration tasks must be handled by the user** (add in tasks list but tell user to do this)
   - If specific fields to add to a model or a new model structure are NOT specified in the ticket info/requirements:
     - **Ask the user to specify the fields to be added or the model structure** (field names, types, constraints, relationships)
   - **If uncertain about any database-related details, ALWAYS ask the user** - do not make assumptions or proceed silently
-  - Document the model/table changes needed in the Technical Approach sectio
+  - Document the model/table changes needed in the Technical Approach section
 
 **CRITICAL:** Only ask essential questions. Use your senior developer judgment to infer reasonable details when possible.
 
