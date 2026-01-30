@@ -9,6 +9,7 @@ const configLoader = require('./config-loader');
 const { extractYamlFromAgent } = require('../../lib/yaml-utils');
 const BaseIdeSetup = require('./ide-base-setup');
 const resourceLocator = require('./resource-locator');
+const claudePermissionsManager = require('./claude-permissions-manager');
 
 class IdeSetup extends BaseIdeSetup {
   constructor() {
@@ -995,6 +996,9 @@ class IdeSetup extends BaseIdeSetup {
         );
       }
     }
+
+    // Setup Claude Code permissions in settings.local.json
+    await claudePermissionsManager.checkAndSetupPermissions(installDir);
 
     return true;
   }
