@@ -161,8 +161,19 @@ class ClaudePermissionsManager {
 
       if (spinner) spinner.stop();
 
+      // Always show permissions setup prompt
+      console.log(chalk.cyan('\n🔧 Claude Code Permissions Setup'));
+      console.log(
+        chalk.dim('BMAD agents require certain permissions to work without repeated prompts.'),
+      );
+      console.log(
+        chalk.dim(
+          '(Only for bmad-docs/ and Atlassian MCP - does NOT include source code changes)\n',
+        ),
+      );
+
       if (results.settingsExisted) {
-        // Settings file exists - check and merge permissions
+        // Settings file exists - check for missing permissions
         const settings = await this.readSettings(installDir);
 
         if (!settings) {
@@ -184,6 +195,23 @@ class ClaudePermissionsManager {
         const missingPermissions = this.getMissingPermissions(settings);
 
         if (missingPermissions.length > 0) {
+          // Ask user before adding permissions
+          const { updateSettings } = await inquirer.prompt([
+            {
+              type: 'confirm',
+              name: 'updateSettings',
+              message: `Add ${missingPermissions.length} missing BMAD permissions to existing settings.local.json?`,
+              default: true,
+            },
+          ]);
+
+          if (!updateSettings) {
+            console.log(chalk.yellow('⚠️  Skipping Claude Code permissions update.'));
+            results.skipped = true;
+            if (spinner) spinner.start();
+            return results;
+          }
+
           // Add missing permissions
           settings.permissions.allow.push(...missingPermissions);
 
@@ -198,15 +226,10 @@ class ClaudePermissionsManager {
             results.error = 'Failed to update settings file';
           }
         } else {
-          console.log(chalk.dim('  BMAD permissions already present in settings.local.json'));
+          console.log(chalk.green('✓ BMAD permissions already present in settings.local.json'));
         }
       } else {
         // Ask user if they want to create settings.local.json
-        console.log(chalk.cyan('\n🔧 Claude Code Permissions Setup'));
-        console.log(
-          chalk.dim('BMAD agents require certain permissions to work without repeated prompts.\n'),
-        );
-
         const { createSettings } = await inquirer.prompt([
           {
             type: 'confirm',

@@ -50,7 +50,7 @@ class IdeSetup extends BaseIdeSetup {
         return this.setupOpenCode(installDir, selectedAgent, spinner, preConfiguredSettings);
       }
       case 'claude-code': {
-        return this.setupClaudeCode(installDir, selectedAgent);
+        return this.setupClaudeCode(installDir, selectedAgent, spinner);
       }
       case 'iflow-cli': {
         return this.setupIFlowCli(installDir, selectedAgent);
@@ -962,7 +962,7 @@ class IdeSetup extends BaseIdeSetup {
     return true;
   }
 
-  async setupClaudeCode(installDir, selectedAgent) {
+  async setupClaudeCode(installDir, selectedAgent, spinner = null) {
     // Setup bmad-core commands
     const coreSlashPrefix = await this.getCoreSlashPrefix(installDir);
     const coreAgents = selectedAgent ? [selectedAgent] : await this.getCoreAgentIds(installDir);
@@ -998,7 +998,7 @@ class IdeSetup extends BaseIdeSetup {
     }
 
     // Setup Claude Code permissions in settings.local.json
-    await claudePermissionsManager.checkAndSetupPermissions(installDir);
+    await claudePermissionsManager.checkAndSetupPermissions(installDir, spinner);
 
     return true;
   }
