@@ -20,9 +20,9 @@ class ClaudePermissionsManager {
 
       // File operations for markdown files
       'Write(bmad-docs/**)',
-      'Write(*bmad-docs*)',
+      'Write(*.md)',
       'Edit(bmad-docs/**)',
-      'Edit(*bmad-docs*)',
+      'Edit(*.md)',
 
       // Bash commands for directory operations (Unix)
       'Bash(mkdir -p bmad-docs/**)',
