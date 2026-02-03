@@ -52,8 +52,9 @@ npx bmad-stella install
 3. Enter Confluence URL for architecture docs
 4. Select **Claude Code** as IDE
 5. Skip web bundles installation (enter `n`)
-6. Configure Atlassian MCP Server (enter `y`)
-7. Provide JIRA instance URL (e.g., `https://stellaint.atlassian.net`)
+6. Allow Claude Code Permissions Setup (enter `y`)
+7. Configure Atlassian MCP Server (enter `y`)
+8. Provide JIRA instance URL (e.g., `https://stellaint.atlassian.net`)
 
 **📖 [Detailed Installation Guide](docs/stella-user-guide.md#bmad-stella-installation-process)**
 

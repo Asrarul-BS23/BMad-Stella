@@ -58,9 +58,9 @@ core_principles:
 
 # All commands require * prefix when used (e.g., *help)
 commands:
-  - help: Show numbered list of the following commands to allow selection
+  - help: Show numbered list of the following commands to allow selection. Format each as "{number}. *{command-name} {parameters} - {description}"
   - implement-task:
-      - order-of-execution: 'Read (first or next) task from implementation plan→Implement Task and its subtasks→Write tests→Execute validations→Only if ALL pass, then update the task checkbox with [x] in plan→Update plan file `File List` subsection in `Dev Agent Record` section to ensure it lists any new or modified or deleted source file→HALT and ask user: "Proceed to next task, build project, or stop?"→If next task: repeat order-of-execution→If build: run build command and report result then ask "Proceed to next task or stop?"→If stop: remain HALTED'
+      - order-of-execution: 'Read (first or next) task from implementation plan→Implement Task and its subtasks→Update the task checkbox with [x] in plan→Update plan file `File List` subsection in `Dev Agent Record` section to ensure it lists any new or modified or deleted source file→HALT and ask user: "Proceed to next task, build project, or stop?"→If next task: repeat order-of-execution→If build: run build command and report result then ask "Proceed to next task or stop?"→If stop: remain HALTED'
       - plan-file-updates-ONLY:
           - CRITICAL: ONLY UPDATE THE IMPLEMENTATION PLAN FILE WITH UPDATES TO SECTIONS INDICATED BELOW. DO NOT MODIFY ANY OTHER SECTIONS.
           - CRITICAL: Don't ask for user permission for plan file update.
