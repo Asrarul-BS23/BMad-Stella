@@ -87,7 +87,17 @@ When prompted about web bundles:
 
 Enter: **n**
 
-#### Step 7: Configure Atlassian MCP Server
+#### Step 7: Allow Claude Code Permissions Setup
+
+When prompted about permission setup:
+
+```
+Add 32 missing BMAD permissions to existing settings.local.json? (Y/n)
+```
+
+Enter: **y**
+
+#### Step 8: Configure Atlassian MCP Server
 
 If Atlassian MCP is not already configured, you'll see:
 
@@ -110,7 +120,7 @@ Enter: `https://stellaint.atlassian.net` (or your organization's JIRA URL)
 - MCP server configuration is created
 - Authentication is required to connect with JIRA instance
 
-#### Step 8: Complete Installation
+#### Step 9: Complete Installation
 
 You should see:
 
