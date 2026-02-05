@@ -323,26 +323,79 @@ async function promptInstallation() {
     answers.prdSharded = true;
     answers.architectureSharded = true;
 
-    // Ask architecture documents folder url in confluence
-    const { architectureFolderUrl } = await inquirer.prompt([
+    // Define predefined projects with their architecture document URLs
+    // To add a new project, add a new entry with:
+    //   'project-id': {
+    //     name: 'Display Name',
+    //     url: 'https://your-confluence-url/wiki/spaces/SPACE/pages/architecture'
+    //   }
+    // NOTE: Always keep 'other' as the last option
+    const predefinedProjects = {
+      'leadrs-core': {
+        name: 'LEADRS Core',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1144356887/LEADRSC',
+      },
+      'risk-monitor': {
+        name: 'Risk Monitor',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1160970277/RISK+MONITOR',
+      },
+      safv: {
+        name: 'SAFV',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1167523851/SAFV',
+      },
+      QuarryConnect: {
+        name: 'Quarry Connect',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1188200468/QuarryConnect',
+      },
+      other: {
+        name: 'Other (custom URL)',
+        url: null,
+      },
+    };
+
+    // Ask user to select a project
+    const { selectedProject } = await inquirer.prompt([
       {
-        type: 'input',
-        name: 'architectureFolderUrl',
-        message: 'Enter confluence url of architecture folder:',
-        default: '',
-        validate: (input) => {
-          if (!input.trim()) {
-            return 'Please enter a valid URL';
-          }
-          try {
-            new URL(input);
-            return true;
-          } catch {
-            return 'Please enter a valid URL';
-          }
-        },
+        type: 'list',
+        name: 'selectedProject',
+        message: 'Select your project for architecture documentation:',
+        choices: Object.entries(predefinedProjects).map(([key, value]) => ({
+          name: value.name,
+          value: key,
+        })),
       },
     ]);
+
+    let architectureFolderUrl;
+
+    if (selectedProject === 'other') {
+      // If "Other" is selected, prompt for custom URL
+      const { customArchitectureUrl } = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'customArchitectureUrl',
+          message: 'Enter confluence url of architecture folder:',
+          default: '',
+          validate: (input) => {
+            if (!input.trim()) {
+              return 'Please enter a valid URL';
+            }
+            try {
+              new URL(input);
+              return true;
+            } catch {
+              return 'Please enter a valid URL';
+            }
+          },
+        },
+      ]);
+      architectureFolderUrl = customArchitectureUrl;
+    } else {
+      // Use predefined URL for selected project
+      architectureFolderUrl = predefinedProjects[selectedProject].url;
+      console.log(chalk.green(`✓ Using architecture URL: ${chalk.dim(architectureFolderUrl)}`));
+    }
+
     answers.architectureFolderUrl = architectureFolderUrl;
   }
 

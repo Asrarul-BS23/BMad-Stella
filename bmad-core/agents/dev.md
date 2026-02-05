@@ -79,7 +79,7 @@ commands:
   - comment-plan {plan-file}:
       - order-of-execution: 'Extract Jira ticket number/URL from plan file Ticket Information section→Attempt to fetch Jira ticket using atlassian MCP→If fetch fails, notify user: "Atlassian MCP not connected. Please reauthenticate."→If connected, check if Acceptance Criteria already exists in Jira ticket description→Format comment according to comment-structure rules using Jira markdown formatting→Display formatted comment to user and request permission to post→Post comment to Jira ticket→Display Jira ticket URL and confirm successful posting'
       - comment-structure:
-           - Section 1 - Tasks Completed: Copy all tasks and subtasks from Tasks/Subtasks section exactly as written with their checkbox status ([x] or [ ])
+          - Section 1 - Tasks Completed: Copy all tasks and subtasks from Tasks/Subtasks section exactly as written with their checkbox status ([x] or [ ])
           - Section 2 - Technical Summary: Write a 5-10 sentence summary describing what was implemented based on Technical Approach section content
           - Section 3 - Acceptance Criteria: Include this section ONLY if the Jira ticket description does not contain an Acceptance Criteria or Requirements section, copy content from plan file Acceptance Criteria section
       - error-handling:
