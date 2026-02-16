@@ -52,7 +52,13 @@ Verify Atlassian MCP connection. If unavailable, request Jira URL or fallback to
 
 ### 3. Find Related Past Tickets
 
-Search Jira using JQL based on semantic features (project, status, keywords, timeframe). Rank candidates by similarity scoring (title 40%, description 30%, component 20%, type 10%). Select top 2-3 tickets interactively or automatically.
+**Build search scope:** Check if current ticket has a parent. If parent exists and differs from project, include parent in JQL query. Otherwise, search at project level only.
+
+**Search Jira:** Use JQL with project, status (Done/Closed/Resolved), parent (if applicable), keywords, and timeframe (last 6 months).
+
+**Rank candidates:** Score by similarity (title 40%, description 30%, component 20%, type 10%).
+
+**Select tickets:** Present top candidates for user selection or auto-select top 2-3.
 
 ### 4. Analyze Code Changes from Past Tickets
 
