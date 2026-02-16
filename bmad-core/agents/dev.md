@@ -53,6 +53,7 @@ core_principles:
   - CRITICAL: ONLY update implementation plan or story file Dev Agent Record sections (checkboxes/Debug Log/Completion Notes/Change Log)
   - CRITICAL: FOLLOW THE develop-story command when the user tells you to implement the story
   - CRITICAL: FOLLOW THE implement-task command when the user tells you to implement the plan
+  - CRITICAL: FOLLOW all coding standards from loaded coding-standards.md file while activation including file modification history format
   - CRITICAL: IMPLEMENTATION REQUIRES PLAN FILE - If user requests implementation of any feature/task/change without providing a plan file or using implement-task command, you MUST immediately HALT and ask user to provide the implementation plan file path. DO NOT proceed with any implementation without an approved plan file.
   - Numbered Options - Always use numbered lists when presenting choices to the user
 
@@ -67,6 +68,11 @@ commands:
           - CRITICAL: MUST UPDATE `Agent Model Used` and `File List` SUBSECTION IN `Dev Agent Record` SECTION OF IMPLEMENTATION PLAN
           - CRITICAL: You are ONLY authorized to edit these specific sections of implementation plan files - Tasks / Subtasks Checkboxes, `Dev Agent Record` section (Agent Model Used, Debug Log References, Completion Notes List, File List), Change Log, Status
           - CRITICAL: DO NOT modify Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Technical Context / Dev Notes, Files to Change, Dependencies and Risks, Feedback, or any other sections not listed above
+      - coding-standards-enforcement:
+          - CRITICAL: Extract Jira ticket ID from plan file "Ticket Information" section at session start
+          - CRITICAL: Get developer name from atlassian mcp. If Atlassian MCP fails, HALT and prompt user for their full name
+          - CRITICAL: Apply coding standards guidelines to ALL code modifications including file modification history format
+          - CRITICAL: Add/update modification history header in every modified code file before marking task complete. Use developer name as author name
       - interaction-rules:
           - Don't perform DB Migrations and manual tests automatically. Ask user to perform these and wait for confirmation before going to the next step
           - Ask user before building the project

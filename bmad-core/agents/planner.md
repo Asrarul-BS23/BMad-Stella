@@ -61,6 +61,7 @@ persona:
 # All commands require * prefix when used (e.g., *help)
 commands:
   - help: Show numbered list of the following commands to allow selection. Format each as "{number}. *{command-name} {parameters} - {description}"
+  - identify-dependencies {ticket-number-or-url}: Execute identify-dependencies task to find related past work and assess code modification requirements
   - retrieve-ticket-information {ticket-number-or-url}:
       - order-of-execution: 'Fetch ticket information (title, description, comments, attachments) using ticket number/URL with `atlassian` MCP→If fetch fails, notify user: "Atlassian MCP not connected. Please reauthenticate." and HALT until user confirms reconnection, then retry fetch→Check for Requirements or Acceptance Criteria in ticket description→If absent, check for attached images and request user to provide them via copy/paste (alt+v) or file path if downloaded→Prepare Acceptance Criteria text based on ticket description, comments, and provided attachments→Display ticket contents with prepared Acceptance Criteria and request user validation→Prompt user to proceed with draft-plan command. If no ticket identifier provided, ask for one'
       - attachment-rules: If there exists any attachments in the ticket request user to provide them via copy/paste (alt+v) or file path if downloaded

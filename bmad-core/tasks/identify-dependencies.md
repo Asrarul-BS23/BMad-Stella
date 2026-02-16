@@ -1,347 +1,213 @@
 <!-- Powered by Stella Development Team -->
 
-# Identify Dependencies Task
+# identify-dependencies
+
+Find related past work, analyze code dependencies, and assess modification requirements for current ticket implementation.
+
+## Inputs
+
+```yaml
+required:
+  - ticket_id: 'Current Jira ticket ID' # e.g., "PROJ-123"
+  - jira_project: 'Jira project key from MCP config'
+
+optional:
+  - max_related_tickets: 3 # Number of past tickets to analyze (default: 3)
+  - architecture_refs: 'bmad-docs/architecture/**'
+  - code_base_path: 'Root path for code analysis'
+```
 
 ## Purpose
 
-To analyze a JIRA ticket or implementation plan and identify all technical dependencies, potential blockers, integration points, and risks that could impact successful implementation. This task surfaces critical information early, enabling better planning and risk mitigation.
+Generate comprehensive dependency analysis including:
 
-## Documentation Framework
+1. Related past tickets (2-3 with semantic similarity)
+2. Code files modified in past work
+3. Code modification assessment for current ticket
+4. Temporary dependency file at `bmad-docs/temporary/{ticket_id}-dependency-tmp.md`
 
-When identifying items in sections 2-5, document the following for each item:
+## Process
 
-### For Dependencies (Code, Infrastructure, Third-Party, Data):
+### 1. Validate Data Sources
 
-- **What:** Name/description and what it provides
-- **Where:** Location (file path, service URL, package name)
-- **State:** Current status (exists, needs creation, needs modification, version)
-- **Requirements:** Configuration, access, permissions needed
-- **Concerns:** Known issues, limitations, performance considerations, costs
+Verify Atlassian MCP connection. If unavailable, request Jira URL or fallback to git history analysis.
 
-### For Blockers (Technical, Information, Resource):
+### 2. Load Current Ticket Context
 
-- **What:** What is blocking or missing
-- **Impact:** Severity level (critical, high, medium, low)
-- **Resolution:** Who can unblock, how to obtain, estimated time
-- **Alternatives:** Workarounds or alternative approaches
-- **Partial Progress:** Can work proceed partially?
+**Fetch ticket details** via MCP including summary, description, type, components, and acceptance criteria.
 
-### For Integration Points (Internal, External):
+**Analyze attachments** (screenshots, error logs):
 
-- **Type:** Connection type and protocol
-- **Contract:** Data format, API specification
-- **Authentication:** Auth method and credentials management
-- **Reliability:** Error handling, retries, rate limits, fallback strategies
-- **Testing:** How to test and monitor the integration
+- Extract URLs from browser bars and network tabs
+- Identify file paths from stack traces
+- Note API endpoints and error messages
+- Capture UI routes and console logs
 
-### For Risks (Technical, Integration, Project):
+**Extract technical hints** from ticket content:
 
-- **Description:** Clear description of the risk
-- **Assessment:** Likelihood (high/medium/low) and Impact (critical/high/medium/low)
-- **Detection:** Early warning signs or detection strategy
-- **Mitigation:** Strategy to prevent or reduce risk
-- **Contingency:** Fallback plan if risk materializes
+- Feature keywords and technical components
+- URL patterns and route segments
+- API endpoints and frontend components
+- Function/class names and file references
 
-## Task Execution
+### 3. Find Related Past Tickets
 
-### 1. Understand the Ticket/Plan Context
+Search Jira using JQL based on semantic features (project, status, keywords, timeframe). Rank candidates by similarity scoring (title 40%, description 30%, component 20%, type 10%). Select top 2-3 tickets interactively or automatically.
 
-#### 1.1 Load Ticket or Plan Information
+### 4. Analyze Code Changes from Past Tickets
 
-- Read the ticket file, plan file, or description provided
-- Extract key information:
-  - Ticket type (feature, bug, migration)
-  - Technical scope
-  - Components involved
-  - Integration requirements
-  - Timeline constraints (if any)
+**Extract commits:** Check Jira ticket for linked commits (primary source). If none found, search git history with `git log --all --grep="{TICKET-ID}"`.
 
-#### 1.2 Load Architecture Context
+**Analyze changes:** For each commit, use `git show --name-status {SHA}` to get modified/added/deleted files.
 
-First, read the architecture index to understand available documentation:
+**Group results:** Organize files by component/module, file type (controller, service, model, test), and architectural layer (frontend, backend, database).
 
-- Read `architecture/index.md` - Contains brief descriptions of all architecture documents
+### 5. Assess Current Ticket Code Impact
 
-**Fallback for Architecture Documentation:** If no `architecture/` folder exists inside `bmad-docs/` folder, check for `Claude.md` in the root directory of the project if it exists. This file may contain architecture and project information.
+**Load architecture context:**
+Read project architecture docs (`bmad-docs/architecture/**`) to extract directory structures, naming conventions, URL routing patterns, and testing patterns. Use these conventions as the primary guide for code location.
 
-Based on the ticket context and the briefs in the index, decide which architecture files are relevant to explore:
+**Map URLs to code:**
 
-- For technology/package dependencies → Review tech stack documentation
-- For project structure/module dependencies → Review structure documentation
-- For backend-specific work → Review backend architecture documentation
-- For frontend-specific work → Review frontend architecture documentation
-- For external integrations → Review external APIs documentation
-- For data/schema changes → Review database documentation
+- Use architecture-defined routing patterns to map URLs from screenshots/descriptions to controllers and views
+- Apply project-specific conventions (not generic framework patterns)
+- Generate candidate files with confidence scores based on evidence strength
 
-**Decision Point:** Only load the architecture files that are relevant to your specific ticket context.
+**Trace API calls (Frontend → Backend):**
 
-### 2. Identify Technical Dependencies
+- Locate frontend components using routing configuration
+- Extract API calls using project's HTTP client patterns
+- Map API endpoints to backend routes and controllers
+- Follow architectural layers (routes → controllers → services → repositories → models)
 
-#### 2.1 Code Dependencies
+**Generate candidate functions:**
+Use architecture-defined naming patterns to predict function names. Search codebase with project conventions (directory structure + naming patterns). Consider multiple naming styles only if architecture doesn't specify.
 
-Identify and document (per framework above):
+**Synthesize predictions:**
+Combine evidence from multiple sources with priority:
 
-- **Modules/Components** - Existing code this must interact with
-- **Shared Services** - Required utilities or services
-- **Data Models** - Required data structures or schemas
-- **APIs** - Internal APIs to consume
-- **State Management** - Required state or context
+1. Architecture conventions (highest)
+2. Past ticket patterns
+3. URL/route mapping
+4. API endpoint tracing
+5. Function name inference
+6. Generic framework conventions (fallback only)
 
-#### 2.2 Infrastructure Dependencies
+Document each file with evidence trail, predicted methods/changes, and confidence level (HIGH/MEDIUM/LOW).
 
-Identify and document (per framework above):
+**Verify file state:**
+Check existence, last modified date/author, complexity metrics, and whether file appeared in related tickets.
 
-- **Databases** - Database access, schema changes, migrations
-- **Caching** - Redis, Memcached, or other caching systems
-- **Message Queues** - Kafka, RabbitMQ, or other queuing systems
-- **Storage** - File storage, S3, CDN requirements
-- **Environment Variables** - New configs or secrets
-- **Deployment** - Build pipeline, deployment scripts, infrastructure changes
+### 6. Generate Outputs
 
-#### 2.3 Third-Party Dependencies
+**Console Report:**
+Display related tickets with similarity scores, files modified, key components, and risk assessment.
 
-Identify and document (per framework above):
-
-- **NPM/Package Dependencies** - New libraries or version updates
-- **External APIs** - Third-party services to integrate
-- **SaaS Services** - Payment gateways, analytics, monitoring
-- **Authentication Providers** - OAuth, SAML providers
-- **CDNs or Static Resources** - External resource dependencies
-
-Note: Include license compatibility, rate limits, and cost implications in documentation.
-
-#### 2.4 Data Dependencies
-
-Identify and document (per framework above):
-
-- **Existing Data** - Required data availability
-- **Data Migrations** - Schema or data migrations required
-- **Data Transformations** - Data conversion needs
-- **Data Volume** - Amount of data involved
-- **Data Quality** - Data quality concerns
-- **Data Access** - Permission or privacy requirements
-
-Note: Include migration strategy, validation, backup, and rollback needs in documentation.
-
-### 3. Identify Blockers
-
-#### 3.1 Technical Blockers
-
-Identify and document (per framework above) anything that could prevent implementation:
-
-- **Missing Infrastructure** - Required services not yet provisioned
-- **Incomplete Features** - Depends on other unfinished work
-- **Technical Debt** - Existing code that must be refactored first
-- **Performance Issues** - Current system can't handle new requirements
-- **Security Gaps** - Security requirements not yet met
-- **Technical Limitations** - Platform or technology constraints
-
-#### 3.2 Information Blockers
-
-Identify and document (per framework above) missing information:
-
-- **Unclear Requirements** - Specifications not fully defined
-- **Ambiguous Acceptance Criteria** - Success conditions unclear
-- **Missing Designs** - UI/UX designs not available
-- **Unknown Integration Details** - Third-party API specs unclear
-- **Undecided Architecture** - Technical approach not yet determined
-
-#### 3.3 Resource Blockers
-
-Identify and document (per framework above) resource constraints:
-
-- **Access/Permissions** - Lack of access to systems, repos, or services
-- **Budget Constraints** - Costs exceeding budget
-- **Time Constraints** - Dependencies won't be ready in time
-- **Skill Gaps** - Specialized knowledge required
-- **Tooling** - Required tools not available
-
-### 4. Identify Integration Points
-
-#### 4.1 Internal Integration Points
-
-Identify and document (per framework above) connections within the system:
-
-- **Frontend-Backend** - API calls, data flows
-- **Service-to-Service** - Microservice communications
-- **Database Connections** - Data access patterns
-- **Event Systems** - Event producers and consumers
-- **Shared State** - Global state or cache dependencies
-
-#### 4.2 External Integration Points
-
-Identify and document (per framework above) connections to external systems:
-
-- **Third-Party APIs** - External service calls
-- **Webhooks** - Incoming or outgoing webhook integrations
-- **File Imports/Exports** - Data exchange with external systems
-- **Authentication** - SSO, OAuth providers
-- **Monitoring/Logging** - External monitoring services
-
-### 5. Assess Risks
-
-#### 5.1 Technical Risks
-
-Identify and document (per framework above):
-
-- **Complexity** - Solution is technically complex
-- **New Technology** - Using unfamiliar tech stack
-- **Performance** - May not meet performance requirements
-- **Scalability** - Solution may not scale
-- **Security** - Potential security vulnerabilities
-- **Data Loss** - Risk of data corruption or loss (especially migrations)
-- **Browser/Platform Compatibility** - May not work across targets
-
-#### 5.2 Integration Risks
-
-Identify and document (per framework above):
-
-- **API Changes** - Third-party APIs may change
-- **Service Downtime** - External services may be unavailable
-- **Version Incompatibility** - Dependency version conflicts
-- **Data Format Changes** - External data formats may change
-- **Rate Limiting** - May hit rate limits under load
-
-#### 5.3 Project Risks
-
-Identify and document (per framework above):
-
-- **Scope Creep** - Requirements may expand
-- **Timeline Pressure** - Tight deadlines may force shortcuts
-- **Dependency Delays** - Other teams may delay
-- **Resource Availability** - Key resources may be unavailable
-- **Requirement Changes** - Requirements may change during implementation
-
-### 6. Recommend Mitigation Strategies
-
-For identified dependencies and risks, provide strategies:
-
-#### 6.1 Dependency Management
-
-- **Early Validation** - Verify dependencies before main implementation
-- **Parallel Workstreams** - Work on independent parts while waiting
-- **Stub/Mock** - Create mocks for unavailable dependencies
-- **Incremental Approach** - Deliver in phases to reduce risk
-- **Fallback Options** - Identify alternative approaches
-
-#### 6.2 Risk Mitigation
-
-- **Proof of Concept** - Validate high-risk approaches early
-- **Feature Flags** - Use flags to enable/disable safely
-- **Gradual Rollout** - Deploy incrementally to subset of users
-- **Monitoring** - Add comprehensive monitoring and alerting
-- **Rollback Plan** - Have clear rollback procedures
-- **Testing** - Extra testing for high-risk areas
-
-### 7. Create Temporary Dependency File
-
-Create a temporary file to store the dependency analysis:
-
-#### 7.1 File Creation
-
-- **File name:** `{{ticket_no}}-dependency-tmp.md`
-- **Location:** `bmad-docs/temporary/`
-- **Purpose:** Store dependencies for use by create-implementation-plan task
-
-**Note:** If the `bmad-docs/temporary` folder doesn't exist, create it first.
-
-#### 7.2 File Content Structure
-
-Write the comprehensive dependency analysis to the temporary file using the following structure:
+**Temporary Dependency File:**
+Create `bmad-docs/temporary/{ticket_id}-dependency-tmp.md` with:
 
 ```markdown
-# Dependency Analysis Report: [Ticket Number] - [Title]
+# Dependency Analysis: {TICKET-ID}
 
 ## Summary
 
-- Total Dependencies Identified: [N]
-- Critical Blockers: [N]
-- High-Risk Items: [N]
-- External Integrations: [N]
-- Overall Risk Level: [Low/Medium/High/Critical]
+Total files impacted, files to modify/create, integration points, overall risk level
 
-## Technical Dependencies
+## Technical Hints Extracted
 
-[List with details]
+- From screenshots: URLs, error traces, console logs
+- From ticket: URL patterns, API endpoints, code references
+- From architecture: Project structure, naming conventions, routing patterns, layers
 
-## Infrastructure Dependencies
+## Related Past Work
 
-[List with details]
+For each ticket: similarity score, completion date, key learnings, files modified
 
-## Third-Party Dependencies
+## Code Dependencies
 
-[List with details]
+**Files to Modify:** For each file document:
 
-## Data Dependencies
+- Purpose and current state
+- How identified (evidence trail)
+- Predicted methods/changes
+- Requirements and confidence level
+- Concerns or complexity notes
 
-[List with details]
+**Files to Create:** For each file document:
 
-## Blockers
-
-[List with severity, impact, mitigation]
+- Purpose and template source
+- How identified (architecture pattern)
+- Expected interfaces/methods
+- Confidence level and concerns
 
 ## Integration Points
 
-[List with protocols, error handling]
+Document internal/external integrations with contracts, reliability concerns, and testing requirements
+
+## Blockers
+
+List technical blockers with impact, resolution path, alternatives, and partial progress options
 
 ## Risks
 
-[List with likelihood, impact, mitigation]
+Assess technical risks with likelihood, impact, detection method, mitigation, and contingency
 
 ## Recommended Approach
 
-1. [First priority action]
-2. [Second priority action]
-3. [Continue with remaining actions]
+Step-by-step approach leveraging past work and addressing blockers
 
 ## Critical Path Items
 
-- [Items that must be resolved before starting]
-- [Items that must be resolved during implementation]
+Key dependencies that must be resolved for successful implementation
 
 ## Next Steps
 
-1. Resolve critical blockers
-2. Validate high-risk dependencies
-3. Proceed with implementation plan
+Immediate actions required before implementation planning
 ```
 
-#### 7.3 Present Summary to User
+**Console Summary:**
+Print analysis completion status with file counts, risk level, related ticket IDs, and next task prompt.
 
-After creating the file, provide a summary to the user:
+## Assessment Criteria
 
-- Location of the temporary file
-- Total dependencies identified
-- Critical blockers that need attention
-- Overall risk level assessment
+**Similarity Scoring:**
 
-### 8. Integration with Implementation Plan
+- High (≥80%): Same component/module and feature area
+- Medium (60-79%): Related area with some overlap
+- Low (<60%): Different area with useful patterns
 
-The `create-implementation-plan` task will read `{{ticket_no}}-dependency-tmp.md` and integrate dependencies into the implementation plan's "Dependencies and Risks" section, "Technical Approach", and "Tasks / Subtasks".
+**Code Impact Assessment:**
 
-#### 8.1 Cleanup Logic
+- Simple (Low Risk): 1-3 files, clear patterns, no new integrations
+- Moderate (Medium Risk): 4-10 files, some new files, 1-2 integration points
+- Complex (High Risk): 10+ files, many new components, multiple integrations
 
-After integration, the create-implementation-plan task performs cleanup:
+## Key Principles
 
-**All dependencies addressed:** Delete `{{ticket_no}}-dependency-tmp.md` completely.
+**Evidence Priority (for code location):**
 
-**Dependencies span multiple subtasks:** Remove only addressed dependencies from the temporary file. Keep remaining dependencies for subsequent decomposed subtasks that will reuse the file.
+1. Architecture documentation (highest - project conventions)
+2. Screenshots/attachments (URLs, error traces)
+3. Past ticket patterns (proven approaches)
+4. Code tracing (URL → routes → controllers → services)
+5. Semantic inference (function name generation)
+6. Generic framework conventions (fallback only)
 
-#### 8.2 Workflow
+**Best Practices:**
 
-1. **Identify Dependencies** → Creates `{{ticket_no}}-dependency-tmp.md`
-2. **Decompose Task** (if needed) → Breaks large tasks into smaller subtasks
-3. **Create Implementation Plan** → Integrates dependencies, cleans up file as appropriate
-4. **Repeat** → Subsequent subtasks reuse temporary file until all dependencies addressed
+- Focus on semantic similarity over keyword matching
+- Prioritize recent work (last 6 months)
+- Extract architecture conventions first
+- Combine multiple evidence sources
+- Document uncertainties as risks, not blockers
+- Show evidence trail for transparency
+- Keep console output concise, temp file detailed
 
-## Notes
+## Integration with Implementation Plan
 
-- This task is typically run as part of create-implementation-plan workflow
-- Can also be run standalone for existing plans or tickets
-- Creates a temporary file `{{ticket_no}}-dependency-tmp.md` in `bmad-docs/temporary/` for use by subsequent tasks
-- Temporary file persists across decomposed subtasks and is cleaned up once all dependencies are addressed
-- Supports BMAD decomposition workflow where large tasks (multiple story points) are broken into smaller tasks (max 1 story point each)
-- Dependency identification helps set realistic timelines
-- Early identification prevents surprises during implementation
-- Risk mitigation strategies should be concrete and actionable
-- Document assumptions clearly when dependencies are uncertain
+The `create-implementation-plan` task reads the temporary dependency file and integrates findings. After integration:
+
+- Delete temp file if all dependencies addressed
+- Keep remaining items if dependencies span multiple subtasks
+
+**Workflow:** identify-dependencies → decompose-task (optional) → create-implementation-plan → repeat for subtasks
