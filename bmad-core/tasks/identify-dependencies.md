@@ -107,72 +107,50 @@ Check existence, last modified date/author, complexity metrics, and whether file
 ### 6. Generate Outputs
 
 **Console Report:**
-Display related tickets with similarity scores, files modified, key components, and risk assessment.
+Display minimal summary in terminal with single-line format per related ticket showing ticket ID, similarity percentage, and file count only.
 
 **Temporary Dependency File:**
-Create `bmad-docs/temporary/{ticket_id}-dependency-tmp.md` with:
+Create `bmad-docs/temporary/{ticket_id}-dependency-tmp.md` containing the following aspects:
 
-```markdown
-# Dependency Analysis: {TICKET-ID}
+```
 
-## Summary
+**Summary Section:**
+Provide quantitative overview including total number of files impacted, breakdown of files requiring modification versus new file creation, count of integration points, and overall risk level classification (Simple/Moderate/Complex).
 
-Total files impacted, files to modify/create, integration points, overall risk level
+**Technical Hints Extracted:**
+Document all technical clues organized by source. From screenshots include URLs, file paths from error traces, and console log messages. From ticket description capture URL patterns, API endpoint references, and direct code references. From architecture documentation note project structure conventions, naming patterns, routing configurations, and architectural layers.
 
-## Technical Hints Extracted
+**Related Past Work:**
+For each related ticket identified, include similarity score percentage, completion date, key learnings or patterns discovered, and complete list of files that were modified during that work.
 
-- From screenshots: URLs, error traces, console logs
-- From ticket: URL patterns, API endpoints, code references
-- From architecture: Project structure, naming conventions, routing patterns, layers
+**Code Dependencies - Files to Modify:**
+For each existing file requiring changes, document its purpose and current state, explain the evidence trail showing how it was identified, describe predicted methods or code sections needing changes, state implementation requirements, assign confidence level (HIGH/MEDIUM/LOW), and note any concerns or complexity factors.
 
-## Related Past Work
+**Code Dependencies - Files to Create:**
+For each new file needed, specify its purpose and which template or pattern it should follow, explain how this need was identified through architecture analysis, outline expected interfaces or methods it should implement, assign confidence level, and document any concerns about its creation.
 
-For each ticket: similarity score, completion date, key learnings, files modified
+**Integration Points:**
+Document all integration touchpoints both internal (between modules) and external (third-party services). For each integration specify the contract or interface, note reliability concerns, and define testing requirements.
 
-## Code Dependencies
+**Blockers:**
+List technical blockers preventing immediate progress. For each blocker describe its impact on implementation, outline resolution path, suggest alternatives if available, and indicate whether partial progress is possible while blocker remains.
 
-**Files to Modify:** For each file document:
+**Risks:**
+Assess technical risks with structured analysis. For each risk specify likelihood (High/Medium/Low), potential impact, detection method during implementation, mitigation strategy, and contingency plan if risk materializes.
 
-- Purpose and current state
-- How identified (evidence trail)
-- Predicted methods/changes
-- Requirements and confidence level
-- Concerns or complexity notes
+**Recommended Approach:**
+Provide step-by-step implementation approach that leverages patterns from past work, addresses identified blockers, and follows project architectural conventions.
 
-**Files to Create:** For each file document:
+**Critical Path Items:**
+Identify key dependencies that absolutely must be resolved for successful implementation. These are prerequisites that block all progress if not addressed.
 
-- Purpose and template source
-- How identified (architecture pattern)
-- Expected interfaces/methods
-- Confidence level and concerns
+**Next Steps:**
+List immediate actionable items required before proceeding to implementation planning phase.
 
-## Integration Points
-
-Document internal/external integrations with contracts, reliability concerns, and testing requirements
-
-## Blockers
-
-List technical blockers with impact, resolution path, alternatives, and partial progress options
-
-## Risks
-
-Assess technical risks with likelihood, impact, detection method, mitigation, and contingency
-
-## Recommended Approach
-
-Step-by-step approach leveraging past work and addressing blockers
-
-## Critical Path Items
-
-Key dependencies that must be resolved for successful implementation
-
-## Next Steps
-
-Immediate actions required before implementation planning
 ```
 
 **Console Summary:**
-Print analysis completion status with file counts, risk level, related ticket IDs, and next task prompt.
+Print single-line completion message containing: dependency file path, total files to modify, total files to create, risk level (Simple/Moderate/Complex), and related ticket IDs (comma-separated). No additional explanatory text or formatting.
 
 ## Assessment Criteria
 

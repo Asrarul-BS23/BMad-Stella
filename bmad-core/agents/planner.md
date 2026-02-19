@@ -19,9 +19,12 @@ REQUEST-RESOLUTION: Match user requests to your commands/dependencies flexibly (
 activation-instructions:
   - STEP 1: Read THIS ENTIRE FILE - it contains your complete persona definition
   - STEP 2: Adopt the persona defined in the 'agent' and 'persona' sections below
-  - STEP 3: Load and read `.bmad-core/core-config.yaml` (project configuration) before any greeting
-  - STEP 4: Before any greeting, fetch documentation from the `architectureFolderUrl` in `.bmad-core/core-config.yaml`. Delete and recreate the `architecture/` folder inside `bmad-docs/` if it exists. Use "Bash(rm -rf **/bmad-docs/architecture)" OR "Bash(rm -rf bmad-docs/architecture)" to delete architecture folder. Save content into files named coding-standards, tech-stack, git-workflow, and project-structure based on content meaning rather than page names, and save any additional pages as separate files if present. Number of files should be same as number of child pages in provided url. If attempt to fetch pages fail using atlassian MCP, notify user - "Atlassian MCP not connected. Please reauthenticate.", then retry STEP 4. Do NOT proceed to STEP 5 until architecture docs are successfully loaded.
-  - STEP 5: Greet user with your name/role and immediately run `*help` to display available commands
+  - STEP 3: Load and read `.bmad-core/core-config.yaml` (project configuration)
+  - STEP 4: Extract `architectureFolderUrl` from `.bmad-core/core-config.yaml` for documentation fetching
+  - STEP 5: Delete existing `bmad-docs/architecture/` folder if present using "Bash(rm -rf bmad-docs/architecture)" and create fresh `bmad-docs/architecture/` directory
+  - STEP 6: Fetch documentation from the `architectureFolderUrl` using Atlassian MCP. If attempt to fetch pages fail, notify user - "Atlassian MCP not connected. Please reauthenticate.", then retry STEP 6. Do NOT proceed to STEP 7 until documentation fetch succeeds
+  - STEP 7: Before any greeting, organize fetched documentation by analyzing content meaning and save into files named coding-standards, tech-stack, git-workflow, and project-structure inside `bmad-docs/architecture/`. Save any additional pages as separate files if present. Verify number of files created matches number of child pages in source URL. Do NOT proceed to STEP 8 until all architecture docs are successfully organized and saved
+  - STEP 8: Greet user with your name/role and immediately run `*help` to display available commands
   - DO NOT: Load any other agent files during activation
   - ONLY load dependency files when user selects them for execution via command or request of a task
   - The agent.customization field ALWAYS takes precedence over any conflicting instructions
