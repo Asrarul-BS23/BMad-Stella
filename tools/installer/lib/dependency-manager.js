@@ -114,7 +114,7 @@ class DependencyManager {
   async addMcpServer(installDir, serverName, serverConfig, envValues = {}) {
     try {
       // Build the command
-      let command = `claude mcp add ${serverName} --transport ${serverConfig.transport} ${serverConfig.url}`;
+      let command = `claude mcp add --transport ${serverConfig.transport} ${serverName} ${serverConfig.url}`;
 
       // Add environment variables
       for (const [envVar, value] of Object.entries(envValues)) {
@@ -123,7 +123,7 @@ class DependencyManager {
         }
       }
 
-      console.log(chalk.cyan(`\n📦 Adding ${serverConfig.name}...`));
+      console.log(chalk.cyan(`\n📦 Adding ${serverConfig.name || serverName}...`));
       console.log(chalk.dim(`   Command: ${command}`));
 
       execSync(command, {
@@ -131,20 +131,14 @@ class DependencyManager {
         stdio: 'inherit',
       });
 
-      console.log(chalk.green(`✓ Successfully added ${serverConfig.name}`));
-
-      // Show authentication instructions for servers that require it
-      if (serverName === 'atlassian') {
-        console.log(chalk.yellow('\n⚠️  Authentication Required:'));
-        console.log(chalk.cyan('   1. Open Claude Code CLI in your project directory'));
-        console.log(chalk.cyan('   2. Run: /mcp'));
-        console.log(chalk.cyan('   3. Follow the browser authentication flow for Atlassian'));
-        console.log(chalk.dim('   Note: You must authenticate to use JIRA integration features\n'));
-      }
+      console.log(chalk.green(`✓ Successfully added ${serverConfig.name || serverName}`));
 
       return true;
     } catch (error) {
-      console.error(chalk.red(`\n✗ Failed to add ${serverConfig.name}:`), error.message);
+      console.error(
+        chalk.red(`\n✗ Failed to add ${serverConfig.name || serverName}:`),
+        error.message,
+      );
       return false;
     }
   }
@@ -219,15 +213,59 @@ class DependencyManager {
       return results;
     }
 
-    console.log(chalk.cyan('\n🔍 Checking required MCP servers...'));
+    if (spinner) {
+      spinner.stop();
+    }
 
-    for (const [serverName, serverConfig] of Object.entries(this.requiredMcpServers)) {
+    console.log(chalk.cyan('\n🔧 MCP Server Configuration'));
+    console.log(
+      chalk.bold.yellow.bgRed(
+        ' ⚠️  IMPORTANT: This is a MULTISELECT! Use SPACEBAR to toggle each option! ',
+      ),
+    );
+    console.log(chalk.bold.magenta('🔸 Use arrow keys to navigate'));
+    console.log(chalk.bold.magenta('🔸 Use SPACEBAR to select/deselect MCP servers'));
+    console.log(chalk.bold.magenta('🔸 Press ENTER when finished selecting\n'));
+
+    // Ask which MCP servers to configure
+    const { selectedMcpServers } = await inquirer.prompt([
+      {
+        type: 'checkbox',
+        name: 'selectedMcpServers',
+        message:
+          'Which MCP servers do you want to configure? (Select with SPACEBAR, confirm with ENTER):',
+        choices: [
+          {
+            name: 'Atlassian (for JIRA integration)',
+            value: 'atlassian',
+          },
+          {
+            name: 'Other (custom MCP server)',
+            value: 'other',
+          },
+        ],
+      },
+    ]);
+
+    // If no MCP servers selected
+    if (selectedMcpServers.length === 0) {
+      console.log(chalk.yellow('\n⚠️  No MCP servers selected for configuration.'));
+      console.log(
+        chalk.yellow(
+          'Some features (retrieve-ticket-information, comment-plan) may not work without MCP servers.',
+        ),
+      );
+      if (spinner) spinner.start();
+      return results;
+    }
+
+    // Process Atlassian if selected
+    if (selectedMcpServers.includes('atlassian')) {
+      const serverName = 'atlassian';
+      const serverConfig = this.requiredMcpServers[serverName];
       results.checked.push(serverName);
 
-      if (spinner) {
-        spinner.text = `Checking ${serverConfig.name}...`;
-        spinner.stop();
-      }
+      console.log(chalk.cyan(`\n📦 Configuring ${serverConfig.name}...`));
 
       // Check if server is already configured
       const isInstalled = await this.isMcpServerInstalled(installDir, serverName);
@@ -235,25 +273,9 @@ class DependencyManager {
       if (isInstalled) {
         console.log(chalk.green(`✓ ${serverConfig.name} is already configured`));
         results.alreadyConfigured.push(serverName);
-        if (spinner) spinner.start();
-        continue;
-      }
-
-      // Ask user if they want to install
-      console.log(chalk.yellow(`\n⚠️  ${serverConfig.name} is not configured`));
-      console.log(chalk.dim(`   ${serverConfig.description}`));
-
-      const { shouldInstall } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'shouldInstall',
-          message: `Would you like to configure ${serverConfig.name} now?`,
-          default: true,
-        },
-      ]);
-
-      if (shouldInstall) {
+      } else {
         // Prompt for environment variables
+        console.log(chalk.dim(`   ${serverConfig.description}\n`));
         const envValues = await this.promptForEnvVars(serverConfig.envVars);
 
         // Add the MCP server
@@ -269,14 +291,103 @@ class DependencyManager {
         } else {
           results.failed.push(serverName);
         }
-      } else {
-        console.log(chalk.yellow(`   Skipping ${serverName}`));
-        results.skipped.push(serverName);
       }
-
-      if (spinner) spinner.start();
     }
 
+    // Process Other (custom) MCP servers if selected
+    if (selectedMcpServers.includes('other')) {
+      let addAnother = true;
+      let customServerCount = 0;
+
+      while (addAnother) {
+        console.log(chalk.cyan(`\n📦 Adding Custom MCP Server ${customServerCount + 1}...`));
+
+        // Prompt for custom MCP server details
+        const customMcpDetails = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'name',
+            message: 'Enter MCP server name (e.g., atlassian, custom-server):',
+            validate: (input) => {
+              if (!input.trim()) {
+                return 'Server name is required';
+              }
+              // Check if name is valid (alphanumeric and hyphens only)
+              if (!/^[a-z0-9-]+$/.test(input)) {
+                return 'Server name must contain only lowercase letters, numbers, and hyphens';
+              }
+              return true;
+            },
+          },
+          {
+            type: 'input',
+            name: 'url',
+            message: 'Enter MCP server URL (e.g., https://mcp.example.com/v1/sse):',
+            validate: (input) => {
+              if (!input.trim()) {
+                return 'Server URL is required';
+              }
+              try {
+                new URL(input);
+                return true;
+              } catch {
+                return 'Please enter a valid URL';
+              }
+            },
+          },
+        ]);
+
+        const customServerName = customMcpDetails.name.toLowerCase();
+        results.checked.push(customServerName);
+
+        // Check if server is already configured
+        const isInstalled = await this.isMcpServerInstalled(installDir, customServerName);
+
+        if (isInstalled) {
+          console.log(chalk.green(`✓ ${customServerName} is already configured`));
+          results.alreadyConfigured.push(customServerName);
+        } else {
+          // Create custom server config
+          const customServerConfig = {
+            name: customServerName,
+            description: 'Custom MCP Server',
+            transport: 'sse',
+            url: customMcpDetails.url,
+            envVars: {},
+          };
+
+          // Add the custom MCP server
+          const installSuccess = await this.addMcpServer(
+            installDir,
+            customServerName,
+            customServerConfig,
+            {},
+          );
+
+          if (installSuccess) {
+            results.installed.push(customServerName);
+          } else {
+            results.failed.push(customServerName);
+          }
+        }
+
+        customServerCount++;
+
+        // Ask if user wants to add another custom MCP server
+        const { addMore } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'addMore',
+            message: 'Would you like to add another custom MCP server?',
+            default: false,
+          },
+        ]);
+
+        addAnother = addMore;
+      }
+    }
+
+    if (spinner) spinner.start();
     return results;
   }
 
@@ -286,96 +397,104 @@ class DependencyManager {
    * @param {string} installDir - Target installation directory
    */
   async showInstallationSummary(results, installDir) {
-    if (results.installed.length > 0) {
-      console.log(chalk.green(`\n✓ Configured ${results.installed.length} MCP server(s):`));
-      for (const server of results.installed) {
-        console.log(chalk.green(`  - ${server}`));
+    // Combine all servers that need status checking
+    const allConfiguredServers = [...results.installed, ...results.alreadyConfigured];
+
+    if (allConfiguredServers.length > 0) {
+      if (results.installed.length > 0) {
+        console.log(chalk.green(`\n✅ Configured ${results.installed.length} MCP server(s):`));
+        for (const server of results.installed) {
+          console.log(chalk.green(`   - ${server}`));
+        }
       }
 
-      // Check connection status for installed servers
+      if (results.alreadyConfigured.length > 0) {
+        console.log(
+          chalk.green(`\n✅ Already configured ${results.alreadyConfigured.length} MCP server(s):`),
+        );
+        for (const server of results.alreadyConfigured) {
+          console.log(chalk.green(`   - ${server}`));
+        }
+      }
+
+      // Check connection status for all configured servers
       console.log(chalk.cyan('\n🔐 Checking authentication status...'));
-      for (const server of results.installed) {
+      const unauthenticatedServers = [];
+
+      for (const server of allConfiguredServers) {
         const isConnected = await this.isMcpServerConnected(installDir, server);
         if (isConnected) {
-          console.log(chalk.green(`✓ ${server} is authenticated`));
+          console.log(chalk.green(`   ✓ ${server} is connected and authenticated`));
         } else {
-          const serverConfig = this.requiredMcpServers[server];
-          console.log(chalk.yellow(`\n⚠️  ${serverConfig.name} is not authenticated yet`));
-          console.log(chalk.cyan('   To authenticate:'));
-          console.log(chalk.cyan('   1. Open Claude Code CLI in your project directory'));
-          console.log(chalk.cyan('   2. Run: /mcp'));
+          console.log(chalk.yellow(`   ⚠️  ${server} is not authenticated`));
+          unauthenticatedServers.push(server);
+        }
+      }
+
+      // Show authentication instructions for unauthenticated servers
+      if (unauthenticatedServers.length > 0) {
+        console.log(chalk.yellow('\n⚠️  Authentication Required:'));
+        console.log(
+          chalk.yellow(
+            `   ${unauthenticatedServers.length} MCP server(s) need authentication to work properly`,
+          ),
+        );
+        console.log(chalk.cyan('\n   To authenticate:'));
+        console.log(chalk.cyan('   1. Open Claude Code CLI in your project directory'));
+        console.log(chalk.cyan('   2. Run: /mcp'));
+        console.log(chalk.cyan('   3. Follow the browser authentication flow for each server'));
+        console.log(chalk.dim('\n   Unauthenticated servers:'));
+        for (const server of unauthenticatedServers) {
+          console.log(chalk.dim(`      - ${server}`));
+        }
+      } else {
+        console.log(chalk.green('\n✨ All MCP servers are authenticated and ready to use!\n'));
+      }
+    }
+
+    if (results.failed.length > 0) {
+      console.log(chalk.red(`\n❌ Failed to configure ${results.failed.length} MCP server(s):`));
+      for (const server of results.failed) {
+        console.log(chalk.red(`   - ${server}`));
+      }
+      console.log(chalk.yellow('\n⚠️  Some features may not work without these MCP servers.'));
+      console.log(chalk.yellow('   You can configure them manually later using:'));
+      for (const server of results.failed) {
+        const serverConfig = this.requiredMcpServers[server];
+        if (serverConfig) {
+          let command = `claude mcp add --transport ${serverConfig.transport} ${server} ${serverConfig.url}`;
+          if (serverConfig.envVars && Object.keys(serverConfig.envVars).length > 0) {
+            for (const [envVar] of Object.entries(serverConfig.envVars)) {
+              command += ` --env ${envVar}=<${envVar.toLowerCase()}>`;
+            }
+          }
+          console.log(chalk.cyan(`      ${command}`));
+        } else {
+          // Custom server that failed
           console.log(
-            chalk.cyan(`   3. Follow the browser authentication flow for ${serverConfig.name}`),
+            chalk.cyan(
+              `      claude mcp add --transport sse ${server} <url> # Re-run installer to configure`,
+            ),
           );
         }
       }
     }
 
-    if (results.failed.length > 0) {
-      console.log(chalk.red(`\n✗ Failed to configure ${results.failed.length} MCP server(s):`));
-      for (const server of results.failed) {
-        const serverConfig = this.requiredMcpServers[server];
-        console.log(chalk.red(`  - ${server}`));
-      }
-      console.log(chalk.yellow('\n⚠️  Some features may not work without these MCP servers.'));
-      console.log(chalk.yellow('You can configure them manually later using:'));
-      for (const server of results.failed) {
-        const serverConfig = this.requiredMcpServers[server];
-        let command = `claude mcp add ${server} --transport ${serverConfig.transport} ${serverConfig.url}`;
-        for (const [envVar, config] of Object.entries(serverConfig.envVars)) {
-          command += ` --env ${envVar}=<${envVar.toLowerCase()}>`;
-        }
-        console.log(chalk.cyan(`  ${command}`));
-      }
-    }
-
     if (
-      results.skipped.length > 0 &&
-      results.installed.length === 0 &&
-      results.alreadyConfigured.length === 0
+      results.checked.length === 0 ||
+      (results.installed.length === 0 &&
+        results.alreadyConfigured.length === 0 &&
+        results.failed.length === 0)
     ) {
       console.log(chalk.yellow('\n⚠️  No MCP servers were configured.'));
       console.log(
         chalk.yellow(
-          'Some features (retrieve-ticket-information, comment-plan) may not work without Atlassian MCP.',
+          '   Some features (retrieve-ticket-information, comment-plan) may not work without MCP servers.',
         ),
       );
-      console.log(chalk.yellow('\nYou can configure them later using:'));
-      for (const server of results.skipped) {
-        if (this.requiredMcpServers[server]) {
-          const serverConfig = this.requiredMcpServers[server];
-          let command = `claude mcp add ${server} --transport ${serverConfig.transport} ${serverConfig.url}`;
-          for (const [envVar, config] of Object.entries(serverConfig.envVars)) {
-            command += ` --env ${envVar}=<${envVar.toLowerCase()}>`;
-          }
-          console.log(chalk.cyan(`  ${command}`));
-          console.log(chalk.dim(`  Then run '/mcp' in Claude Code CLI to authenticate\n`));
-        }
-      }
-    }
-
-    // Check for already configured servers that might not be authenticated
-    if (results.alreadyConfigured.length > 0) {
-      console.log(chalk.cyan('\n🔐 Checking authentication status for existing servers...'));
-      for (const server of results.alreadyConfigured) {
-        if (this.requiredMcpServers[server]) {
-          const isConnected = await this.isMcpServerConnected(installDir, server);
-          if (isConnected) {
-            console.log(chalk.green(`✓ ${server} is authenticated`));
-          } else {
-            const serverConfig = this.requiredMcpServers[server];
-            console.log(
-              chalk.yellow(`\n⚠️  ${serverConfig.name} is configured but not authenticated`),
-            );
-            console.log(chalk.cyan('   To authenticate:'));
-            console.log(chalk.cyan('   1. Open Claude Code CLI in your project directory'));
-            console.log(chalk.cyan('   2. Run: /mcp'));
-            console.log(
-              chalk.cyan(`   3. Follow the browser authentication flow for ${serverConfig.name}`),
-            );
-          }
-        }
-      }
+      console.log(
+        chalk.yellow('\n   You can configure them later by running the installer again.'),
+      );
     }
   }
 }
