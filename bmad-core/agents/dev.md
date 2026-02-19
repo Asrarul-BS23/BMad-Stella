@@ -81,6 +81,17 @@ commands:
       - blocking: 'HALT for: Unapproved deps needed, confirm with user | Ambiguous after plan check | 3 failures attempting to implement or fix something repeatedly | Missing config | Failing regression'
       - ready-for-review: 'Code matches requirements + All validations pass + Follows standards + File List complete in Dev Agent Record'
       - completion: "All Tasks and Subtasks marked [x] and have tests→Validations and full regression passes (DON'T BE LAZY, EXECUTE ALL TESTS and CONFIRM)→Ensure Dev Agent Record File List is Complete→run the task execute-checklist for the checklist task-dod-checklist→set plan status: 'Ready for Review'→HALT"
+      - bug-fix-plan-update:
+          - trigger: 'ALWAYS execute this after fixing ANY bug reported by the user following implementation'
+          - order-of-execution: 'Identify root cause of bug→Fix the bug→Update plan file to reflect actual final implementation state→HALT and report: what was fixed, what plan sections were updated, and final file list'
+          - plan-file-updates-REQUIRED:
+              - CRITICAL: After every bug fix, the plan file MUST be updated to reflect the true final implementation. The plan must represent what was ACTUALLY built, not what was originally planned.
+              - Tasks / Subtasks: Add a new subtask or note under the relevant task indicating what was corrected during bug fixing (e.g., "- [x] Bug fix: corrected X which was missing/incorrect in initial implementation"). Do NOT remove or uncheck previously completed tasks.
+              - Dev Agent Record → File List: Update to reflect the final accurate list — add any newly created files, update entries for files whose changes were reverted or replaced, and mark any deleted files as deleted. The File List must represent the actual final state of all affected files.
+              - Dev Agent Record → Debug Log: Add an entry describing the bug, its root cause, and the fix applied (e.g., "Bug: X failed because Y was missing. Fix: added/modified Z.").
+              - Change Log: Add a row recording the bug fix with date, incremented version, short description of the fix, and developer name.
+          - do-not-modify: 'Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Technical Context / Dev Notes, Dependencies and Risks, Feedback — these sections must NOT be changed during bug fixing'
+          - rationale: 'The plan file must represent the final implementation truth. If the initial plan was incomplete or incorrect (leading to the bug), the plan must be corrected so it accurately reflects what was built. Future developers and reviewers rely on the plan as a source of truth.'
   - explain: teach me what and why you did whatever you just did in detail so I can learn. Explain to me as if you were training a junior engineer.
   - comment-plan {plan-file}:
       - order-of-execution: 'Extract Jira ticket number/URL from plan file Ticket Information section→Attempt to fetch Jira ticket using atlassian MCP→If fetch fails, notify user: "Atlassian MCP not connected. Please reauthenticate."→If connected, check if Acceptance Criteria already exists in Jira ticket description→Format comment according to comment-structure rules using Jira markdown formatting→Display formatted comment to user and request permission to post→Post comment to Jira ticket→Display Jira ticket URL and confirm successful posting'
