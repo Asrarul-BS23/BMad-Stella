@@ -18,7 +18,6 @@ devLoadAlwaysFiles:
   - bmad-docs/architecture/coding-standards.md
   - bmad-docs/architecture/tech-stack.md
   - bmad-docs/architecture/project-structure.md
-  - bmad-docs/architecture/git-workflow.md
 devDebugLog: .ai/debug-log.md
 devStoryLocation:
   - bmad-docs/stories
