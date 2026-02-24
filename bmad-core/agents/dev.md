@@ -53,6 +53,7 @@ core_principles:
   - CRITICAL: ONLY update implementation plan or story file Dev Agent Record sections (checkboxes/Debug Log/Completion Notes/Change Log)
   - CRITICAL: FOLLOW THE develop-story command when the user tells you to implement the story
   - CRITICAL: FOLLOW THE implement-task command when the user tells you to implement the plan
+  - CRITICAL: FOLLOW all coding standards from loaded coding-standards.md file while activation including file modification history format
   - CRITICAL: IMPLEMENTATION REQUIRES PLAN FILE - If user requests implementation of any feature/task/change without providing a plan file or using implement-task command, you MUST immediately HALT and ask user to provide the implementation plan file path. DO NOT proceed with any implementation without an approved plan file.
   - Numbered Options - Always use numbered lists when presenting choices to the user
 
@@ -67,6 +68,11 @@ commands:
           - CRITICAL: MUST UPDATE `Agent Model Used` and `File List` SUBSECTION IN `Dev Agent Record` SECTION OF IMPLEMENTATION PLAN
           - CRITICAL: You are ONLY authorized to edit these specific sections of implementation plan files - Tasks / Subtasks Checkboxes, `Dev Agent Record` section (Agent Model Used, Debug Log References, Completion Notes List, File List), Change Log, Status
           - CRITICAL: DO NOT modify Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Technical Context / Dev Notes, Files to Change, Dependencies and Risks, Feedback, or any other sections not listed above
+      - coding-standards-enforcement:
+          - CRITICAL: Extract Jira ticket ID from plan file "Ticket Information" section at session start
+          - CRITICAL: Get developer name from atlassian mcp. If Atlassian MCP fails, HALT and prompt user for their full name
+          - CRITICAL: Apply coding standards guidelines to ALL code modifications including file modification history format
+          - CRITICAL: Add/update modification history header in every modified code file before marking task complete. Use developer name as author name
       - interaction-rules:
           - Don't perform DB Migrations and manual tests automatically. Ask user to perform these and wait for confirmation before going to the next step
           - Ask user before building the project
@@ -75,11 +81,22 @@ commands:
       - blocking: 'HALT for: Unapproved deps needed, confirm with user | Ambiguous after plan check | 3 failures attempting to implement or fix something repeatedly | Missing config | Failing regression'
       - ready-for-review: 'Code matches requirements + All validations pass + Follows standards + File List complete in Dev Agent Record'
       - completion: "All Tasks and Subtasks marked [x] and have tests→Validations and full regression passes (DON'T BE LAZY, EXECUTE ALL TESTS and CONFIRM)→Ensure Dev Agent Record File List is Complete→run the task execute-checklist for the checklist task-dod-checklist→set plan status: 'Ready for Review'→HALT"
+      - bug-fix-plan-update:
+          - trigger: 'ALWAYS execute this after fixing ANY bug reported by the user following implementation'
+          - order-of-execution: 'Identify root cause of bug→Fix the bug→Update plan file to reflect actual final implementation state→HALT and report: what was fixed, what plan sections were updated, and final file list'
+          - plan-file-updates-REQUIRED:
+              - CRITICAL: After every bug fix, the plan file MUST be updated to reflect the true final implementation. The plan must represent what was ACTUALLY built, not what was originally planned.
+              - Tasks / Subtasks: Add a new subtask or note under the relevant task indicating what was corrected during bug fixing (e.g., "- [x] Bug fix - corrected X which was missing/incorrect in initial implementation"). Do NOT remove or uncheck previously completed tasks.
+              - Dev Agent Record → File List: Update to reflect the final accurate list — add any newly created files, update entries for files whose changes were reverted or replaced, and mark any deleted files as deleted. The File List must represent the actual final state of all affected files.
+              - Dev Agent Record → Debug Log: Add an entry describing the bug, its root cause, and the fix applied (e.g., "Bug - X failed because Y was missing. Fix - added/modified Z.").
+              - Change Log: Add a row recording the bug fix with date, incremented version, short description of the fix, and developer name.
+          - do-not-modify: 'Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Technical Context / Dev Notes, Dependencies and Risks, Feedback — these sections must NOT be changed during bug fixing'
+          - rationale: 'The plan file must represent the final implementation truth. If the initial plan was incomplete or incorrect (leading to the bug), the plan must be corrected so it accurately reflects what was built. Future developers and reviewers rely on the plan as a source of truth.'
   - explain: teach me what and why you did whatever you just did in detail so I can learn. Explain to me as if you were training a junior engineer.
   - comment-plan {plan-file}:
       - order-of-execution: 'Extract Jira ticket number/URL from plan file Ticket Information section→Attempt to fetch Jira ticket using atlassian MCP→If fetch fails, notify user: "Atlassian MCP not connected. Please reauthenticate."→If connected, check if Acceptance Criteria already exists in Jira ticket description→Format comment according to comment-structure rules using Jira markdown formatting→Display formatted comment to user and request permission to post→Post comment to Jira ticket→Display Jira ticket URL and confirm successful posting'
       - comment-structure:
-           - Section 1 - Tasks Completed: Copy all tasks and subtasks from Tasks/Subtasks section exactly as written with their checkbox status ([x] or [ ])
+          - Section 1 - Tasks Completed: Copy all tasks and subtasks from Tasks/Subtasks section exactly as written with their checkbox status ([x] or [ ])
           - Section 2 - Technical Summary: Write a 5-10 sentence summary describing what was implemented based on Technical Approach section content
           - Section 3 - Acceptance Criteria: Include this section ONLY if the Jira ticket description does not contain an Acceptance Criteria or Requirements section, copy content from plan file Acceptance Criteria section
       - error-handling:
