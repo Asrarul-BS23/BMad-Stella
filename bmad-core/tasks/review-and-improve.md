@@ -10,11 +10,13 @@ Review code and apply practical improvements directly. Focus on reducing time co
 
 ### 1. Load Files
 
-**Load and Read `Coding-Standards.md` file:** from the given location in `devLoadAlwaysFiles` of `.bmad-core/core-config.yaml` file
-**If story/ task file:** Extract files from "Dev Agent Record" → "File List"
+**Load and Read `coding-standards.md` file:** from the given location in `devLoadAlwaysFiles` of `.bmad-core/core-config.yaml` file
+**If story/task file:** Extract files from "Dev Agent Record" → "File List"
 **If specific files:** Use provided paths
 
 ### 2. Review Each File
+
+_Suggest Improvements ONLY in Recently Modified or Added Code_
 
 Look for:
 
@@ -34,8 +36,8 @@ Look for:
 
 **Code Standards:**
 
-- Ensure coding standards are followed properly
-- Commenting strategy followed properly where necessary
+- Standards not followed → Fix to match coding-standards.md
+- Missing or incorrect comments → Add/fix per commenting strategy
 
 **Simple Performance:**
 
