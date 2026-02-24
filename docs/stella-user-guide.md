@@ -41,7 +41,7 @@ When prompted:
 
 Enter the full path to your project directory where you want to install BMad-Stella.
 
-**Example:** `D:\my-project` or `./home/user/my-project`
+**Example:** `D:\my-project` or `/home/user/my-project` or `./` if you are already in the project directory
 
 #### Step 3: Select BMad Agile Core System
 
@@ -53,17 +53,22 @@ When presented with system options:
 
 Select: **BMad Agile Core System**
 
-#### Step 4: Provide Confluence Architecture Docs Link
+#### Step 4: Select Architecture Documentation for Your Project
 
 When prompted:
 
 ```
-? Enter confluence url of architecture folder:
+? Select your project for architecture documentation: (Use arrow keys)
+> LEADRS Core
+  Risk Monitor
+  SAFV
+  Quarry Connect
+  Other (custom URL)
 ```
 
-Provide the Confluence page URL containing your project's architecture documentation.
+Select the project you are currently working on from the list. If your project is not listed, select **Other (custom URL)** and provide the Confluence page URL where your architecture documentation exists.
 
-**Example:** `https://yourcompany.atlassian.net/wiki/spaces/PROJ/pages/123456/Architecture`
+**Example (custom URL):** `https://yourcompany.atlassian.net/wiki/spaces/PROJ/pages/123456/Architecture`
 
 **Note:** This link will be used by the planner agent to load architecture docs (coding standards, tech stack, git workflow, project structure) during activation.
 
@@ -99,15 +104,17 @@ Enter: **y**
 
 #### Step 8: Configure Atlassian MCP Server
 
-If Atlassian MCP is not already configured, you'll see:
+When prompted to select MCP servers:
 
 ```
-? Would you like to configure Atlassian MCP Server now? (Y/n)
+? Which MCP servers do you want to configure? (Select with SPACEBAR, confirm with ENTER):
+>( ) Atlassian (for JIRA integration)
+ ( ) Other (custom MCP server)
 ```
 
-Enter: **y**
+Select **Atlassian (for JIRA integration)** using `SPACEBAR`, then press `ENTER` to confirm.
 
-Then provide your JIRA instance URL:
+**If Atlassian MCP is NOT already configured**, you will be prompted for your JIRA instance URL:
 
 ```
 ? Enter Your JIRA instance URL:
@@ -115,17 +122,26 @@ Then provide your JIRA instance URL:
 
 Enter: `https://stellaint.atlassian.net` (or your organization's JIRA URL)
 
-**What happens during configuration:**
+**If Atlassian MCP is already configured**, it will skip the URL prompt and instead display the current authentication status:
 
-- MCP server configuration is created
-- Authentication is required to connect with JIRA instance
+```
+✓ Atlassian MCP Server is already configured
+  Checking required MCP servers...
+✅ Already configured 1 MCP server(s):
+   - atlassian
+
+🔒 Checking authentication status...
+  ✓ atlassian is connected and authenticated
+
+✨ All MCP servers are authenticated and ready to use!
+```
 
 #### Step 9: Complete Installation
 
 You should see:
 
 ```
-√ Installation complete!
+✓ Installation complete!
 
 ✓ BMad Method installed successfully!
 
@@ -134,6 +150,14 @@ You should see:
 ✓ .bmad-core framework installed with all agents and workflows
 ✓ IDE rules and configurations set up for: claude-code
 
+📦 Web Bundles Available:
+Pre-built web bundles are available and can be added later:
+  Run the installer again to add them to your project
+These bundles work independently and can be shared, moved, or used
+in other projects as standalone files.
+
+📖 IMPORTANT: Please read the user guide at .bmad-core/stella-user-guide
+This guide contains essential information about the BMad-Stella workflow and how to use the agents effectively.
 ```
 
 ### Post-Installation: Authenticate Atlassian MCP
@@ -461,7 +485,8 @@ graph TD
 | Command                 | Purpose                                                                              | When to Use                                                                                                                                                                                            | Files Created/Modified                                                   | Parameters                                                                                |
 | ----------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | `*help`                 | Display all available commands                                                       | When starting planner agent or need command list                                                                                                                                                       | None                                                                     | None                                                                                      |
-| `*retrieve-ticket-info` | Fetch JIRA ticket details via Atlassian MCP                                          | **First step** in planning workflow. Use when you have a JIRA ticket number or URL and need to gather requirements, acceptance criteria, and attachments before planning                               | None (displays ticket info for validation)                               | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
+| `*retrieve-ticket-info`    | Fetch JIRA ticket details via Atlassian MCP                                                                                                                            | **First step** in planning workflow. Use when you have a JIRA ticket number or URL and need to gather requirements, acceptance criteria, and attachments before planning                               | None (displays ticket info for validation)                                                          | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
+| `*identify-dependencies`   | Find related past tickets, analyze code files modified in past work, and assess code modification requirements for the current ticket                                   | After retrieving ticket info. Use before drafting a plan for complex tickets to understand what past work is related, which files are likely impacted, and what risks or blockers exist early          | **Creates:** `bmad-docs/temporary/{TICKET-ID}-dependency-tmp.md`                                    | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
 | `*draft-plan`           | Create detailed implementation plan with tasks, technical approach, and dependencies | After retrieving ticket info and validating requirements. Transforms ticket into actionable plan with step-by-step tasks that junior developers can follow                                             | **Creates:** `bmad-docs/impl-plan/{TICKET-NUMBER}-plan.md`               | `{ticket-file-or-description}` - Ticket file path or description with Acceptance Criteria |
 | `*refine-plan`          | Iterate and improve existing implementation plan                                     | When initial plan needs more technical detail, user provides feedback, requirements change, or approach needs adjustment. Supports iterative refinement before dev handoff                             | **Modifies:** Existing plan file                                         | `{plan-file}` - Path to implementation plan                                               |
 | `*validate-plan`        | Run validation checklist on plan completeness                                        | Before handing off to dev agent. Ensures plan has all required sections, clear acceptance criteria, detailed tasks, identified dependencies, and technical decisions documented                        | None (displays validation results)                                       | `{plan-file}` - Path to implementation plan                                               |
