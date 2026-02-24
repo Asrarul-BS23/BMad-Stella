@@ -10,26 +10,37 @@ Review code and apply practical improvements directly. Focus on reducing time co
 
 ### 1. Load Files
 
-**If story file:** Extract files from "Dev Agent Record" → "File List"
+**Load and Read `coding-standards.md` file:** from the given location in `devLoadAlwaysFiles` of `.bmad-core/core-config.yaml` file
+**If story/task file:** Extract files from "Dev Agent Record" → "File List"
 **If specific files:** Use provided paths
 
 ### 2. Review Each File
 
+_Suggest Improvements ONLY in Recently Modified or Added Code_
+
 Look for:
 
 **Time Complexity Issues:**
+
 - O(n²) or worse algorithms → Can we make it O(n)?
 - Nested loops → Can we use a Map/Set?
 - Repeated calculations → Can we calculate once?
 - Inefficient searching/sorting → Better algorithm?
 
 **Code Quality:**
+
 - Confusing variable names → Rename
 - Duplicate code → Extract to function
 - Long functions → Break down
 - Missing error handling → Add it
 
+**Code Standards:**
+
+- Standards not followed → Fix to match coding-standards.md
+- Missing or incorrect comments → Add/fix per commenting strategy
+
 **Simple Performance:**
+
 - Database queries in loops → Batch them
 - Large arrays being copied → Use references
 - Unnecessary iterations → Remove
@@ -67,6 +78,7 @@ Apply this improvement? (yes/no)
 ### 6. After All Improvements
 
 Summary:
+
 - Files reviewed: {count}
 - Improvements found: {count}
 - Improvements applied: {count}
@@ -77,6 +89,7 @@ Done!
 ## Rules
 
 **DO suggest:**
+
 - ✅ Better algorithms (O(n²) → O(n))
 - ✅ Using Map/Set instead of nested loops
 - ✅ Removing duplicate code
@@ -85,6 +98,7 @@ Done!
 - ✅ Adding error handling
 
 **DON'T suggest:**
+
 - ❌ Caching layers
 - ❌ Vector embeddings
 - ❌ Redis/persistent memory
