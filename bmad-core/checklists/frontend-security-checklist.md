@@ -2,11 +2,17 @@
 
 # Frontend Security Checklist
 
-## Instructions
+Audit frontend files touched by an implementation plan against common web security vulnerabilities. Execute every item against the scoped files only — never assume, always read the code.
 
-Execute 'Checklist Items' against the frontend files listed in the implementation plan's Dev Agent Record → File List.
+[[LLM: INITIALIZATION INSTRUCTIONS - FRONTEND SECURITY AUDIT
 
-[[LLM: Executed against scoped frontend files from the implementation plan. Mark [PASS] only after reading the code — never assume. Every [FAIL] requires file:line, offending snippet, severity, and fix. Every [N/A] requires a one-sentence reason.
+FILE SCOPE DEFINITIONS (use these labels throughout the checklist):
+
+- CLIENT SCRIPT FILES: any file containing client-side logic — components, modules, utilities, and any template file with embedded script blocks
+- MARKUP TEMPLATE FILES: any file responsible for rendering HTML output — static HTML, server-rendered templates, and client-side view components
+- FRONTEND CONFIG FILES: any build-tool, bundler, framework, or server configuration file that governs how the frontend is compiled, served, or secured
+
+IMPORTANT: Mark [PASS] only after reading the code — never assume. Every [FAIL] requires file:line, offending snippet, severity, and fix. Every [N/A] requires a one-sentence reason.
 
 SEVERITY — assign one to every FAIL:
 
@@ -25,11 +31,9 @@ EXECUTION APPROACH:
 
 The goal is evidence-based findings, not assumptions.]]
 
-## Checklist Items
+## 1. CSP CONFIGURATION
 
-### 1. CSP Configuration
-
-[[LLM: Check `<meta>` CSP tags and config files (next.config.*, vite.config.*, webpack.config.*, web.config, middleware headers). Mark entire section N/A if no CSP config is in scope.]]
+[[LLM: A misconfigured CSP is the most common XSS amplifier. Check `<meta>` CSP tags and all FRONTEND CONFIG FILES — mark section N/A if no CSP config is in scope.]]
 
 - [ ] `script-src` has no `'unsafe-inline'` without a nonce or hash expression in the same directive.
 - [ ] `script-src` has no `'unsafe-eval'`.
@@ -42,9 +46,9 @@ The goal is evidence-based findings, not assumptions.]]
 
 ---
 
-### 2. Inline Scripts & Eval in Markup
+## 2. INLINE SCRIPTS & EVAL IN MARKUP
 
-[[LLM: Inspect all markup/template files (.html, .cshtml, .razor, .vue, .erb, .blade.php, .jinja, etc.) — every `<script>` tag, element attributes, and href/src/action values.]]
+[[LLM: Inline scripts silently bypass CSP — find every one. Inspect all MARKUP TEMPLATE FILES: every `<script>` tag, element event attributes, and href/src/action values.]]
 
 - [ ] All `<script>` tags have a `nonce` attribute when the project uses nonce-based CSP.
 - [ ] No `<script>` tag has a hardcoded static nonce value (same value across responses).
@@ -54,9 +58,9 @@ The goal is evidence-based findings, not assumptions.]]
 
 ---
 
-### 3. Dangerous DOM Sinks
+## 3. DANGEROUS DOM SINKS
 
-[[LLM: Inspect JS/TS/JSX/TSX files. For each sink, trace the value to its source — FAIL if untrusted input (URL params, hash, user input, external API data) reaches the sink without an explicit sanitization call (e.g., DOMPurify.sanitize()) immediately before it.]]
+[[LLM: DOM sinks are the primary XSS vector. Inspect all CLIENT SCRIPT FILES — for each sink, trace to its source and FAIL if untrusted input (URL params, hash, user input, API data) reaches it without an explicit sanitization call (e.g., DOMPurify.sanitize()).]]
 
 - [ ] `innerHTML` is not assigned from any untrusted source without prior sanitization.
 - [ ] `outerHTML` is not assigned from any untrusted source without sanitization.
@@ -68,9 +72,9 @@ The goal is evidence-based findings, not assumptions.]]
 
 ---
 
-### 4. Subresource Integrity (SRI)
+## 4. SUBRESOURCE INTEGRITY (SRI)
 
-[[LLM: Find every external `<script src>` and `<link rel="stylesheet" href>` (non-self domain) in markup files. Evaluate each tag separately.]]
+[[LLM: External resources without integrity checks can be silently replaced by a compromised CDN. Find every external `<script src>` and `<link rel="stylesheet" href>` (non-self domain) in MARKUP TEMPLATE FILES and evaluate each tag separately.]]
 
 - [ ] Every external `<script src="...">` has an `integrity` attribute with a valid `sha256-`, `sha384-`, or `sha512-` hash.
 - [ ] Every external `<link rel="stylesheet" href="...">` has an `integrity` attribute with a valid hash.
@@ -78,9 +82,9 @@ The goal is evidence-based findings, not assumptions.]]
 
 ---
 
-### 5. Mixed Content & HTTPS
+## 5. MIXED CONTENT & HTTPS
 
-[[LLM: Search all files for hardcoded `http://` URLs in markup attributes (src, href, action, data, poster) and in fetch/XHR/axios calls. Check CSP config for upgrade-insecure-requests.]]
+[[LLM: Mixed content exposes HTTPS pages to interception. Search MARKUP TEMPLATE FILES for hardcoded `http://` in resource attributes, CLIENT SCRIPT FILES for `http://` in network calls, and FRONTEND CONFIG FILES for upgrade-insecure-requests.]]
 
 - [ ] No markup attribute (`src`, `href`, `action`, `data`, `poster`) contains a hardcoded `http://` URL.
 - [ ] No `fetch()`, `XMLHttpRequest`, or `axios` call uses a hardcoded `http://` endpoint URL.
@@ -88,9 +92,9 @@ The goal is evidence-based findings, not assumptions.]]
 
 ---
 
-### 6. Frame & Embed Controls
+## 6. FRAME & EMBED CONTROLS
 
-[[LLM: Check markup files for `<base>` and `<iframe>` tags. Check server/middleware config for X-Frame-Options — mark that item N/A if no server config is in scope.]]
+[[LLM: Missing frame controls enable clickjacking. Check MARKUP TEMPLATE FILES for `<base>` and `<iframe>` tags, and FRONTEND CONFIG FILES for X-Frame-Options — mark that item N/A if no server config is in scope.]]
 
 - [ ] No `<base href="...">` tag is present unless justified by a documented requirement in the implementation plan.
 - [ ] Every cross-origin `<iframe>` has a `sandbox` attribute with explicitly listed minimum permissions.
@@ -98,9 +102,9 @@ The goal is evidence-based findings, not assumptions.]]
 
 ---
 
-### 7. Sensitive Data Exposure
+## 7. SENSITIVE DATA EXPOSURE
 
-[[LLM: Inspect JS/TS/JSX/TSX and config files. Flag console calls outputting tokens, credentials, or PII (not generic error strings). Flag storage calls writing raw auth tokens, passwords, or unencrypted PII (not UI preferences).]]
+[[LLM: Client-side code is fully visible to any user — treat every token, key, and credential as exposed. Inspect all CLIENT SCRIPT FILES and FRONTEND CONFIG FILES, flagging hardcoded secrets, insecure storage writes, and logging of sensitive data.]]
 
 - [ ] No frontend file contains a hardcoded API key, auth token, password, or secret as a string literal.
 - [ ] `localStorage.setItem()` and `sessionStorage.setItem()` do not store raw auth tokens, session IDs, passwords, or unencrypted PII.
@@ -109,9 +113,9 @@ The goal is evidence-based findings, not assumptions.]]
 
 ---
 
-### 8. Untrusted Input Handling
+## 8. UNTRUSTED INPUT HANDLING
 
-[[LLM: Inspect JS/TS/JSX/TSX files. Focus on postMessage origin validation and open-redirect prevention. DOM sink coverage for URL-derived inputs is handled in Section 3.]]
+[[LLM: Unvalidated external input is the root cause of injection and redirect attacks. Inspect all CLIENT SCRIPT FILES — focus on postMessage origin validation and open-redirect prevention. DOM sink coverage for URL-derived inputs is in Section 3.]]
 
 - [ ] All `window.addEventListener('message', ...)` handlers validate `event.origin` against an explicit allowlist before processing `event.data`.
 - [ ] `JSON.parse()` on external, URL-sourced, or `postMessage` data is wrapped in `try/catch`.
@@ -119,7 +123,7 @@ The goal is evidence-based findings, not assumptions.]]
 
 ---
 
-## Final Assessment
+## FINAL CONFIRMATION
 
 [[LLM: FINAL SECURITY AUDIT SUMMARY
 
