@@ -324,6 +324,7 @@ async function promptInstallation() {
     answers.architectureSharded = true;
 
     // Define predefined projects with their architecture document URLs
+    // The Domain Expert agent auto-discovers the Domain-Knowledge child page at runtime
     // To add a new project, add a new entry with:
     //   'project-id': {
     //     name: 'Display Name',
