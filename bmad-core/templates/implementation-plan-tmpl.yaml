@@ -188,6 +188,17 @@ sections:
     owner: planner
     editors: [planner, dev-agent]
 
+  - id: security-violations
+    title: Security Violations
+    type: bullet-list
+    instruction: |
+      Populated by the security agent (Sam) after running *check-frontend or *check-backend commands
+      against the implemented plan. Do NOT populate this section manually.
+      Security agent will replace this entire section on re-audit to reflect the latest state.
+      Dev agent (Bob) resolves each violation and marks its checkbox [x] when the fix is applied.
+    owner: security-agent
+    editors: [security-agent, dev-agent]
+
   - id: dev-agent-record
     title: Dev Agent Record
     instruction: This section is populated by the development agent during implementation

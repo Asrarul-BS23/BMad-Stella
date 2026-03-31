@@ -277,6 +277,7 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
   - Tasks / Subtasks (with checkboxes, including 2 testing tasks at the end)
   - Change Log (initialize with creation entry)
   - Dev Agent Record (leave empty - dev agent will populate with Agent Model Used and File List only)
+  - Security Violations (leave empty - populated by security agent post-implementation; dev agent resolves violations and marks each [x] when fixed)
   - Feedback (leave empty initially)
 
 ### 9. Implementation Plan Completion and Review
