@@ -9,6 +9,7 @@ agents:
   - pm
   - architect
   - po
+  - domain-expert
 workflows:
   - greenfield-service.yaml
   - brownfield-service.yaml
