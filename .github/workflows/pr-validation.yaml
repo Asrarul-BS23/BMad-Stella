@@ -8,7 +8,6 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    if: github.event.repository.fork != true || vars.ENABLE_CI_IN_FORK == 'true'
 
     steps:
       - name: Checkout
@@ -45,11 +44,11 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `❌ **PR Validation Failed**
-              
+
               This PR has validation errors that must be fixed before merging:
-              - Run \`npm run validate\` to check agent/team configs
+              - Run \`npm run validate\` to check Stella agent/task/checklist configs in bmad-core/
               - Run \`npm run format:check\` to check formatting (fix with \`npm run format\`)
               - Run \`npm run lint\` to check linting issues (fix with \`npm run lint:fix\`)
-              
+
               Please fix these issues and push the changes.`
             })
