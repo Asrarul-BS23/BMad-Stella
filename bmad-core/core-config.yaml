@@ -13,6 +13,8 @@ architecture:
   architectureVersion: v4
   architectureSharded: true
   architectureShardedLocation: bmad-docs/architecture
+domainKnowledge:
+  location: bmad-docs/domain-knowledge
 customTechnicalDocuments: null
 devLoadAlwaysFiles:
   - bmad-docs/architecture/coding-standards.md

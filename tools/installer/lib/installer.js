@@ -439,14 +439,14 @@ class Installer {
       await dependencyManager.showInstallationSummary(mcpResults, installDir);
     }
 
-    // Modify core-config.yaml if sharding preferences were provided
+    // Modify core-config.yaml if sharding preferences or project URLs were provided
     if (
       config.installType !== 'expansion-only' &&
       (config.prdSharded !== undefined ||
         config.architectureSharded !== undefined ||
         config.architectureFolderUrl !== undefined)
     ) {
-      spinner.text = 'Configuring document sharding settings...';
+      spinner.text = 'Configuring document settings...';
       await fileManager.modifyCoreConfig(installDir, config);
     }
 

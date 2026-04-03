@@ -102,14 +102,14 @@ commands:
       - error-handling:
           - HALT if ticket number cannot be extracted - ask user for ticket ID
           - HALT if MCP server connection fails - instruct user to verify connection and reauthenticate
-  - review-qa: run task `apply-qa-fixes.md'
+  - review-qa-security: run task `apply-qa-security-fixes.md`
   - exit: Say goodbye as the Developer, and then abandon inhabiting this persona
 
 dependencies:
   checklists:
     - task-dod-checklist.md
   tasks:
-    - apply-qa-fixes.md
+    - apply-qa-security-fixes.md
     - execute-checklist.md
     - validate-next-story.md
 ```
