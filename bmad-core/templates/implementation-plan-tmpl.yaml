@@ -1,9 +1,9 @@
 # <!-- Powered by Stella Development Team -->
 
 template:
-  id: implementation-plan-template-v1
+  id: implementation-plan-template-v2
   name: Implementation Plan Document
-  version: 1.0
+  version: 2.0
   output:
     format: markdown
     filename: bmad-docs/impl-plan/{{ticket_number}}-{{ticket_title_short}}.md
@@ -20,6 +20,10 @@ agent_config:
     - Requirements
     - Acceptance Criteria
     - Technical Approach
+    - Migration Details
+    - Bug Fix Details
+    - Feature Details
+    - Planner Notes
     - Tasks / Subtasks
     - Dependencies and Risks
     - Change Log
@@ -53,6 +57,21 @@ sections:
         type: choice
         choices: [Feature, Bug, Migration]
         instruction: Type of work to be performed
+        elicit: true
+        owner: planner
+        editors: [planner]
+
+      - id: ticket-subtype
+        title: Ticket Subtype
+        type: choice
+        choices: [Stack Version, Architecture Pattern, Infrastructure, Data, Hybrid, N/A]
+        instruction: |
+          For Migration tickets, classify the migration sub-type. Set N/A for Feature/Bug.
+          - Stack Version: Dependency version changes, API updates, deprecation replacements
+          - Architecture Pattern: Structural reorganization (e.g., MVC to Clean Architecture, layered to hexagonal)
+          - Infrastructure: Deployment/hosting/cloud provider changes
+          - Data: Database schema changes, data transformations, engine migrations
+          - Hybrid: Combination of the above
         elicit: true
         owner: planner
         editors: [planner]
@@ -100,25 +119,309 @@ sections:
       Specific, testable conditions that must be met for the ticket to be considered complete.
       If not provided in ticket, derive based on requirements and ticket type.
       Format: Clear, actionable statements that can be verified.
+
+      Type-specific guidance:
+      - Feature: Include integration verification and pattern conformance criteria
+      - Bug: Include "root cause addressed" and "regression test passes" criteria
+      - Migration: Include "all tests pass (>= baseline count)", "build succeeds with no new warnings",
+        "target architecture pattern realized", and "no deprecated APIs remain" criteria as applicable
     elicit: true
     owner: planner
     editors: [planner]
 
   - id: technical-approach
     title: Technical Approach
+    instruction: |
+      Structured technical strategy written by planner as a senior developer guiding junior developers.
+      Cite architecture docs where applicable using format: [Source: architecture/filename.md#section]
+    elicit: true
+    owner: planner
+    editors: [planner]
+    sections:
+      - id: current-state
+        title: Current State
+        type: multiline-text
+        instruction: |
+          What exists now in the codebase relevant to this ticket.
+          - Current code structure and file organization in the affected area
+          - Current data flow or execution path (especially for bugs and migrations)
+          - Existing patterns, utilities, and services that are relevant
+          - Current test coverage of affected files
+        owner: planner
+        editors: [planner]
+
+      - id: target-state
+        title: Target State
+        type: multiline-text
+        instruction: |
+          What should exist after implementation is complete.
+          - For Features: new components, endpoints, files, and how they integrate
+          - For Bugs: corrected behavior and the specific code path change
+          - For Migrations: target architecture, folder structure, and pattern
+        owner: planner
+        editors: [planner]
+
+      - id: transformation-strategy
+        title: Transformation Strategy
+        type: multiline-text
+        instruction: |
+          How to get from current state to target state.
+          - Overall implementation strategy and sequencing rationale
+          - Key design patterns and code patterns to follow
+          - API/database design changes (if applicable)
+          - Technologies and frameworks to use
+          - File locations (new files to create, existing files to modify)
+        owner: planner
+        editors: [planner]
+
+      - id: integration-points
+        title: Integration Points
+        type: multiline-text
+        instruction: |
+          Where new or changed code connects to existing code.
+          - Existing services, APIs, or modules that will be called or modified
+          - Callers and consumers of code being changed
+          - Shared state, configuration, or infrastructure dependencies
+        owner: planner
+        editors: [planner]
+
+      - id: pattern-conformance
+        title: Pattern Conformance
+        type: multiline-text
+        instruction: |
+          Existing patterns the implementation must follow, with codebase examples.
+          - Reference existing files that demonstrate the pattern to follow
+          - Naming conventions, DI registration patterns, error handling patterns
+          - Identify a reference implementation if one exists (a fully completed
+            similar feature/migration that serves as the canonical example)
+        owner: planner
+        editors: [planner]
+
+  # ============================================================
+  # TYPE-SPECIFIC SECTIONS
+  # Only populate the section matching the ticket type.
+  # Leave the others empty or omit them in the output.
+  # ============================================================
+
+  - id: migration-details
+    title: Migration Details
+    instruction: |
+      MIGRATION TICKETS ONLY — Leave empty for Feature/Bug tickets.
+      Comprehensive migration-specific planning details.
+    owner: planner
+    editors: [planner]
+    sections:
+      - id: reference-implementation
+        title: Reference Implementation
+        type: multiline-text
+        instruction: |
+          Identify a fully completed, already-migrated module that serves as the
+          canonical example of the target pattern. The dev agent MUST study this
+          reference before writing any migration code.
+          - List the reference module name and location
+          - List key files per layer/component that demonstrate the target pattern
+        owner: planner
+        editors: [planner]
+
+      - id: source-state
+        title: Source State
+        type: multiline-text
+        instruction: |
+          Current state being migrated FROM:
+          - Stack Version: current version numbers, deprecated APIs in use, current config format
+          - Architecture Pattern: current pattern name, current folder structure, current dependency direction
+          - Infrastructure: current hosting, deployment, database engine
+          - Data: current schema, data volume, current engine
+        owner: planner
+        editors: [planner]
+
+      - id: target-state-migration
+        title: Target State
+        type: multiline-text
+        instruction: |
+          Target state being migrated TO:
+          - Stack Version: target version numbers, replacement APIs, new config format
+          - Architecture Pattern: target pattern name, target folder structure, dependency direction rules
+          - Infrastructure: target hosting, deployment, database engine
+          - Data: target schema, transformation logic, new engine
+        owner: planner
+        editors: [planner]
+
+      - id: source-architecture-reference
+        title: Source Architecture Reference
+        type: text
+        instruction: |
+          Link or file path to the current architecture document.
+          REQUIRED for Architecture Pattern migrations.
+        owner: planner
+        editors: [planner]
+
+      - id: target-architecture-reference
+        title: Target Architecture Reference
+        type: text
+        instruction: |
+          Link or file path to the target architecture document.
+          REQUIRED for Architecture Pattern migrations. HALT planning if missing.
+        owner: planner
+        editors: [planner]
+
+      - id: transformation-map
+        title: Transformation Map
+        type: multiline-text
+        instruction: |
+          Structural diff between source and target showing:
+          - What moves where (file/folder relocations)
+          - What splits (one module becomes multiple)
+          - What merges (multiple modules become one)
+          - What gets created (new layers, interfaces, abstractions)
+          - What gets deleted (removed patterns, deprecated code)
+          - Dependency direction changes
+        owner: planner
+        editors: [planner]
+
+      - id: migration-strategy
+        title: Migration Strategy
+        type: multiline-text
+        instruction: |
+          How the migration will be executed:
+          - Incremental vs big-bang approach
+          - Migration order and sequencing rationale (innermost/most-stable layers first)
+          - Intermediate states the codebase will pass through
+          - Coexistence requirements (old and new running simultaneously)
+          - Breaking changes identified and their replacements
+        owner: planner
+        editors: [planner]
+
+      - id: rollback-plan
+        title: Rollback Plan
+        type: multiline-text
+        instruction: |
+          How to revert if the migration fails:
+          - Overall rollback strategy
+          - Per-task rollback notes (what to revert if only that task fails)
+          - Rollback feasibility assessment (can this be rolled back, or is it one-way?)
+          - Rollback testing approach
+        owner: planner
+        editors: [planner]
+
+      - id: health-criteria
+        title: Health Criteria
+        type: multiline-text
+        instruction: |
+          Metrics that must be maintained throughout migration:
+          - Test pass count must remain >= baseline
+          - Build must succeed with no new warnings
+          - Performance benchmarks (if applicable)
+          - Structural validation criteria (dependency direction, layer boundaries)
+        owner: planner
+        editors: [planner]
+
+      - id: do-not-migrate
+        title: Do Not Migrate
+        type: multiline-text
+        instruction: |
+          Patterns, workarounds, and technical debt from the source that should be
+          intentionally DROPPED during migration — not carried over to the target.
+          For each item: what it is, why it exists in the source, and why it should not be migrated.
+        owner: planner
+        editors: [planner]
+
+  - id: bugfix-details
+    title: Bug Fix Details
+    instruction: |
+      BUG TICKETS ONLY — Leave empty for Feature/Migration tickets.
+      Root cause analysis and fix scoping details.
+    owner: planner
+    editors: [planner]
+    sections:
+      - id: root-cause-analysis
+        title: Root Cause Analysis
+        type: multiline-text
+        instruction: |
+          Identified root cause of the bug — not just symptoms.
+          - What is the actual root cause (distinct from observable symptoms)?
+          - What code path is responsible?
+          - What data conditions trigger the bug?
+          - Is this a root cause fix or a workaround? If workaround, explain why.
+        owner: planner
+        editors: [planner]
+
+      - id: reproduction-steps
+        title: Reproduction Steps
+        type: numbered-list
+        instruction: |
+          Steps to consistently reproduce the bug, embedded in the plan.
+          Do not rely solely on JIRA ticket — reproduce steps must be self-contained here.
+        owner: planner
+        editors: [planner]
+
+      - id: affected-code-path
+        title: Affected Code Path
+        type: multiline-text
+        instruction: |
+          Trace through the failing execution path:
+          - Entry point (API endpoint, event handler, scheduled job, etc.)
+          - Data flow through the failing scenario
+          - Exact file(s) and function(s) where the bug manifests
+          - Callers/consumers of the affected code
+        owner: planner
+        editors: [planner]
+
+      - id: fix-scope-boundary
+        title: Fix Scope Boundary
+        type: multiline-text
+        instruction: |
+          What should NOT be changed during this fix.
+          - Files/modules that are out of scope
+          - Adjacent code improvements that should be separate tickets
+          - The minimal set of changes required to address the root cause
+        owner: planner
+        editors: [planner]
+
+  - id: feature-details
+    title: Feature Details
+    instruction: |
+      FEATURE TICKETS ONLY — Leave empty for Bug/Migration tickets.
+      Feature integration and pattern details beyond what's in Technical Approach.
+    owner: planner
+    editors: [planner]
+    sections:
+      - id: existing-patterns-to-follow
+        title: Existing Patterns to Follow
+        type: multiline-text
+        instruction: |
+          Specific existing implementations the dev agent should study before coding.
+          For each pattern: file path, what to observe, and why it matters.
+          Example: "See src/services/UserService.cs for the repository pattern.
+          New OrderService should follow the same structure."
+        owner: planner
+        editors: [planner]
+
+      - id: reuse-opportunities
+        title: Reuse Opportunities
+        type: multiline-text
+        instruction: |
+          Existing utilities, helpers, services, or components that can be reused
+          instead of building new ones. Prevents duplication.
+        owner: planner
+        editors: [planner]
+
+  # ============================================================
+  # PLANNER NOTES
+  # ============================================================
+
+  - id: planner-notes
+    title: Planner Notes
     type: multiline-text
     instruction: |
-      Concise technical strategy and essential implementation details.
-      Written by planner as a senior developer guiding junior developers.
-
-      Include:
-      - Overall strategy and major components
-      - File locations (new files to create, existing files to modify)
-      - Key design patterns and code patterns to follow
-      - API/database design (if applicable)
-      - Technologies and frameworks to use
-      - Cite architecture docs where applicable
-    elicit: true
+      Planning decisions, trade-offs, and context for the dev agent.
+      - Why this technical approach was chosen over alternatives
+      - Trade-offs considered and decisions made
+      - Assumptions made during planning
+      - Uncertainties or areas where the dev agent should exercise judgment
+      - Complexity assessment: why this is simple/medium/complex
+      - Estimated session count (will this take 1 session or multiple?)
+      - Where the dev agent is most likely to struggle
     owner: planner
     editors: [planner]
 
@@ -129,8 +432,19 @@ sections:
       Sequential task breakdown with checkboxes [ ].
       Tasks should be logical implementation steps, not overly granular.
       Subtasks shouldn't be micro-tasks like "create file" or "add xyz to file".
-      Number of tasks and subtasks should be based on ticket length and complexity - Simple (3-5 tasks), Medium (5-8 tasks), Complex (8-12 tasks).
       Reference acceptance criteria numbers where relevant (AC: #).
+
+      Type-specific granularity:
+      - Feature: 3-5 tasks (simple), 5-8 tasks (medium), 8-12 tasks (complex)
+      - Bug: 3-5 tasks max regardless of complexity (verify reproduction, fix root cause,
+        regression test, verify fix, manual test). Complex diagnosis != complex task count.
+      - Migration: 8-15 tasks. Each structural change gets its own task with mandatory
+        build/test validation after it. Include per-task rollback notes in subtasks.
+
+      Type-specific testing tasks:
+      - Feature: Include integration tests + identify which existing tests might break
+      - Bug: Include permanent regression test for the specific bug (not temporary)
+      - Migration: Include before/after comparison tests + full regression + structural validation
     template: |
       - [ ] Task 1 (AC: # if applicable)
         - [ ] Subtask 1.1...
@@ -176,7 +490,10 @@ sections:
 
   - id: test-implementation-notes
     title: Testing
-    instruction: This section is populated by the qa agent during test implementation
+    instruction: |
+      This section is populated by the qa agent during test implementation.
+      Planner: Document testing requirements in the Tasks/Subtasks section.
+      QA agent: Document test implementation details, coverage, and results here.
     owner: qa-agent
     editors: [qa-agent]
 
@@ -212,17 +529,60 @@ sections:
         owner: dev-agent
         editors: [dev-agent]
 
+      - id: pre-implementation-baseline
+        title: Pre-Implementation Baseline
+        instruction: |
+          Captured by dev agent before implementation starts.
+          - Test results snapshot: pass count, fail count, skip count
+          - Build state snapshot: success/failure, warning count
+          - Folder structure snapshot (for migrations): affected directory tree
+          - Current API contracts (for migrations affecting interfaces)
+          This baseline enables before/after comparison at completion.
+        owner: dev-agent
+        editors: [dev-agent]
+
       - id: debug-log-references
         title: Debug Log
-        instruction: Reference any debug logs or traces generated during development/ or qa-testing
+        instruction: Reference any debug logs or traces generated during development or qa-testing
         owner: dev-agent
         editors: [dev-agent, qa-agent]
 
-      - id: file-list
-        title: File List
-        instruction: List all files created, modified, or affected during story implementation
+      - id: completion-notes
+        title: Completion Notes
+        instruction: |
+          Key decisions, deviations, and context from implementation sessions.
+          Each entry should include session date and brief description.
+          This section enables session continuity — future sessions read this
+          to understand what was done and why.
+          - Approach taken and any deviations from original plan
+          - Key decisions made during implementation
+          - Known limitations or tech debt introduced
+          - Recommendations for follow-up work
         owner: dev-agent
         editors: [dev-agent]
+
+      - id: file-list
+        title: File List
+        instruction: List all files created, modified, or affected during implementation
+        owner: dev-agent
+        editors: [dev-agent]
+
+  - id: deviation-record
+    title: Deviation Record
+    type: multiline-text
+    instruction: |
+      Documents where actual implementation diverged from the planned Technical Approach.
+      Each entry records three fields:
+      - Planned: what the Technical Approach specified
+      - Actual: what was actually implemented
+      - Reason: why the deviation was necessary
+
+      This section bridges the gap between the frozen plan and the implementation truth.
+      The Technical Approach stays as the original intent (useful for review),
+      and the Deviation Record tells what actually happened.
+      Reviewers and future developers should read both sections together.
+    owner: dev-agent
+    editors: [dev-agent]
 
   - id: feedback
     title: Feedback
