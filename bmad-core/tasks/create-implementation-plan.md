@@ -6,7 +6,7 @@
 
 To transform JIRA tickets (features, bugs, migrations) into comprehensive, actionable implementation plans that provide junior developers with all the technical details, step-by-step tasks, and context needed to implement the solution without additional research. This task handles variable input quality - from complete requirements to just ticket titles or screenshots.
 
-Plans are type-aware: Features, Bug Fixes, and Migrations each receive specialized planning treatment — different questions, different architecture reading strategies, different acceptance criteria, different task granularity, and different validation requirements.
+Plans are type-aware: Features, Bugs, and Migrations each receive specialized planning treatment — different questions, different architecture reading strategies, different acceptance criteria, different task granularity, and different validation requirements.
 
 ## CRITICAL RULES
 
@@ -148,7 +148,7 @@ If critical information is missing, ask the user targeted questions. Questions a
 
 **For Full-Stack Tickets:** Read both Backend and Frontend sections above
 
-**For Bug Fixes:** Focus on architecture relevant to the affected code path, error handling patterns, logging and debugging guidelines
+**For Bugs:** Focus on architecture relevant to the affected code path, error handling patterns, logging and debugging guidelines
 
 **For Migrations — Stack Version:** Read tech-stack.md thoroughly. If a migration guide or breaking changes document was provided by the user, read it and extract all breaking changes relevant to the planned work.
 

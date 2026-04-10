@@ -541,7 +541,7 @@ sections:
         owner: dev-agent
         editors: [dev-agent]
 
-      - id: debug-log-references
+      - id: debug-log
         title: Debug Log
         instruction: Reference any debug logs or traces generated during development or qa-testing
         owner: dev-agent
