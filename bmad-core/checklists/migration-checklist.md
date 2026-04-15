@@ -14,7 +14,7 @@ Before proceeding, ensure you have access to:
 
 IMPORTANT: This checklist is called at three points during migration implementation:
 - Pre-Migration: Called in implement-task Step 1.4 (before any code changes)
-- Mid-Migration: Called at the halfway mark of the task list
+- Mid-Migration: Called in implement-task Step 2.5 when completed tasks first reach halfway (migrations with 6+ tasks only)
 - Post-Migration: Called in implement-task Step 3.2 (after all tasks complete)
 
 When invoked, the caller specifies which checkpoint to run. Execute ONLY that checkpoint's section plus the applicable per-type section. Skip the other checkpoints.]]

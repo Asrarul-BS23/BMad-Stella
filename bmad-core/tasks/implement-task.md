@@ -17,7 +17,6 @@ Behavioral profiles by ticket type:
 required:
   - plan_file_path: 'Path to the approved implementation plan (.md file)'
 optional:
-  - session_mode: 'new (default) or resume'
   - migration_guide: 'URL or file path to official migration guide (stack version migrations)'
   - pre_migration_snapshot: 'Baseline test/build results file (auto-generated if not provided)'
 ```
@@ -66,7 +65,7 @@ tasks:
 
 - Only load cited architecture sections via `[Source: architecture/filename.md#section]`, never full docs
 - For files over 500 lines, load only the relevant function/class
-- Plan has all needed info. Never load PRD/architecture/other docs unless plan notes or user directs it
+- Plan has all needed info. Never load full PRD/architecture documents — only the specific sections cited in the plan via `[Source: architecture/file.md#section]`. Never load uncited docs unless plan notes or user directs it
 
 ---
 
@@ -139,11 +138,10 @@ Confirm sub-type from Migration Details: Stack Version / Architecture Pattern / 
 
 #### 1.2 — Capture Baseline
 
-- Run build → record success/failure, warnings
-- Run full test suite → record pass/fail/skip
+- Ask user to confirm baseline capture → on approval, run build (record success/failure, warnings) and full test suite (record pass/fail/skip)
 - Capture affected folder structure
 - Store in `Pre-Implementation Baseline` of Dev Agent Record
-- Use `pre_migration_snapshot` if provided
+- If `pre_migration_snapshot` was provided as input, use that instead
 
 #### 1.3 — Migration Context
 
@@ -211,7 +209,7 @@ Authorized sections only (Critical Rules):
 
 **Bugs:** Run targeted tests first. Fail → HALT before full suite. Pass → run full regression. All pass → HALT: "Fix verified. Next task or stop?"
 
-**Migrations:** Auto-run build + tests. Health = `(current passing / baseline passing) × 100`. Degraded → HALT with delta. OK → report, ask next/stop. Update API Tracker (stack version). Record rollback notes.
+**Migrations:** Auto-run build + tests. Health = `(current passing / baseline passing) × 100`. Degraded → HALT with delta. OK → report, ask next/stop. Update API Tracker (stack version). Record rollback notes. **Mid-Migration trigger:** if total tasks ≥ 6 AND completed ≥ total/2 AND Debug Log lacks "Mid-Migration Checkpoint" entry → run `execute-checklist` with `migration-checklist.md` "Mid-Migration" checkpoint. PASS → add "Mid-Migration Checkpoint passed at Task N" to Debug Log, continue. FAIL → HALT with findings.
 
 #### 2.6 — Failure Recovery
 
