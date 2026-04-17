@@ -558,6 +558,7 @@ sections:
           - Key decisions made during implementation
           - Known limitations or tech debt introduced
           - Recommendations for follow-up work
+          - Per-task rollback notes (migration only)
         owner: dev-agent
         editors: [dev-agent]
 

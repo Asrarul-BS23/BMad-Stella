@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Execute an approved implementation plan by running tasks sequentially with automatic context discovery, session continuity, and type-aware validation.
+Execute an approved implementation plan by running tasks sequentially with automatic context discovery, resume support across sessions, and type-aware validation.
 
 Behavioral profiles by ticket type:
 - **Feature** — pattern enforcement, reuse checking, standard validation
@@ -25,7 +25,7 @@ optional:
 
 ```yaml
 config:
-  - core-config.yaml
+  - .bmad-core/core-config.yaml
 data:
   - devLoadAlwaysFiles (from core-config: coding-standards.md, tech-stack.md, project-structure.md)
 checklists:
@@ -49,10 +49,8 @@ tasks:
 
 ### Coding Standards
 
-- Extract Jira ticket ID from plan "Ticket Information" at session start
-- Get developer name from Atlassian MCP. If fails → HALT and prompt user
 - Apply coding-standards.md to ALL modifications including file modification history
-- Add/update modification history header in every modified file using developer name
+- Add/update modification history header in every modified file using developer name (from Developer Identity step)
 
 ### Interaction Rules
 
@@ -61,11 +59,8 @@ tasks:
 - Ask user if model properties are unclear in plan
 - Ask questions instead of failing silently
 
-### Context Management
-
-- Only load cited architecture sections via `[Source: architecture/filename.md#section]`, never full docs
-- For files over 500 lines, load only the relevant function/class
-- Plan has all needed info. Never load full PRD/architecture documents — only the specific sections cited in the plan via `[Source: architecture/file.md#section]`. Never load uncited docs unless plan notes or user directs it
+- CRITICAL: Never load full architecture documents. Only load cited sections. If a single file exceeds 500 lines, load only the relevant function/class.
+- Context budget: **Tier 1 (always keep):** current task + its files + coding standards. **Tier 2 (if room):** session history + architecture citations. **Tier 3 (on demand):** prior tasks' files + full debug log. Before each task in Step 2, drop Tier 3 and keep Tier 1+2. For plans with 8+ tasks, load only current task's files.
 
 ---
 
@@ -77,16 +72,15 @@ tasks:
 
 #### 0.1 — Load Configuration
 
-- Read `core-config.yaml` → extract `devLoadAlwaysFiles`, `architecture.*`, `devStoryLocation`, `devDebugLog`
+- Read `.bmad-core/core-config.yaml` → extract `devLoadAlwaysFiles`, `architecture.*`, `devStoryLocation`, `devDebugLog`
 - Read all `devLoadAlwaysFiles`
-- Get developer name from Atlassian MCP (fails → HALT, prompt user)
 
 #### 0.2 — Parse Plan
 
 - Read plan file fully. Extract:
   - **Ticket type** (Feature/Bug/Migration) and **subtype** (Stack Version/Architecture Pattern/etc.)
   - **Ticket ID** from Ticket Information
-  - **All file paths** from Technical Approach and Tasks/Subtasks
+  - **All file paths** from all plan sections (Technical Approach, Tasks/Subtasks, Migration Details, Bug Fix Details, Feature Details)
   - **Architecture citations** (`[Source: architecture/filename.md#section]`)
   - **Task list** with completion status (`[x]` vs `[ ]`)
   - **Dev Agent Record** contents (Baseline, File List, Debug Log, Completion Notes)
@@ -95,7 +89,7 @@ tasks:
 #### 0.3 — Session Continuity
 
 - Count completed `[x]` vs total tasks
-- If resuming (completed > 0): read File List, Debug Log, Completion Notes. Show: "Resuming Task N. Tasks 1-M done. Files: [list]. Issues: [list]. Proceed?" → HALT for confirmation
+- If resuming (completed > 0): read File List, Debug Log, Completion Notes. Show: "Resuming Task N. Tasks 1-M done. Files modified: [list or none]. Known issues: [list or none]. Proceed?" → HALT for confirmation
 - If fresh (completed = 0): proceed
 
 #### 0.4 — Selective Context Loading
@@ -111,20 +105,20 @@ tasks:
 - Grep for referenced patterns/frameworks to confirm codebase usage
 - Any gaps found → present numbered list → HALT for resolution
 
-#### 0.6 — Context Budget
-
-- **Tier 1 (always):** current task + its files + coding standards
-- **Tier 2 (if room):** session history + architecture citations
-- **Tier 3 (on demand):** prior tasks' files + full debug log
-- Before each task: drop Tier 3, keep Tier 1+2. Plans 8+ tasks: load only current task's files.
-
-#### 0.7 — Type-Specific Bootstrap
+#### 0.6 — Type-Specific Bootstrap
 
 **Features — Pattern Discovery:** Scan plan-referenced codebase areas for naming conventions, helpers, service patterns, error handling. Store as "Implementation Patterns." Grep for similar implementations before creating new components.
 
-**Bugs — Impact Analysis:** Read files from Affected Code Path. Trace failing data flow. Ask user to confirm reproduction steps before any code change.
+**Bugs — Impact Analysis:** Read files from Affected Code Path. Verify paths match actual code — if not, HALT and report mismatch. Trace failing data flow. Ask user to confirm reproduction steps before any code change.
 
-**Migrations** — no additional bootstrap; setup in Step 1.
+**Migrations** — see Step 1.
+
+#### 0.7 — Developer Identity
+
+- Get developer name from Atlassian MCP
+- If MCP fails → check plan file for developer name in Ticket Information
+- If plan has no developer name → HALT and prompt user for their full name
+- Store for use in modification history headers and change log entries
 
 ---
 
@@ -147,7 +141,7 @@ Confirm sub-type from Migration Details: Stack Version / Architecture Pattern / 
 
 **Stack Version:** Read `migration_guide` → extract breaking changes. No guide → HALT and ask. Create "Deprecated API Tracker" in Debug Log.
 
-**Architecture Pattern:** Read Reference Implementation from plan. Present "Current → Target" mapping → HALT for confirmation.
+**Architecture Pattern:** Read Reference Implementation files listed in plan's Migration Details — study their structure as the canonical target pattern. Verify "Current → Target" mapping against actual codebase structure — if mismatches found, present both planned and actual state. HALT for user confirmation.
 
 **Infrastructure:** Identify affected config files. Flag env-specific concerns.
 
@@ -156,7 +150,7 @@ Confirm sub-type from Migration Details: Stack Version / Architecture Pattern / 
 #### 1.4 — Activate Migration Mode
 
 - Mandatory build + test after every task. Health tracking ON.
-- Run `execute-checklist` with `migration-checklist.md` — "Pre-Migration" checkpoint.
+- Run `execute-checklist` with `migration-checklist.md` — "PRE-MIGRATION CHECKPOINT".
 
 ---
 
@@ -182,17 +176,17 @@ Identify first unchecked `[ ]` task. Read description, subtasks, and target file
 
 - Re-read files this task modifies (may have changed)
 - Verify dependent prior tasks are `[x]`
-- Drop Tier 3 context (per 0.6)
+- Drop Tier 3 context (per Context Management rules)
 
 #### 2.3 — Implement
 
-**All types:** Apply coding standards and modification headers per Critical Rules. Follow Interaction Rules.
+**All types:** Apply coding-standards.md and modification history headers per Critical Rules. Follow Interaction Rules.
 
-**Features:** Verify new code matches discovered patterns (0.7). New files mirror equivalent existing files. Additions match surrounding style.
+**Features:** Verify new code matches discovered patterns (from Type-Specific Bootstrap). New files mirror equivalent existing files. Additions match surrounding style. Mismatch found → refactor to match existing patterns. Exception: if the plan's Technical Approach explicitly calls for a different pattern, keep it and document why in Deviation Record.
 
-**Bugs:** Only modify what's necessary. Flag adjacent improvements in Completion Notes — don't touch them. Verify fix addresses root cause, not symptom. Workaround → HALT: "Addresses symptom, not root cause [X]. Proceed or investigate?"
+**Bugs:** Only modify what's necessary. Flag adjacent improvements in Completion Notes (format: "Adjacent: [file path] — [what could be improved]") — don't touch them. Verify fix addresses root cause, not symptom. Workaround → HALT: "Addresses symptom, not root cause [X]. Proceed or investigate?"
 
-**Migrations:** Preserve all business logic exactly. Drop "Do Not Migrate" patterns. Flag original code issues with `// TODO:` — don't fix them.
+**Migrations:** Preserve all business logic exactly. Intentionally exclude patterns listed in the plan's "Do Not Migrate" section — do not carry them to target. Flag original code issues with `// TODO:` — don't fix them.
 
 #### 2.4 — Update Plan
 
@@ -201,7 +195,7 @@ Authorized sections only (Critical Rules):
 - Update File List, Agent Model Used
 - Add Completion Notes entry (what, deviations, decisions)
 - Update Change Log if significant
-- Deviation from Technical Approach → write Deviation Record: **Planned** / **Actual** / **Reason**
+- Deviation from Technical Approach (different pattern, file structure, API design, or library used) → write Deviation Record: **Planned** / **Actual** / **Reason**. Minor style or naming differences are not deviations.
 
 #### 2.5 — Post-Task Validation
 
@@ -209,17 +203,20 @@ Authorized sections only (Critical Rules):
 
 **Bugs:** Run targeted tests first. Fail → HALT before full suite. Pass → run full regression. All pass → HALT: "Fix verified. Next task or stop?"
 
-**Migrations:** Auto-run build + tests. Health = `(current passing / baseline passing) × 100`. Degraded → HALT with delta. OK → report, ask next/stop. Update API Tracker (stack version). Record rollback notes. **Mid-Migration trigger:** if total tasks ≥ 6 AND completed ≥ total/2 AND Debug Log lacks "Mid-Migration Checkpoint" entry → run `execute-checklist` with `migration-checklist.md` "Mid-Migration" checkpoint. PASS → add "Mid-Migration Checkpoint passed at Task N" to Debug Log, continue. FAIL → HALT with findings.
+**Migrations:** Auto-run build + tests. Health = `(current passing / baseline passing) × 100`. Degraded → HALT with delta. OK → report, ask next/stop. Update API Tracker (stack version). Record per-task rollback notes in Completion Notes. **Mid-Migration trigger:** if total tasks ≥ 6 AND completed ≥ total/2 AND Debug Log lacks "Mid-Migration Checkpoint" entry → run `execute-checklist` with `migration-checklist.md` "MID-MIGRATION CHECKPOINT". PASS → add "Mid-Migration Checkpoint passed at Task N" to Debug Log, continue. FAIL → HALT with findings.
 
 #### 2.6 — Failure Recovery
 
 - 1st failure: analyze. Context gap → self-resolve via search. Code error → attempt fix.
-- 2nd failure (same issue): HALT with diagnostic. Add Debug Log entry.
-- No 3rd attempt — escalate to user.
+- 2nd failure attempting the same fix on the same code: HALT with diagnostic. Add Debug Log entry.
+- Counter resets per task. Different errors = independent counters.
+- Never attempt the same fix a 3rd time — escalate to user.
 
-#### 2.7 — Cross-Task Verification (every 3rd task or shared files)
+#### 2.7 — Cross-Task Verification
 
-File changed by current AND prior task → re-verify prior changes work. Conflict → HALT.
+Trigger A: After every 3 completed tasks, do a sanity check that all prior modifications still work together.
+Trigger B: After completing any task that modified a file a prior task also modified, re-verify prior changes still work (imports resolve, no regressions).
+Either trigger detecting a conflict → HALT.
 
 ---
 
@@ -228,26 +225,25 @@ File changed by current AND prior task → re-verify prior changes work. Conflic
 #### 3.1 — Standard (ALL types)
 
 - Verify all tasks/subtasks `[x]`
-- Run ALL tests — full regression, execute and confirm (DON'T BE LAZY)
+- Run ALL tests — full regression, execute and confirm (DON'T BE LAZY). For migrations: this is a final confirmation even though per-task tests already ran.
 - Ensure File List is complete
 - Run `execute-checklist` with `task-dod-checklist.md`
-- Set status: "Ready for Review"
 
 #### 3.2 — Migration (additional)
 
-- Run `execute-checklist` with `migration-checklist.md` — "Post-Migration" checkpoint
+- Run `execute-checklist` with `migration-checklist.md` — "POST-MIGRATION CHECKPOINT"
 - Compare final vs baseline: test delta, warning delta, structure changes
-- Write Migration Summary in Completion Notes: type, health delta, APIs replaced, warnings, rollback notes
+- Write Migration Summary in Completion Notes using format: "Migration Summary: [sub-type]. Tests: [baseline]→[final]. Warnings: [baseline]→[final]. Deprecated APIs replaced: [count]. Known issues: [list or none]. Rollback: [notes]."
 
 #### 3.3 — Summary & HALT (ALL types)
 
-Write in Completion Notes: approach, deviations, key decisions, tech debt, follow-up recommendations. HALT.
+Write in Completion Notes: approach, deviations, key decisions, tech debt, follow-up recommendations. Set status: "Ready for Review". HALT.
 
 ---
 
-## Bug-Fix-Plan-Update
+## Post-Implementation Bug Fix
 
-**Trigger:** ALWAYS run after fixing ANY user-reported bug post-implementation.
+**Trigger:** ALWAYS run after fixing ANY bug reported by user after implementation (applies to all ticket types — Feature, Bug, or Migration).
 
 **Flow:** Identify root cause → fix → update plan → HALT with report (what fixed, sections updated, final file list).
 
@@ -263,7 +259,7 @@ Write in Completion Notes: approach, deviations, key decisions, tech debt, follo
 
 ## Blocking Conditions
 
-HALT for: unapproved dependencies | ambiguous requirements | 2 consecutive failures (same issue) | missing config | failing regression | migration health degradation | context gaps | file path mismatches | plan staleness
+HALT for: unapproved dependencies | ambiguous requirements | 2 consecutive failures (same issue) | missing config | failing regression | migration health degradation | context gaps | file path mismatches | plan staleness (referenced files changed since plan was written)
 
 ---
 
@@ -279,6 +275,9 @@ HALT for: unapproved dependencies | ambiguous requirements | 2 consecutive failu
 - [ ] Change Log updated
 - [ ] Deviation Record populated (if deviations occurred)
 - [ ] task-dod-checklist passed
-- [ ] (Migration) migration-checklist Post-Migration passed
+- [ ] (Migration) migration-checklist POST-MIGRATION CHECKPOINT passed
+- [ ] (Migration, 6+ tasks) MID-MIGRATION CHECKPOINT passed (check Debug Log for entry)
 - [ ] (Migration) Baseline vs final comparison documented
+- [ ] (Migration) Per-task rollback notes recorded in Completion Notes
+- [ ] (If post-implementation bugs were fixed) Plan updated per Post-Implementation Bug Fix rules
 - [ ] Status set to "Ready for Review"
