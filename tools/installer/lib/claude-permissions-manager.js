@@ -18,6 +18,35 @@ class ClaudePermissionsManager {
 
       'WebFetch(domain:stellaint.atlassian.net)',
 
+      // Read operations - BMAD system files
+      'Read(.bmad-core/**)',
+      'Read(*/.bmad-core/**)',
+      'Read(bmad-docs/**)',
+      'Read(**/bmad-docs/**)',
+
+      // Read operations - Source code files
+      'Read(**.cs)',
+      'Read(**.js)',
+      'Read(**.ts)',
+      'Read(**.tsx)',
+      'Read(**.jsx)',
+      'Read(**.py)',
+      'Read(**.java)',
+      'Read(**.go)',
+      'Read(**.cshtml)',
+      'Read(**.html)',
+      'Read(**.css)',
+      'Read(**.scss)',
+
+      // Read operations - Config and documentation
+      'Read(**.md)',
+      'Read(**.json)',
+      'Read(**.yaml)',
+      'Read(**.yml)',
+      'Read(**.xml)',
+      'Read(**.csproj)',
+      'Read(**.sln)',
+
       // File operations for markdown files
       'Write(bmad-docs/**)',
       'Write(*bmad-docs*)',
@@ -44,6 +73,8 @@ class ClaudePermissionsManager {
       // Directory listing and existence checks (Unix)
       'Bash(ls bmad-docs/**)',
       'Bash(ls **/bmad-docs/**)',
+      'Bash(ls *bmad-docs*)',
+      'Bash(ls "*bmad-docs*"*)',
       'Bash(test -f bmad-docs/**)',
       'Bash(test -f **/bmad-docs/**)',
       'Bash(test -d bmad-docs/**)',
@@ -55,6 +86,18 @@ class ClaudePermissionsManager {
       'Bash(dir bmad-docs/**)',
       'Bash(dir **/bmad-docs/**)',
       'Bash(dir *bmad-docs*)',
+
+      // Codebase search operations (used by planner and dev agents for pattern discovery)
+      'Bash(find *)',
+      'Bash(grep *)',
+
+      // Claude Code built-in search tools
+      'Grep(.bmad-core/**)',
+      'Grep(bmad-docs/**)',
+      'Grep(*)',
+      'Glob(.bmad-core/**)',
+      'Glob(bmad-docs/**)',
+      'Glob(*)',
     ];
   }
 
