@@ -260,6 +260,7 @@ class DependencyManager {
     }
 
     // Process Atlassian if selected
+    let atlassianBaseUrl = null;
     if (selectedMcpServers.includes('atlassian')) {
       const serverName = 'atlassian';
       const serverConfig = this.requiredMcpServers[serverName];
@@ -277,6 +278,7 @@ class DependencyManager {
         // Prompt for environment variables
         console.log(chalk.dim(`   ${serverConfig.description}\n`));
         const envValues = await this.promptForEnvVars(serverConfig.envVars);
+        atlassianBaseUrl = envValues.JIRA_BASE_URL || null;
 
         // Add the MCP server
         const installSuccess = await this.addMcpServer(
@@ -291,6 +293,19 @@ class DependencyManager {
         } else {
           results.failed.push(serverName);
         }
+      }
+
+      // Collect Jira API credentials for the attachment helper (complements MCP's text-only fetch)
+      try {
+        const jiraCredentialsManager = require('./jira-credentials-manager');
+        results.jiraCredentials = await jiraCredentialsManager.promptAndPersist(installDir, {
+          knownBaseUrl: atlassianBaseUrl,
+        });
+      } catch (error) {
+        console.log(
+          chalk.yellow(`⚠️  Jira credential setup skipped due to error: ${error.message}`),
+        );
+        results.jiraCredentials = { ok: false, skipped: true, error: error.message };
       }
     }
 

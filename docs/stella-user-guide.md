@@ -185,6 +185,46 @@ This guide contains essential information about the BMad-Stella workflow and how
    - Once authenticated, you should see a success message
    - The MCP server status should show as "Connected"
 
+### Automated / Non-Interactive Installation
+
+If you already have an Atlassian API token and want to install without answering prompts (CI/CD, batch onboarding, re-installs), set the three credential env vars before running the installer. The installer detects them and writes `.env` automatically without prompting.
+
+```bash
+export JIRA_BASE_URL="https://yourcompany.atlassian.net"
+export JIRA_EMAIL="you@company.com"
+export JIRA_API_TOKEN="<paste-token-here>"
+# Optionally force non-interactive mode (auto-detected in CI)
+export BMAD_NON_INTERACTIVE=1
+
+npx bmad-stella install
+```
+
+**Automatic non-interactive detection triggers on any of:**
+- `BMAD_NON_INTERACTIVE=1` (explicit)
+- `CI=true` (GitHub Actions, GitLab CI, CircleCI, etc.)
+- stdin is not a TTY (piped / backgrounded)
+
+**Behavior:**
+- All three vars present → credentials are written to `.env`, no prompts
+- Any var missing → credential step is **skipped** with a warning (installer does not abort); you can re-run with the vars set or edit `.env` manually later
+
+**Re-running the installer later is safe** — the managed block in `.env` is rewritten each time, while any other keys you added to `.env` are preserved.
+
+### Post-Installation: Verify Jira Attachment Helper (Optional but Recommended)
+
+During installation you are prompted for your Atlassian email and API token (unless running non-interactively as above). These are written to a local `.env` (git-ignored) and used by the Jira attachment helper to download images and PDFs that the Atlassian MCP cannot return. Verify the setup:
+
+```bash
+node .bmad-core/utils/jira-attachments --self-test
+```
+
+A successful run prints `{"ok": true, ...}` and exits with code 0. If it fails:
+
+- **Exit 10** (config): Credentials missing. Re-run the installer, or add `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` to `.env` manually.
+- **Exit 20** (auth): Token is invalid or expired. Regenerate at <https://id.atlassian.com/manage-profile/security/api-tokens> and update `.env`.
+
+Without this helper, the planner agent falls back to asking you to paste screenshots manually when it encounters ticket attachments. With it, attachments are downloaded and loaded into context automatically on `*retrieve-ticket-info`.
+
 ### Troubleshooting Installation
 
 | Issue                                     | Solution                                                            |
@@ -463,6 +503,8 @@ graph TD
 | Issue                                       | Cause                                                                                             | Solution                                                                                                                                               |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Cannot retrieve ticket or post comments** | Atlassian MCP authentication failed                                                               | /mcp → Navigate to Atlassian → Re-authenticate → Confirm JIRA URL format and ticket access                                                             |
+| **Attachments not auto-loaded into plan**   | Jira API credentials missing, invalid, or `.env` not present                                      | Run `npx bmad-stella install` to refresh credentials, or create `.env` with `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`. Verify with `node .bmad-core/utils/jira-attachments --self-test` |
+| **`Authentication failed (401)` from helper** | Expired or revoked Atlassian API token                                                           | Regenerate token at https://id.atlassian.com/manage-profile/security/api-tokens → Update `JIRA_API_TOKEN` in `.env` → Retry                          |
 | **Agent cannot find plan file**             | Plan file path incorrect or not created                                                           | Ensure plan exists in `bmad-docs/impl-plan/{TICKET}-plan.md` → Provide full path                                                                       |
 | **Tests failing during validation**         | Implementation mismatch or incorrect test scenarios                                               | Review test failure messages → Verify implementation matches requirements → Use `/dev` then `*review-qa` → Use `/qa` then `*run-tests` to verify fixes |
 | **Dev agent HALTs**                         | Unapproved dependency, ambiguous requirements, 3+ failures, missing config, or failing regression | Address blocking issue (approve dependency, clarify requirements, provide config, fix tests) → Resume                                                  |

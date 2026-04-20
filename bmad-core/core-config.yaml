@@ -25,4 +25,16 @@ devDebugLog: .ai/debug-log.md
 devStoryLocation:
   - bmad-docs/stories
   - bmad-docs/impl-plan
+jira:
+  attachments:
+    enabled: true
+    helperPath: .bmad-core/utils/jira-attachments
+    cacheRoot: .bmad-cache/jira
+    allowedMimePrefixes:
+      - image/
+      - application/pdf
+      - text/
+      - application/json
+    maxAttachmentMB: 50
+    concurrency: 5
 slashPrefix: BMad

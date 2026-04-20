@@ -18,11 +18,19 @@ class ClaudePermissionsManager {
 
       'WebFetch(domain:stellaint.atlassian.net)',
 
+      // Jira attachment helper (fetches binary attachments the MCP cannot return)
+      'Bash(node .bmad-core/utils/jira-attachments)',
+      'Bash(node .bmad-core/utils/jira-attachments *)',
+      'Bash(node .bmad-core/utils/jira-attachments/index.js)',
+      'Bash(node .bmad-core/utils/jira-attachments/index.js *)',
+
       // Read operations - BMAD system files
       'Read(.bmad-core/**)',
       'Read(*/.bmad-core/**)',
       'Read(bmad-docs/**)',
       'Read(**/bmad-docs/**)',
+      'Read(.bmad-cache/**)',
+      'Read(**/.bmad-cache/**)',
 
       // Read operations - Source code files
       'Read(**.cs)',
