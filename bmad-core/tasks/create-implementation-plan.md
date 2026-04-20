@@ -4,7 +4,7 @@
 
 ## Purpose
 
-To transform JIRA tickets (features, bugs, migrations) into comprehensive, actionable implementation plans that provide junior developers with all the technical details, step-by-step tasks, and context needed to implement the solution without additional research. This task handles variable input quality - from complete requirements to just ticket titles or screenshots.
+To transform requirements from any source — JIRA tickets, direct instructions, markdown/text files — covering features, bugs, and migrations into comprehensive, actionable implementation plans that provide junior developers with all the technical details, step-by-step tasks, and context needed to implement the solution without additional research. This task handles variable input quality - from complete requirements to just ticket titles or screenshots.
 
 Plans are type-aware: Features, Bugs, and Migrations each receive specialized planning treatment — different questions, different architecture reading strategies, different acceptance criteria, different task granularity, and different validation requirements.
 
@@ -30,19 +30,22 @@ Plans are type-aware: Features, Bugs, and Migrations each receive specialized pl
 - If the file does not exist, HALT and inform the user: "core-config.yaml not found. This file is required for planning. Please add and configure core-config.yaml before proceeding."
 - Extract key configurations: `devLoadAlwaysFiles`, `architecture.*`, `devStoryLocation`
 
-### 1. Analyze JIRA Ticket Input
+### 1. Analyze Input Source
 
 #### 1.1 Determine Input Type and Extract Information
 
-- **If input is a .md file:** Read the file completely
-- **If input is a screenshot:** Analyze the image to extract ticket details
-- **If input is plain text:** Use the provided description or title
+- **If input is a JIRA ticket number or URL:** Fetch via Atlassian MCP. If MCP fails → HALT: "Atlassian MCP not connected. Please reauthenticate."
+- **If input is a .md file path:** Read the file completely
+- **If input is a .txt file path:** Read the file completely
+- **If input is a screenshot/image:** Analyze the image to extract details
+- **If input is direct text (typed by user):** Use the provided description as-is
+- **If input includes images alongside text:** Process both — text for requirements, images for visual context
 
 #### 1.2 Extract Core Ticket Information
 
 Extract the following (or derive if missing):
 
-- **Ticket Number:** Required for filename (e.g., PROJ-123)
+- **Ticket Number / Plan ID:** From JIRA: use ticket number (e.g., PROJ-123). From other sources: use the Plan ID provided by user or auto-generate as YYYY-MM-DD-short-title
 - **Ticket Type:** Identify as Feature, Bug, or Migration
 - **Ticket Subtype:** For Migrations, classify as Stack Version / Architecture Pattern / Infrastructure / Data / Hybrid. Set N/A for Feature/Bug.
 - **Title:** The ticket summary
@@ -198,13 +201,13 @@ Before defining the technical approach, verify that the plan's assumptions match
 
 **Check and Load:**
 
-- Check if `bmad-docs/temporary/{ticket-no}-dependency-tmp.md` exists
+- Check if `bmad-docs/temporary/{plan-id}-dependency-tmp.md` exists
 - If exists: Read and extract all dependency information (technical, infrastructure, third-party, data dependencies, blockers, risks)
 - If not exists: Proceed without pre-analyzed dependencies
 
 **After Planning Completion:**
 
-- If all dependencies addressed: Delete `bmad-docs/temporary/{ticket-no}-dependency-tmp.md`
+- If all dependencies addressed: Delete `bmad-docs/temporary/{plan-id}-dependency-tmp.md`
 - If ticket will be decomposed into subtasks: Keep file with remaining dependencies for future subtasks
 - Document cleanup action in implementation plan
 
@@ -457,9 +460,9 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 - Ensure tasks align with requirements, acceptance criteria, and architecture constraints
 - **Verify type-specific sections are populated** (Migration Details / Bug Fix Details / Feature Details)
 - Create directory if not exists: `/bmad-docs/impl-plan/`
-- Update plan status to "Draft - Awaiting Review" and save as: `bmad-docs/impl-plan/{{ticket_number}}-{{ticket_title_short}}.md`
+- Update plan status to "Draft - Awaiting Review" and save as: `bmad-docs/impl-plan/{{plan_id}}-{{ticket_title_short}}.md`
 - Provide summary to user including:
-  - **Plan created:** `bmad-docs/impl-plan/{{ticket_number}}-{{ticket_title_short}}.md`
+  - **Plan created:** `bmad-docs/impl-plan/{{plan_id}}-{{ticket_title_short}}.md`
   - **Ticket Type:** Feature / Bug / Migration (subtype if applicable)
   - **Tasks / Subtasks:** Total count of main tasks and subtasks
   - **Summary:** Brief overview of acceptance criteria and key technical decisions

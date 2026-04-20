@@ -79,7 +79,7 @@ tasks:
 
 - Read plan file fully. Extract:
   - **Ticket type** (Feature/Bug/Migration) and **subtype** (Stack Version/Architecture Pattern/etc.)
-  - **Ticket ID** from Ticket Information
+  - **Ticket Number / Plan ID** from Ticket Information
   - **All file paths** from all plan sections (Technical Approach, Tasks/Subtasks, Migration Details, Bug Fix Details, Feature Details)
   - **Architecture citations** (`[Source: architecture/filename.md#section]`)
   - **Task list** with completion status (`[x]` vs `[ ]`)

@@ -9,7 +9,7 @@ The Planner should use this checklist to validate that each implementation plan 
 Before proceeding with this checklist, ensure you have access to:
 
 1. The implementation plan document being validated (in /bmad-docs/impl-plan/)
-2. The original JIRA ticket or input source
+2. The original input source (JIRA ticket, instruction file, or user description)
 3. Referenced architecture documents for verification
 4. Project coding standards and conventions
 
@@ -164,7 +164,7 @@ Verify that type-specific sections are populated with appropriate depth — not 
 
 - [ ] Root cause is identified in Bug Fix Details (not just symptoms described)
 - [ ] Root cause analysis distinguishes root cause from workaround
-- [ ] Reproduction steps are documented in the plan (self-contained, not just JIRA reference)
+- [ ] Reproduction steps are documented in the plan (self-contained, not just a reference to the original source)
 - [ ] Affected code path is traced (entry point → data flow → failure point)
 - [ ] Fix scope is bounded (what will NOT be changed is explicitly stated)
 - [ ] Fix addresses root cause, not just symptom

@@ -39,7 +39,7 @@ sections:
 
   - id: ticket-info
     title: Ticket Information
-    instruction: Core information about the JIRA ticket
+    instruction: Core information about the task — from JIRA ticket, direct instruction, or input file
     owner: planner
     editors: [planner]
     sections:
@@ -47,7 +47,11 @@ sections:
         title: Ticket Number
         type: text
         template: "{{ticket_number}}"
-        instruction: JIRA ticket number (e.g., PROJ-123)
+        instruction: |
+          Unique identifier for this plan.
+          - From JIRA: use ticket number (e.g., PROJ-123)
+          - From other sources: use a short descriptive slug (e.g., dark-mode-settings)
+          - If user doesn't provide one: generate as YYYY-MM-DD-short-title
         elicit: true
         owner: planner
         editors: [planner]
@@ -85,10 +89,18 @@ sections:
         owner: planner
         editors: [planner]
 
+      - id: input-source
+        title: Input Source
+        type: choice
+        choices: [JIRA Ticket, Direct Instruction, Markdown File, Text File]
+        instruction: How this plan's requirements were provided
+        owner: planner
+        editors: [planner]
+
       - id: description
         title: Description
         type: multiline-text
-        instruction: Full description from JIRA ticket or derived from analysis
+        instruction: Full description from source (JIRA ticket, user instruction, or input file)
         elicit: true
         owner: planner
         editors: [planner]
@@ -96,8 +108,10 @@ sections:
       - id: original-source
         title: Original Source
         instruction: |
-          Reference to original input (file path, screenshot, or inline text).
-          This helps track where the ticket information came from.
+          Reference to original input:
+          - JIRA: ticket URL or number
+          - Direct instruction: "User provided via conversation"
+          - File: file path to the .md or .txt source
         owner: planner
         editors: [planner]
 

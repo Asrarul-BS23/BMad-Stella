@@ -67,6 +67,7 @@ commands:
   - implement-task: run task implement-task.md
   - explain: teach me what and why you did whatever you just did in detail so I can learn. Explain to me as if you were training a junior engineer.
   - comment-plan {plan-file}:
+      - precondition: 'Check plan file Input Source field. If not "JIRA Ticket", HALT: "This plan was not created from a JIRA ticket. Comment posting requires a JIRA ticket." Skip this command.'
       - order-of-execution: 'Extract Jira ticket number/URL from plan file Ticket Information section→Attempt to fetch Jira ticket using atlassian MCP→If fetch fails, notify user: "Atlassian MCP not connected. Please reauthenticate."→If connected, check if Acceptance Criteria already exists in Jira ticket description→Format comment according to comment-structure rules using Jira markdown formatting→Display formatted comment to user and request permission to post→Post comment to Jira ticket→Display Jira ticket URL and confirm successful posting'
       - comment-structure:
           - Section 1 - Tasks Completed: Copy all tasks and subtasks from Tasks/Subtasks section exactly as written with their checkbox status ([x] or [ ])
