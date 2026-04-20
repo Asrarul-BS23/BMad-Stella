@@ -1980,7 +1980,13 @@ class Installer {
   async updateGitignore(installDir) {
     try {
       const gitignorePath = path.join(installDir, '.gitignore');
-      const bmadIgnoreEntries = ['bmad-docs/', '.claude/', '.bmad-core/'];
+      const bmadIgnoreEntries = [
+        'bmad-docs/',
+        '.claude/',
+        '.bmad-core/',
+        '.bmad-cache/',
+        '.env',
+      ];
 
       // Check if .gitignore exists
       const exists = await fileManager.pathExists(gitignorePath);

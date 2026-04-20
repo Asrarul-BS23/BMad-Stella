@@ -4,13 +4,14 @@ const chalk = require('chalk').default || require('chalk');
 const inquirer = require('inquirer').default || require('inquirer');
 
 const TRACKED_KEYS = Object.freeze(['JIRA_BASE_URL', 'JIRA_EMAIL', 'JIRA_API_TOKEN']);
-const CACHE_GITIGNORE_ENTRY = '.bmad-cache/';
+const DEFAULT_ATLASSIAN_BASE_URL = 'https://stellaint.atlassian.net/';
 const TOKEN_HELP_URL = 'https://id.atlassian.com/manage-profile/security/api-tokens';
 
 class JiraCredentialsManager {
   /**
    * Prompt for the credentials the jira-attachments helper needs and persist them
-   * to a .env file alongside the installation. Also ensures .bmad-cache/ is gitignored.
+   * to a .env file alongside the installation. Installer.updateGitignore() handles
+   * the .gitignore entries under the existing "# BMad directories" section.
    *
    * @param {string} installDir - Target installation directory (project root in user repo)
    * @param {object} [options]
@@ -63,7 +64,6 @@ class JiraCredentialsManager {
       const envPath = path.join(installDir, '.env');
       try {
         await this._writeEnv(envPath, { ...existingEnv, ...prefilled });
-        await this._ensureGitignore(installDir);
         result.ok = true;
         result.written = true;
         result.envPath = envPath;
@@ -102,7 +102,6 @@ class JiraCredentialsManager {
         const envPath = path.join(installDir, '.env');
         try {
           await this._writeEnv(envPath, { ...existingEnv, ...prefilled });
-          await this._ensureGitignore(installDir);
           result.ok = true;
           result.written = true;
           result.envPath = envPath;
@@ -143,8 +142,8 @@ class JiraCredentialsManager {
       {
         type: 'input',
         name: 'JIRA_BASE_URL',
-        message: 'Atlassian site URL (e.g., https://yourcompany.atlassian.net):',
-        default: prefilled.JIRA_BASE_URL || 'https://yourcompany.atlassian.net',
+        message: `Atlassian site URL (e.g., ${DEFAULT_ATLASSIAN_BASE_URL}):`,
+        default: prefilled.JIRA_BASE_URL || DEFAULT_ATLASSIAN_BASE_URL,
         validate: (input) => {
           if (!input || !input.trim()) return 'Required';
           try {
@@ -153,7 +152,7 @@ class JiraCredentialsManager {
               ? true
               : 'Must be an http(s) URL';
           } catch {
-            return 'Enter a valid URL, e.g. https://yourcompany.atlassian.net';
+            return `Enter a valid URL, e.g. ${DEFAULT_ATLASSIAN_BASE_URL}`;
           }
         },
         filter: (input) => (input ? input.trim().replace(/\/+$/, '') : input),
@@ -189,13 +188,11 @@ class JiraCredentialsManager {
 
     try {
       await this._writeEnv(envPath, merged);
-      await this._ensureGitignore(installDir);
       result.ok = true;
       result.written = true;
       result.envPath = envPath;
       console.log(chalk.green(`\n✓ Wrote Jira credentials to ${path.relative(installDir, envPath) || '.env'}`));
       console.log(chalk.dim(`  Tracked keys: ${TRACKED_KEYS.join(', ')}`));
-      console.log(chalk.dim('  .bmad-cache/ added to .gitignore'));
     } catch (error) {
       result.error = error.message;
       console.log(chalk.red(`\n✗ Failed to write .env: ${error.message}`));
@@ -338,36 +335,6 @@ class JiraCredentialsManager {
     return str;
   }
 
-  async _ensureGitignore(installDir) {
-    const gitignorePath = path.join(installDir, '.gitignore');
-    let contents = '';
-    try {
-      contents = await fsp.readFile(gitignorePath, 'utf8');
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
-
-    const entries = new Set(
-      contents
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean),
-    );
-
-    const toEnsure = [CACHE_GITIGNORE_ENTRY, '.env'];
-    const missing = toEnsure.filter((e) => !entries.has(e));
-    if (missing.length === 0) return;
-
-    const appendix = [
-      '',
-      '# BMad-Stella',
-      ...missing,
-      '',
-    ].join('\n');
-
-    const next = contents.endsWith('\n') || !contents ? contents + appendix.trimStart() : contents + appendix;
-    await fsp.writeFile(gitignorePath, next, 'utf8');
-  }
 }
 
 module.exports = new JiraCredentialsManager();
