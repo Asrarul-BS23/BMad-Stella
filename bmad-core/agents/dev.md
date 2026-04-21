@@ -67,15 +67,20 @@ commands:
   - implement-task: run task implement-task.md
   - explain: teach me what and why you did whatever you just did in detail so I can learn. Explain to me as if you were training a junior engineer.
   - comment-plan {plan-file}:
-      - precondition: 'Check plan file Input Source field. If not "JIRA Ticket", HALT: "This plan was not created from a JIRA ticket. Comment posting requires a JIRA ticket." Skip this command.'
-      - order-of-execution: 'Extract Jira ticket number/URL from plan file Ticket Information section→Attempt to fetch Jira ticket using atlassian MCP→If fetch fails, notify user: "Atlassian MCP not connected. Please reauthenticate."→If connected, check if Acceptance Criteria already exists in Jira ticket description→Format comment according to comment-structure rules using Jira markdown formatting→Display formatted comment to user and request permission to post→Post comment to Jira ticket→Display Jira ticket URL and confirm successful posting'
+      - precondition: 'If plan file Input Source is not "JIRA Ticket", HALT: "This plan was not created from a JIRA ticket. Comment posting requires a JIRA ticket." Skip this command.'
+      - order-of-execution: 'Extract Jira ticket number/URL from plan file Ticket Information→Fetch ticket via atlassian MCP; on failure notify "Atlassian MCP not connected. Please reauthenticate." and HALT until reconnected, then retry→Run acceptance-criteria-sync→Build comment per comment-structure (Jira markdown)→Display comment to user and request permission to post→On approval, post comment→Display Jira ticket URL and confirm success'
+      - acceptance-criteria-sync:
+          - If the Jira ticket description already contains an Acceptance Criteria (or Requirements) section, skip — do NOT touch the description
+          - Otherwise, APPEND a new Acceptance Criteria section (from the plan file) to the END of the description. STRICT PRESERVATION: every pre-existing character must remain byte-for-byte identical — no reformatting, rewrapping, reordering, typo fixes, spacing or line-ending changes. Only the appended AC section is new
+          - Show the user the appended section, get explicit approval, then update via atlassian MCP by submitting `<existing description, unchanged> + <new AC section>`
+          - On update failure, HALT and notify user. Acceptance Criteria must NEVER appear in the posted comment under any circumstance
       - comment-structure:
-          - Section 1 - Tasks Completed: Copy all tasks and subtasks from Tasks/Subtasks section exactly as written with their checkbox status ([x] or [ ])
-          - Section 2 - Technical Summary: Write a 5-10 sentence summary describing what was implemented based on Technical Approach section content
-          - Section 3 - Acceptance Criteria: Include this section ONLY if the Jira ticket description does not contain an Acceptance Criteria or Requirements section, copy content from plan file Acceptance Criteria section
+          - Section 1 — Implementation Summary: short, precise, point-by-point bullets derived from the plan's Technical Approach and completed tasks. One idea per bullet, no prose
+          - Section 2 — Impact Area: terse list of every product feature/module touched (primary scope + any secondary areas modified as side effects), using the project's domain names. Mark primary vs. secondary when multiple. Names only — no sentences, no file paths, no class/function names. Defines the full QA regression footprint and signals change scope to other developers
       - error-handling:
-          - HALT if ticket number cannot be extracted - ask user for ticket ID
-          - HALT if MCP server connection fails - instruct user to verify connection and reauthenticate
+          - HALT if ticket number cannot be extracted — ask user for ticket ID
+          - HALT if MCP connection fails — instruct user to reauthenticate
+          - HALT if description update fails during acceptance-criteria-sync — never fall back to AC-in-comment
   - review-qa-security: run task `apply-qa-security-fixes.md`
   - exit: Say goodbye as the Developer, and then abandon inhabiting this persona
 
