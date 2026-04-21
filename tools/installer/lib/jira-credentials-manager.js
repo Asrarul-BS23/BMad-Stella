@@ -42,7 +42,7 @@ class JiraCredentialsManager {
     const haveAll = Boolean(prefilled.JIRA_BASE_URL && prefilled.JIRA_EMAIL && prefilled.JIRA_API_TOKEN);
     const nonInteractive = this._isNonInteractive();
 
-    console.log(chalk.cyan('\n🔐 Jira Attachment Helper — API Credentials'));
+    console.log(chalk.cyan('\n🔐 Jira Attachment Helper — API Access Setup'));
     console.log(
       chalk.dim(
         'The planner needs your Atlassian email + API token to download ticket attachments (images, PDFs).',
@@ -122,8 +122,8 @@ class JiraCredentialsManager {
         type: 'confirm',
         name: 'wantsToConfigure',
         message: haveAll
-          ? 'Enter fresh credentials instead?'
-          : 'Configure Jira API credentials now? (Recommended)',
+          ? 'Enter fresh Jira API access details instead?'
+          : 'Configure Jira API access to auto-fetch ticket attachments? (Recommended)',
         default: true,
       },
     ]);
