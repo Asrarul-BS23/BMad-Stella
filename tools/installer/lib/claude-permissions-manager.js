@@ -29,8 +29,6 @@ class ClaudePermissionsManager {
       'Read(*/.bmad-core/**)',
       'Read(bmad-docs/**)',
       'Read(**/bmad-docs/**)',
-      'Read(.bmad-cache/**)',
-      'Read(**/.bmad-cache/**)',
 
       // Read operations - Source code files
       'Read(**.cs)',

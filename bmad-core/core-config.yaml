@@ -29,7 +29,7 @@ jira:
   attachments:
     enabled: true
     helperPath: .bmad-core/utils/jira-attachments
-    cacheRoot: .bmad-cache/jira
+    cacheRoot: bmad-docs/cache/jira
     allowedMimePrefixes:
       - image/
       - application/pdf

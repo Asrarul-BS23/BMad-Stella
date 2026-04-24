@@ -11,7 +11,7 @@ const ENV_KEYS = Object.freeze({
 });
 
 const DEFAULTS = Object.freeze({
-  cacheSubdir: path.join('.bmad-cache', 'jira'),
+  cacheSubdir: path.join('bmad-docs', 'cache', 'jira'),
   concurrency: 5,
   requestTimeoutMs: 30_000,
   maxAttachmentBytes: 50 * 1024 * 1024,

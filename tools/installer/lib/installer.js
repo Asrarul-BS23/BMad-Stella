@@ -1984,7 +1984,6 @@ class Installer {
         'bmad-docs/',
         '.claude/',
         '.bmad-core/',
-        '.bmad-cache/',
         '.env',
       ];
 

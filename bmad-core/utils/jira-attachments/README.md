@@ -22,7 +22,7 @@ Credentials are loaded from environment variables, with fallback to a project-ro
 | `JIRA_BASE_URL`   | yes      | e.g. `https://yourtenant.atlassian.net`               |
 | `JIRA_EMAIL`      | yes      | Atlassian account email                               |
 | `JIRA_API_TOKEN`  | yes      | API token (not a password)                            |
-| `BMAD_JIRA_CACHE_DIR` | no   | Override cache root (default `.bmad-cache/jira`)      |
+| `BMAD_JIRA_CACHE_DIR` | no   | Override cache root (default `bmad-docs/cache/jira`)      |
 
 The BMad-Stella installer prompts for and writes these during setup. Keep `.env` out of git — the repo template already ignores it.
 
@@ -53,7 +53,7 @@ node .bmad-core/utils/jira-attachments PROJ-123 --force-refresh
 ```json
 {
   "ok": true,
-  "manifestPath": ".bmad-cache/jira/PROJ-123/manifest.json",
+  "manifestPath": "bmad-docs/cache/jira/PROJ-123/manifest.json",
   "ticketKey": "PROJ-123",
   "attachmentCount": 3,
   "failedCount": 0,
@@ -84,7 +84,7 @@ node .bmad-core/utils/jira-attachments PROJ-123 --force-refresh
     {
       "id": "12345",
       "filename": "mockup.png",
-      "localPath": ".bmad-cache/jira/PROJ-123/attachments/12345__mockup.png",
+      "localPath": "bmad-docs/cache/jira/PROJ-123/attachments/12345__mockup.png",
       "mimeType": "image/png",
       "sizeBytes": 245678,
       "checksum": "sha256:abc...",
