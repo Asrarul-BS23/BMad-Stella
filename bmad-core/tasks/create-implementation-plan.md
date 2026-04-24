@@ -473,3 +473,10 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
   - Approve the plan (ready for dev agent)
   - Request refinements (use \*refine-plan command)
   - Ask questions or provide additional context
+
+### 10. Post-Approval Cleanup
+
+- On user approval, update plan status to "Approved"
+- If plan source is a JIRA ticket, run Bash: `node .bmad-core/utils/jira-attachments {TICKET-KEY} --purge --quiet`
+- Report purge result to user (bytes freed). Non-zero exit → warn only, do not block approval
+- Skip purge for non-JIRA plans (no cache exists)

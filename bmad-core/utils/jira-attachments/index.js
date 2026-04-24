@@ -18,6 +18,7 @@ const {
   attachmentTargetPath,
   sanitizeTicketKey,
   ticketCacheDir,
+  purgeTicket,
 } = require('./lib/cache');
 
 const EXIT_CODES = Object.freeze({
@@ -54,6 +55,7 @@ function parseArgs(argv) {
     forceRefresh: false,
     quiet: false,
     help: false,
+    purge: false,
     projectRoot: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -78,6 +80,10 @@ function parseArgs(argv) {
       }
       case '--quiet': {
         args.quiet = true;
+        break;
+      }
+      case '--purge': {
+        args.purge = true;
         break;
       }
       case '--cache-root': {
@@ -108,6 +114,7 @@ function printHelp() {
     '  --self-test           Validate credentials without downloading',
     '  --dry-run             Print plan, skip downloads and cache writes',
     '  --force-refresh       Ignore existing cache',
+    '  --purge               Delete cached attachments + manifest for TICKET-KEY',
     '  --quiet               Suppress debug logs',
     '  --cache-root DIR      Override cache directory',
     '  --project-root DIR    Override project root for .env lookup',
@@ -345,6 +352,46 @@ async function main(argv) {
   const logger = createLogger({ quiet: args.quiet });
   const config = resolveConfig({ projectRoot: args.projectRoot });
   if (args.cacheRoot) config.cacheRoot = path.resolve(config.projectRoot, args.cacheRoot);
+
+  // Purge is a local-fs operation — skip credential + base URL validation.
+  if (args.purge) {
+    if (args.positional.length === 0) {
+      logger.error('A Jira ticket key is required with --purge. Use --help for usage.');
+      return EXIT_CODES.CONFIG;
+    }
+    let ticketKeyForPurge;
+    try {
+      ticketKeyForPurge = sanitizeTicketKey(extractIssueKey(args.positional[0]));
+    } catch (error) {
+      logger.error(error.message);
+      return EXIT_CODES.CONFIG;
+    }
+    try {
+      const result = await purgeTicket(config.cacheRoot, ticketKeyForPurge);
+      logger.info(
+        result.existed
+          ? `Purged ${result.path} (${result.deletedBytes} bytes)`
+          : `Nothing to purge for ${ticketKeyForPurge} — cache folder did not exist`,
+      );
+      process.stdout.write(
+        `${JSON.stringify(
+          {
+            ok: true,
+            purged: result.existed,
+            ticketKey: result.ticketKey,
+            path: result.path,
+            deletedBytes: result.deletedBytes,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+      return EXIT_CODES.OK;
+    } catch (error) {
+      logger.error(`Purge failed: ${error.message}`);
+      return EXIT_CODES.UNKNOWN;
+    }
+  }
 
   if (config.baseUrlWarning) {
     logger.error(`Invalid JIRA_BASE_URL — ${config.baseUrlWarning}`);

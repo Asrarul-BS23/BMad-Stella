@@ -43,6 +43,9 @@ node .bmad-core/utils/jira-attachments PROJ-123 --dry-run
 
 # Ignore cache and re-download
 node .bmad-core/utils/jira-attachments PROJ-123 --force-refresh
+
+# Delete cached attachments for a ticket (invoked by planner after plan approval)
+node .bmad-core/utils/jira-attachments PROJ-123 --purge
 ```
 
 ## Output

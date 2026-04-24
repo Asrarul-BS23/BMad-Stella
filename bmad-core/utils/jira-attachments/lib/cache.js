@@ -47,6 +47,58 @@ async function ensureTicketCacheDir(cacheRoot, ticketKey) {
   return dir;
 }
 
+async function directorySizeBytes(dir) {
+  let total = 0;
+  const walk = async (current) => {
+    let entries;
+    try {
+      entries = await fsp.readdir(current, { withFileTypes: true });
+    } catch (error) {
+      if (error.code === 'ENOENT') return;
+      throw error;
+    }
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else if (entry.isFile()) {
+        try {
+          const stat = await fsp.stat(full);
+          total += stat.size;
+        } catch {
+          // skip unreadable entries
+        }
+      }
+    }
+  };
+  await walk(dir);
+  return total;
+}
+
+async function purgeTicket(cacheRoot, ticketKey) {
+  const safeKey = sanitizeTicketKey(ticketKey);
+  const resolvedRoot = path.resolve(cacheRoot);
+  const target = path.resolve(resolvedRoot, safeKey);
+  if (!target.startsWith(resolvedRoot + path.sep)) {
+    throw new Error(`Purge target escapes cache root: ${target}`);
+  }
+  let existed = true;
+  try {
+    await fsp.stat(target);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      existed = false;
+    } else {
+      throw error;
+    }
+  }
+  const deletedBytes = existed ? await directorySizeBytes(target) : 0;
+  if (existed) {
+    await fsp.rm(target, { recursive: true, force: true });
+  }
+  return { ticketKey: safeKey, path: target, existed, deletedBytes };
+}
+
 async function readManifest(cacheRoot, ticketKey) {
   const manifestPath = path.join(ticketCacheDir(cacheRoot, ticketKey), MANIFEST_FILENAME);
   try {
@@ -133,4 +185,6 @@ module.exports = {
   isCacheFresh,
   hashFile,
   attachmentTargetPath,
+  purgeTicket,
+  directorySizeBytes,
 };
