@@ -238,6 +238,7 @@ class DependencyManager {
           {
             name: 'Atlassian (for JIRA integration)',
             value: 'atlassian',
+            checked: true,
           },
           {
             name: 'Other (custom MCP server)',
