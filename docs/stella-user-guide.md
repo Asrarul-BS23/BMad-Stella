@@ -4,236 +4,151 @@
 
 Stella is an AI-powered development workflow system that guides you through the complete software development lifecycle - from planning to implementation, testing, and review. This guide will help you understand how to work with Stella's specialized agents in **Claude Code CLI** to deliver high-quality software efficiently.
 
-**Prerequisites:** All commands in this guide are executed in Claude Code CLI.
-
 ---
 
-## BMad-Stella Installation Process
+## Installation
 
 ### Prerequisites
 
-Before installing BMad-Stella, ensure you have:
+- **Node.js 20+** — [nodejs.org](https://nodejs.org)
+- **Claude Code CLI** — [setup guide](https://docs.anthropic.com/claude/docs/claude-code)
+- **Atlassian account** — JIRA access + API token ([create token](https://id.atlassian.com/manage-profile/security/api-tokens))
+- **Confluence architecture page** _(optional)_ — for auto-loading coding standards, tech stack, project structure
 
-- [ ] **Node.js** installed (v20 or higher)
-- [ ] **Claude Code CLI** installed and configured
-- [ ] **JIRA account** with access to your organization's instance
-- [ ] **Confluence page URL** for architecture documentation (optional but recommended)
-- [ ] **Project directory** where you want to install BMad-Stella
-- [ ] **Internet connection** for downloading packages
+### Install
 
-### Step-by-Step Installation
-
-#### Step 1: Run the Installer
-
-Open your terminal and run:
+Open a command prompt in your project directory and run:
 
 ```bash
 npx bmad-stella install
 ```
 
-#### Step 2: Provide Project Directory
+The installer is interactive. Most prompts have sensible defaults — press **ENTER** to accept, **SPACE** to toggle multiselect options.
 
-When prompted:
+### Walkthrough
+
+The installer asks 7 questions. Defaults are pre-selected — most users press **ENTER** through each.
+
+**1. Project directory**
 
 ```
-?  Enter the full path to your project directory where BMad should be installed:
+? Enter the full path to your project directory:
 ```
 
-Enter the full path to your project directory where you want to install BMad-Stella.
+Path where `.bmad-core/` will be installed. Use `./` if already inside your project directory.
 
-**Example:** `D:\my-project` or `/home/user/my-project` or `./` if you are already in the project directory
-
-#### Step 3: Select BMad Agile Core System
-
-When presented with system options:
+**2. What to install**
 
 ```
 ? Select what to install/update:
+  (*) BMad Agile Core System (default)
 ```
 
-Select: **BMad Agile Core System**
+Press **ENTER** to install the core. Toggle expansion packs with **SPACE** if needed.
 
-#### Step 4: Select Architecture Documentation for Your Project
-
-When prompted:
+**3. Architecture documentation source**
 
 ```
-? Select your project for architecture documentation: (Use arrow keys)
+? Select your project for architecture documentation:
 > LEADRS Core
   Risk Monitor
   SAFV
-  Quarry Connect
+  QuarryConnect
   Other (custom URL)
 ```
 
-Select the project you are currently working on from the list. If your project is not listed, select **Other (custom URL)** and provide the Confluence page URL where your architecture documentation exists.
+Pick your project. Choose **Other** to paste a custom Confluence page URL. The planner agent fetches docs from this page on activation.
 
-**Example (custom URL):** `https://yourcompany.atlassian.net/wiki/spaces/PROJ/pages/123456/Architecture`
-
-**Note:** This link will be used by the planner agent to load architecture docs (coding standards, tech stack, git workflow, project structure) during activation.
-
-#### Step 5: Select Claude Code as IDE
-
-When asked about IDE preference:
+**4. IDE**
 
 ```
 ? Which IDE(s) do you want to configure:
+  (*) Claude Code (default)
 ```
 
-Select: **Claude Code**
+Press **ENTER**. Toggle additional IDEs with **SPACE** only if needed.
 
-#### Step 6: Skip Web Bundles Installation
-
-When prompted about web bundles:
+**5. Claude Code permissions**
 
 ```
-? Would you like to include pre-built web bundles? (Y/n)
+? Grant Claude Code with BMAD related permissions? (Y/n)
 ```
 
-Enter: **n**
+Enter **y**. Adds the BMad allowlist to `.claude/settings.local.json` so agents run without permission prompts.
 
-#### Step 7: Allow Claude Code Permissions Setup
-
-When prompted about permission setup:
+**6. MCP server**
 
 ```
-Add 32 missing BMAD permissions to existing settings.local.json? (Y/n)
+? Which MCP servers do you want to configure:
+  (*) Atlassian (for JIRA integration) (default)
 ```
 
-Enter: **y**
+Press **ENTER**.
 
-#### Step 8: Configure Atlassian MCP Server
+- **If not configured:** installer asks for your JIRA URL:
 
-When prompted to select MCP servers:
+  ```
+  ? Enter Your JIRA instance URL:
+  ```
 
-```
-? Which MCP servers do you want to configure? (Select with SPACEBAR, confirm with ENTER):
->( ) Atlassian (for JIRA integration)
- ( ) Other (custom MCP server)
-```
+  Example: `https://stellaint.atlassian.net`
 
-Select **Atlassian (for JIRA integration)** using `SPACEBAR`, then press `ENTER` to confirm.
+- **If already configured:** installer skips the URL prompt and shows authentication status.
 
-**If Atlassian MCP is NOT already configured**, you will be prompted for your JIRA instance URL:
+**7. Jira API credentials**
 
-```
-? Enter Your JIRA instance URL:
-```
+Used by the Jira attachment helper to download ticket images and PDFs. Stored in a git-ignored `.env` (mode 0600).
 
-Enter: `https://stellaint.atlassian.net` (or your organization's JIRA URL)
+- **First-time setup:**
 
-**If Atlassian MCP is already configured**, it will skip the URL prompt and instead display the current authentication status:
+  ```
+  ? Configure Jira API access to auto-fetch ticket attachments? (Y/n)
+  ```
 
-```
-✓ Atlassian MCP Server is already configured
-  Checking required MCP servers...
-✅ Already configured 1 MCP server(s):
-   - atlassian
+  Enter **y**, then provide:
 
-🔒 Checking authentication status...
-  ✓ atlassian is connected and authenticated
+  ```
+  ? Atlassian site URL:       https://stellaint.atlassian.net
+  ? Atlassian account email:  you@stellainternational.com
+  ? Atlassian API token:      ********
+  ```
 
-✨ All MCP servers are authenticated and ready to use!
-```
+  [Create a token here](https://id.atlassian.com/manage-profile/security/api-tokens).
 
-#### Step 9: Complete Installation
+- **If credentials already exist in `.env`:**
 
-You should see:
+  ```
+  ✓ Detected existing credentials (you@stellainternational.com → https://stellaint.atlassian.net).
+  ? Use the detected credentials as-is? (Y/n)
+  ```
 
-```
-✓ Installation complete!
+  Press **ENTER** to reuse. Choose **n** to overwrite with fresh values.
 
-✓ BMad Method installed successfully!
+- **If you decline setup:** the helper is skipped — the planner agent will ask you to paste ticket attachments manually instead.
 
+Installation completes with a summary of installed components.
 
-🎯 Installation Summary:
-✓ .bmad-core framework installed with all agents and workflows
-✓ IDE rules and configurations set up for: claude-code
+### Post-Installation
 
-📦 Web Bundles Available:
-Pre-built web bundles are available and can be added later:
-  Run the installer again to add them to your project
-These bundles work independently and can be shared, moved, or used
-in other projects as standalone files.
+#### Authenticate Atlassian MCP
 
-📖 IMPORTANT: Please read the user guide at .bmad-core/stella-user-guide
-This guide contains essential information about the BMad-Stella workflow and how to use the agents effectively.
-```
+Required before using the planner agent.
 
-### Post-Installation: Authenticate Atlassian MCP
+1. Open Claude Code in your project directory
+2. Run `/mcp`
+3. Select **Atlassian** → follow the OAuth redirect → grant JIRA + Confluence access
+4. Verify status shows **Connected**
 
-**IMPORTANT:** Before starting with the planner agent, you must authenticate to the Atlassian MCP server.
+### Troubleshooting
 
-#### Authentication Steps:
-
-1. **Open Claude Code CLI** in your project directory
-
-2. **Run MCP authentication command:**
-
-   ```bash
-   /mcp
-   ```
-
-3. **Navigate to Atlassian:**
-   - Select or navigate to the Atlassian MCP server option
-
-4. **Complete authentication:**
-   - Follow the authentication when redirected
-   - Grant necessary permissions for JIRA and Confluence access
-
-5. **Verify authentication:**
-   - Once authenticated, you should see a success message
-   - The MCP server status should show as "Connected"
-
-### Automated / Non-Interactive Installation
-
-If you already have an Atlassian API token and want to install without answering prompts (CI/CD, batch onboarding, re-installs), set the three credential env vars before running the installer. The installer detects them and writes `.env` automatically without prompting.
-
-```bash
-export JIRA_BASE_URL="https://yourcompany.atlassian.net"
-export JIRA_EMAIL="you@company.com"
-export JIRA_API_TOKEN="<paste-token-here>"
-# Optionally force non-interactive mode (auto-detected in CI)
-export BMAD_NON_INTERACTIVE=1
-
-npx bmad-stella install
-```
-
-**Automatic non-interactive detection triggers on any of:**
-- `BMAD_NON_INTERACTIVE=1` (explicit)
-- `CI=true` (GitHub Actions, GitLab CI, CircleCI, etc.)
-- stdin is not a TTY (piped / backgrounded)
-
-**Behavior:**
-- All three vars present → credentials are written to `.env`, no prompts
-- Any var missing → credential step is **skipped** with a warning (installer does not abort); you can re-run with the vars set or edit `.env` manually later
-
-**Re-running the installer later is safe** — the managed block in `.env` is rewritten each time, while any other keys you added to `.env` are preserved.
-
-### Post-Installation: Verify Jira Attachment Helper (Optional but Recommended)
-
-During installation you are prompted for your Atlassian email and API token (unless running non-interactively as above). These are written to a local `.env` (git-ignored) and used by the Jira attachment helper to download images and PDFs that the Atlassian MCP cannot return. Verify the setup:
-
-```bash
-node .bmad-core/utils/jira-attachments --self-test
-```
-
-A successful run prints `{"ok": true, ...}` and exits with code 0. If it fails:
-
-- **Exit 10** (config): Credentials missing. Re-run the installer, or add `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` to `.env` manually.
-- **Exit 20** (auth): Token is invalid or expired. Regenerate at <https://id.atlassian.com/manage-profile/security/api-tokens> and update `.env`.
-
-Without this helper, the planner agent falls back to asking you to paste screenshots manually when it encounters ticket attachments. With it, attachments are downloaded and loaded into context automatically on `*retrieve-ticket-info`.
-
-### Troubleshooting Installation
-
-| Issue                                     | Solution                                                            |
-| ----------------------------------------- | ------------------------------------------------------------------- |
-| **npx command not found**                 | Install Node.js from nodejs.org                                     |
-| **Permission denied during installation** | Run with appropriate permissions or use sudo (Unix/Linux)           |
-| **Cannot connect to JIRA instance**       | Verify JIRA URL is correct and accessible from your network         |
-| **Architecture docs not loading**         | Re-authenticate Atlassian MCP: `/mcp` → Atlassian → Re-authenticate |
-| **Agent files not found**                 | Re-run installer: `npx github:Asrarul-BS23/BMad-Stella install`     |
+| Issue                         | Solution                                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------------------------ |
+| `npx` not found               | Install Node.js 20+ from [nodejs.org](https://nodejs.org)                                  |
+| Permission denied             | Run with elevated permissions or `sudo` (Unix)                                             |
+| Cannot reach JIRA             | Verify URL + network access                                                                |
+| Architecture docs not loading | Re-authenticate: `/mcp` → Atlassian → Re-authenticate                                      |
+| Agent files not found         | Re-run `npx bmad-stella install`                                                           |
+| Jira attachments not loading  | Verify `.env` has `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`. Regenerate token if expired. |
 
 ---
 
@@ -241,7 +156,7 @@ Without this helper, the planner agent falls back to asking you to paste screens
 
 **Environment:** All commands below are executed in **Claude Code CLI**
 
-**⚠️ Important:** Complete the [BMad-Stella Installation Process](#bmad-stella-installation-process) before following this quick start guide.
+**⚠️ Important:** Complete the [Installation](#installation) section before following this quick start guide.
 
 Every development task follows this core workflow:
 
@@ -510,7 +425,7 @@ graph TD
 | **Dev agent HALTs**                         | Unapproved dependency, ambiguous requirements, 3+ failures, missing config, or failing regression | Address blocking issue (approve dependency, clarify requirements, provide config, fix tests) → Resume                                                  |
 | **`*run-tests` shows no tests**             | Test design or implementation not completed                                                       | Run `/qa` → `*test-design` → `*implement-test` → Then `*run-tests`                                                                                     |
 | **Architecture docs not loading**           | Atlassian MCP not authenticated or incorrect Confluence URL                                       | `/mcp` → Atlassian → Re-authenticate → Verify Confluence URL in core-config.yaml → Re-run `/planner` activation                                        |
-| **Agent commands not recognized**           | BMad-Stella not installed or installed incorrectly                                                | Follow Installation Process section → Run `npx github:Asrarul-BS23/BMad-Stella install`                                                                |
+| **Agent commands not recognized**           | BMad-Stella not installed or installed incorrectly                                                | Follow Installation section → Run `npx bmad-stella install`                                                                |
 
 ---
 
@@ -680,7 +595,7 @@ Plus: Test files in project test directories
 
 ## Getting Started Checklist
 
-- [ ] Complete BMad-Stella installation (see Installation Process section above)
+- [ ] Complete BMad-Stella installation (see Installation section above)
 - [ ] Authenticate Atlassian MCP server with `/mcp` command
 - [ ] Verify JIRA access and permissions
 - [ ] Confirm architecture docs loaded successfully
@@ -699,7 +614,7 @@ Plus: Test files in project test directories
 
 ## Support and Resources
 
-- **Installation Issues:** See BMad-Stella Installation Process and Troubleshooting Installation sections
+- **Installation Issues:** See Installation and Troubleshooting sections
 - **MCP Authentication:** Use `/mcp` command in Claude Code CLI to authenticate or re-authenticate
 - **Agent Commands:** Use `*help` in any agent mode to see available commands
 - **Workflow Guidance:** Reference this guide when unsure of next steps
