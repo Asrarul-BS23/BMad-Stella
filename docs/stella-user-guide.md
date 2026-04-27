@@ -161,8 +161,10 @@ Required before using the planner agent.
 Every development task follows this core workflow:
 
 ```
-Planner → Dev → QA → Reviewer
-         ↑______(if fixes needed)
+                          ┌─ Domain Expert (advisor, anytime)
+                          ↓
+Planner → Dev → QA → Security → Reviewer
+         ↑__________(if fixes needed)__|
 ```
 
 **Agent Activation (in Claude Code CLI):**
@@ -170,11 +172,14 @@ Planner → Dev → QA → Reviewer
 - `/planner` - Activate planning agent
 - `/dev` - Activate development agent
 - `/qa` - Activate QA/testing agent
+- `/security` - Activate security auditor
 - `/reviewer` - Activate review agent
+- `/domain-expert` - Activate project knowledge oracle (advisory)
 
 **Must-Use Commands:**
 
-- `*retrieve-ticket-info` - Fetch JIRA ticket details
+- `*retrieve-ticket-info` - Fetch JIRA ticket details (JIRA path)
+- `*capture-requirements` - Capture requirements from non-JIRA sources (.md, .txt, direct instruction)
 - `*draft-plan` - Create implementation plan
 - `*implement-task` - Execute planned tasks
 - `*comment-plan` - Post implementation summary to JIRA (after full completion)
@@ -182,6 +187,9 @@ Planner → Dev → QA → Reviewer
 - `*implement-test` - Write test code
 - `*trace` - Map requirements to tests
 - `*run-tests` - Execute all tests
+- `*check-frontend` - Audit frontend security against the plan
+- `*check-backend` - Audit backend security against the plan
+- `*review-qa-security` - Apply QA / security fixes (dev agent)
 - `*review` - Review and optimize code
 
 **Important Optional Commands:**
@@ -189,7 +197,9 @@ Planner → Dev → QA → Reviewer
 - `*refine-plan` - Iterate on plan before dev starts
 - `*validate-plan` - Validate plan completeness
 - `*risk-profile` - Assess risks for complex stories
-- `*review-qa` - Apply QA fixes during dev
+- `*ask` / `*explain` / `*decide` - Query project knowledge (domain expert)
+- `*onboard` - Guided project onboarding for new developers (domain expert)
+- `*reload` - Refresh domain knowledge from Confluence (domain expert)
 
 ---
 
@@ -197,8 +207,11 @@ Planner → Dev → QA → Reviewer
 
 ```mermaid
 graph TD
-    A["Start Development"] --> B["Planner: *retrieve-ticket-info"]
+    A["Start Development"] --> A1{"Source?"}
+    A1 -->|JIRA Ticket| B["Planner: *retrieve-ticket-info"]
+    A1 -->|Non-JIRA<br/>(.md / .txt / direct)| B2["Planner: *capture-requirements"]
     B --> C["Planner: *draft-plan"]
+    B2 --> C
     C --> D{"High-Risk Story?"}
     D -->|Yes| E["Planner: *risk-profile"]
     D -->|No| F
@@ -222,13 +235,18 @@ graph TD
     U --> V["QA: *trace"]
     V --> W["QA: *run-tests"]
     W --> X{"QA Decision"}
-    X -->|Needs Dev Fixes| Y["Dev: *review-qa"]
+    X -->|Needs Dev Fixes| Y["Dev: *review-qa-security"]
     Y --> W1["QA: *run-tests to Verify Fixes"]
     W1 --> X
     X -->|Approved| Z
     P -->|Needs Fixes| M
     P -->|Approve Without QA| Z["IMPORTANT: Verify All Tests Pass"]
-    Z --> AA["Reviewer: *review"]
+    Z --> SEC1["Security: *check-frontend"]
+    SEC1 --> SEC2["Security: *check-backend"]
+    SEC2 --> SECX{"Violations Found?"}
+    SECX -->|Yes| SECY["Dev: *review-qa-security"]
+    SECY --> SEC1
+    SECX -->|No| AA["Reviewer: *review"]
     AA --> AB{"Reviewer Finds Issues?"}
     AB -->|Yes| AC["Reviewer: Apply Improvements Directly"]
     AC --> AD["QA: *run-tests to Verify"]
@@ -236,8 +254,15 @@ graph TD
     AB -->|No Issues| AE["Dev: *comment-plan + Mark Ticket Complete"]
     AE --> A
 
+    DE["Domain Expert: *ask / *explain / *decide<br/>(advisor — query anytime)"]
+    DE -.advises.-> C
+    DE -.advises.-> L
+    DE -.advises.-> AA
+
     style A fill:#f5f5f5,color:#000
+    style A1 fill:#e3f2fd,color:#000
     style B fill:#e8f5e9,color:#000
+    style B2 fill:#e8f5e9,color:#000
     style C fill:#e8f5e9,color:#000
     style D fill:#e3f2fd,color:#000
     style E fill:#ffd54f,color:#000
@@ -260,11 +285,16 @@ graph TD
     style X fill:#e3f2fd,color:#000
     style Y fill:#e3f2fd,color:#000
     style Z fill:#ff5722,color:#fff
+    style SEC1 fill:#b71c1c,color:#fff
+    style SEC2 fill:#b71c1c,color:#fff
+    style SECX fill:#e3f2fd,color:#000
+    style SECY fill:#e3f2fd,color:#000
     style AA fill:#f9ab00,color:#fff
     style AB fill:#e3f2fd,color:#000
     style AC fill:#f9ab00,color:#fff
     style AD fill:#ffd54f,color:#000
     style AE fill:#34a853,color:#fff
+    style DE fill:#7e57c2,color:#fff
 ```
 
 ---
@@ -303,17 +333,29 @@ graph TD
 # After trace confirms coverage, run tests:
 *run-tests
 
-# 5. Review Phase
+# 5. Security Audit
+/security
+*check-frontend bmad-docs/impl-plan/PROJ-123-plan.md
+*check-backend bmad-docs/impl-plan/PROJ-123-plan.md
+# If violations found, fix them:
+/dev
+*review-qa-security
+# Re-run security checks until clean
+/security
+*check-frontend bmad-docs/impl-plan/PROJ-123-plan.md
+*check-backend bmad-docs/impl-plan/PROJ-123-plan.md
+
+# 6. Review Phase
 /reviewer
 *review bmad-docs/impl-plan/PROJ-123-plan.md
 # Reviewer applies improvements directly if issues found
 
-# 6. Verify Improvements (if reviewer made changes)
+# 7. Verify Improvements (if reviewer made changes)
 /qa
 *run-tests
 # If tests pass, proceed to completion
 
-# 7. Mark Complete and Update JIRA
+# 8. Mark Complete and Update JIRA
 /dev
 *comment-plan bmad-docs/impl-plan/PROJ-123-plan.md
 # Mark ticket as complete
@@ -347,7 +389,7 @@ graph TD
 
 # 5. Apply QA Fixes
 /dev
-*review-qa
+*review-qa-security
 # Dev makes corrections based on QA feedback
 
 # 6. Re-run QA Validation
@@ -355,20 +397,68 @@ graph TD
 *run-tests
 # Verify fixes resolve issues
 
-# 7. Review
+# 7. Security Audit
+/security
+*check-frontend bmad-docs/impl-plan/BUG-789-plan.md
+*check-backend bmad-docs/impl-plan/BUG-789-plan.md
+# If violations found, loop back to /dev *review-qa-security and re-check
+
+# 8. Review
 /reviewer
 *review bmad-docs/impl-plan/BUG-789-plan.md
 # Reviewer applies improvements directly if issues found
 
-# 8. Verify Improvements (if reviewer made changes)
+# 9. Verify Improvements (if reviewer made changes)
 /qa
 *run-tests
 # If tests pass, proceed to completion
 
-# 9. Mark Complete and Update JIRA
+# 10. Mark Complete and Update JIRA
 /dev
 *comment-plan bmad-docs/impl-plan/BUG-789-plan.md
 # Mark ticket as complete
+```
+
+### Workflow 3: Non-JIRA Requirements (Direct / Markdown / Text File)
+
+Use when work originates outside JIRA — a brief, an internal doc, or a direct ask.
+
+```bash
+# 1. Capture Requirements (in Claude Code CLI)
+/planner
+# Option A: direct text
+*capture-requirements "Add dark-mode toggle to settings page; persist preference per user."
+# Option B: markdown / text file
+# *capture-requirements ./docs/specs/dark-mode-brief.md
+# Planner asks for screenshots, Plan ID, and confirms type (Feature/Bug/Migration)
+
+# 2. Draft and validate plan
+*draft-plan
+*validate-plan bmad-docs/impl-plan/{plan-id}-plan.md
+
+# 3. Continue with the standard flow (test-design → implement → QA → security → reviewer)
+# Skip *comment-plan at the end — there is no JIRA ticket to comment on
+```
+
+### Workflow 4: Onboarding a New Developer
+
+Use when a new developer joins the project and needs a guided tour of architecture, conventions, and tech stack.
+
+```bash
+# 1. Activate the domain expert (in Claude Code CLI)
+/domain-expert
+
+# 2. Run guided onboarding
+*onboard
+# Walks through overview, tech stack, architecture, structure, workflow, coding standards, Q&A
+
+# 3. Ad-hoc questions (anytime, during any workflow)
+*ask "How does authentication work?"
+*explain "the payment service"
+*decide "Should this be a new service or extend the existing API?"
+
+# 4. Refresh knowledge after Confluence updates
+*reload
 ```
 
 ---
@@ -377,7 +467,7 @@ graph TD
 
 ### Planning Phase
 
-1. **Always retrieve ticket info first** - Don't skip straight to planning
+1. **Always retrieve ticket info first** - Don't skip straight to planning (use `*capture-requirements` for non-JIRA sources)
 2. **Use risk-profile for complex stories** - Better to assess risks early
 3. **Validate plans before handoff** - Saves time in development
 4. **Refine based on feedback** - Iteration improves plan quality
@@ -403,6 +493,14 @@ graph TD
 6. **Run full test suite** - Including regression tests after trace confirms coverage
 7. **Document gaps clearly** - Help dev address issues
 
+### Security Phase
+
+1. **Run after QA approval** - Audit only verified code; saves cycles on flaky builds
+2. **Always run both layers** - `*check-frontend` and `*check-backend` cover different attack surfaces
+3. **Security never modifies code** - Findings land in the plan's Security Violations section; dev fixes via `*review-qa-security`
+4. **Loop until clean** - Re-run `*check-frontend` / `*check-backend` after each fix until no violations remain
+5. **Don't skip for "small" changes** - Auth, validation, and audit gaps surface in unexpected places
+
 ### Review Phase
 
 1. **Reviewer applies fixes directly** - No need to loop back to dev
@@ -410,6 +508,14 @@ graph TD
 3. **Prioritize performance** - Time complexity matters
 4. **Keep changes simple** - Avoid over-engineering
 5. **Always run tests after changes** - Use `/qa` then `*run-tests` to verify improvements
+
+### Domain Expert Usage
+
+1. **Query before guessing** - Use `*ask` / `*explain` / `*decide` instead of inferring from code
+2. **Cite-from-docs reduces drift** - Sage answers only from `bmad-docs/domain-knowledge/` and `bmad-docs/architecture/`, with source citations
+3. **Use `*onboard` for new joiners** - Guided walkthrough beats ad-hoc reading
+4. **Run `*reload` after Confluence updates** - Refreshes the knowledge base from the latest docs
+5. **Treat knowledge gaps as a signal** - When Sage says "not covered", update the Confluence Domain-Knowledge page rather than letting code be the only source of truth
 
 ---
 
@@ -442,7 +548,8 @@ graph TD
 | Command                 | Purpose                                                                              | When to Use                                                                                                                                                                                            | Files Created/Modified                                                   | Parameters                                                                                |
 | ----------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | `*help`                 | Display all available commands                                                       | When starting planner agent or need command list                                                                                                                                                       | None                                                                     | None                                                                                      |
-| `*retrieve-ticket-info`    | Fetch JIRA ticket details via Atlassian MCP                                                                                                                            | **First step** in planning workflow. Use when you have a JIRA ticket number or URL and need to gather requirements, acceptance criteria, and attachments before planning                               | None (displays ticket info for validation)                                                          | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
+| `*retrieve-ticket-info`    | Fetch JIRA ticket details via Atlassian MCP                                                                                                                            | **First step (JIRA path)** in planning workflow. Use when you have a JIRA ticket number or URL and need to gather requirements, acceptance criteria, and attachments before planning                   | None (displays ticket info for validation)                                                          | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
+| `*capture-requirements` | Capture requirements from non-JIRA sources (direct text, .md, or .txt) and prepare for planning                                                                        | **First step (non-JIRA path)** in planning workflow. Use when work originates from a brief, internal doc, or direct ask. Asks for screenshots, Plan ID, and confirms type (Feature/Bug/Migration) before handoff to `*draft-plan` | None (displays prepared summary for validation)                                                     | `{input}` - Direct text (quoted) OR path to a `.md`/`.txt` file                            |
 | `*identify-dependencies`   | Find related past tickets, analyze code files modified in past work, and assess code modification requirements for the current ticket                                   | After retrieving ticket info. Use before drafting a plan for complex tickets to understand what past work is related, which files are likely impacted, and what risks or blockers exist early          | **Creates:** `bmad-docs/temporary/{TICKET-ID}-dependency-tmp.md`                                    | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
 | `*draft-plan`           | Create detailed implementation plan with tasks, technical approach, and dependencies | After retrieving ticket info and validating requirements. Transforms ticket into actionable plan with step-by-step tasks that junior developers can follow                                             | **Creates:** `bmad-docs/impl-plan/{TICKET-NUMBER}-plan.md`               | `{ticket-file-or-description}` - Ticket file path or description with Acceptance Criteria |
 | `*refine-plan`          | Iterate and improve existing implementation plan                                     | When initial plan needs more technical detail, user provides feedback, requirements change, or approach needs adjustment. Supports iterative refinement before dev handoff                             | **Modifies:** Existing plan file                                         | `{plan-file}` - Path to implementation plan                                               |
