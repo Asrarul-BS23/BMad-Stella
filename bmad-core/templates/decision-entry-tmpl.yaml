@@ -9,8 +9,8 @@ decision:
     agent: {agent}
     tags: [{tags}]
   fields:
-    title: { max_words: 8, required: true }
-    why: { max_chars: 80, required: true }
+    title: { required: true, guidance: "short, precise, concise" }
+    why: { required: true, guidance: "short, precise, concise" }
     ref: { default: "—", description: "ticket-id or DEC-id" }
     agent: { required: true }
     tags: { min: 1, max: 5, required: true }
@@ -23,8 +23,8 @@ action:
     agent: {agent}
     tags: [{tags}]
   fields:
-    title: { max_words: 8, required: true }
-    where: { max_chars: 80, required: true, description: "file path or system" }
+    title: { required: true, guidance: "short, precise, concise" }
+    where: { required: true, description: "file path or system" }
     ref: { default: "—" }
     agent: { required: true }
     tags: { min: 1, max: 5, required: true }
@@ -36,8 +36,8 @@ question:
     agent: {agent}
     tags: [{tags}]
   fields:
-    title: { max_words: 8, required: true }
-    context: { max_chars: 80, required: true }
+    title: { required: true, guidance: "short, precise, concise" }
+    context: { required: true, guidance: "short, precise, concise" }
     agent: { required: true }
     tags: { min: 1, max: 5, required: true }
 
@@ -46,8 +46,7 @@ markers:
   revoked: "> [REVOKED] {date} reason: {reason}"
 
 style:
-  total_lines_max: 3
-  line_chars_max: 80
+  guidance: "short, precise, concise. proper reflection of what was decided/done/asked. LLM judges length."
   forbidden:
     - code_blocks
     - bullet_lists
