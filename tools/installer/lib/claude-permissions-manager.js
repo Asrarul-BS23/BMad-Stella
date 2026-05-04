@@ -59,6 +59,32 @@ class ClaudePermissionsManager {
       'Edit(bmad-docs/**)',
       'Edit(*bmad-docs*)',
 
+      // File operations for ledger files (scribe memory)
+      'Read(bmad-ledger/**)',
+      'Read(**/bmad-ledger/**)',
+      'Write(bmad-ledger/**)',
+      'Write(*bmad-ledger*)',
+      'Edit(bmad-ledger/**)',
+      'Edit(*bmad-ledger*)',
+
+      // Bash for ledger directory ops (Unix)
+      'Bash(mkdir -p bmad-ledger/**)',
+      'Bash(mkdir bmad-ledger/**)',
+      'Bash(mv bmad-ledger/**)',
+      'Bash(ls bmad-ledger/**)',
+      'Bash(test -f bmad-ledger/**)',
+      'Bash(test -d bmad-ledger/**)',
+      'Bash([ -f bmad-ledger/** ])',
+      'Bash([ -d bmad-ledger/** ])',
+
+      // Bash for ledger directory ops (Windows) — non-destructive only
+      'Bash(mkdir *bmad-ledger*)',
+      'Bash(dir bmad-ledger/**)',
+
+      // Glob/Grep for ledger
+      'Grep(bmad-ledger/**)',
+      'Glob(bmad-ledger/**)',
+
       // Bash commands for directory operations (Unix)
       'Bash(mkdir -p bmad-docs/**)',
       'Bash(mkdir -p **/bmad-docs/**)',
