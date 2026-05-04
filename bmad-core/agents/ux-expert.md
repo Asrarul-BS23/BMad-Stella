@@ -64,6 +64,7 @@ dependencies:
     - create-doc.md
     - execute-checklist.md
     - generate-ai-frontend-prompt.md
+    - scribe-protocol.md
   templates:
     - front-end-spec-tmpl.yaml
 ```

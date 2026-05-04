@@ -63,4 +63,5 @@ dependencies:
   tasks:
     - check-frontend-security.md
     - check-backend-security.md
+    - scribe-protocol.md
 ```

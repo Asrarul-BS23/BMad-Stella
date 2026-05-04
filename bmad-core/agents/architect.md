@@ -77,6 +77,7 @@ dependencies:
     - create-doc.md
     - document-project.md
     - execute-checklist.md
+    - scribe-protocol.md
   templates:
     - architecture-tmpl.yaml
     - brownfield-architecture-tmpl.yaml

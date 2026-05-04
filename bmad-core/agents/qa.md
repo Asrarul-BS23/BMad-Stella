@@ -75,6 +75,7 @@ dependencies:
     - test-design.md
     - implement-test.md
     - trace-requirements.md
+    - scribe-protocol.md
   templates:
     - implementation-plan-tmpl.yaml
 ```

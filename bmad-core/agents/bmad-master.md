@@ -88,6 +88,7 @@ dependencies:
     - generate-ai-frontend-prompt.md
     - index-docs.md
     - shard-doc.md
+    - scribe-protocol.md
   templates:
     - architecture-tmpl.yaml
     - brownfield-architecture-tmpl.yaml

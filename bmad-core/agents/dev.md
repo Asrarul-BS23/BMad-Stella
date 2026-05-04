@@ -93,4 +93,5 @@ dependencies:
     - apply-qa-security-fixes.md
     - execute-checklist.md
     - validate-next-story.md
+    - scribe-protocol.md
 ```

@@ -58,4 +58,5 @@ commands:
 dependencies:
   tasks:
     - review-and-improve.md
+    - scribe-protocol.md
 ```

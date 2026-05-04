@@ -60,6 +60,7 @@ dependencies:
     - correct-course.md
     - create-next-story.md
     - execute-checklist.md
+    - scribe-protocol.md
   templates:
     - story-tmpl.yaml
 ```

@@ -74,6 +74,7 @@ dependencies:
     - execute-checklist.md
     - shard-doc.md
     - validate-next-story.md
+    - scribe-protocol.md
   templates:
     - story-tmpl.yaml
 ```

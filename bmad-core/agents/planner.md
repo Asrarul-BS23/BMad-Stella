@@ -104,6 +104,7 @@ dependencies:
     - execute-checklist.md
     - risk-profile.md
     - identify-dependencies.md
+    - scribe-protocol.md
   templates:
     - implementation-plan-tmpl.yaml
 ```

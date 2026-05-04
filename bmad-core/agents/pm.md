@@ -78,6 +78,7 @@ dependencies:
     - create-doc.md
     - execute-checklist.md
     - shard-doc.md
+    - scribe-protocol.md
   templates:
     - brownfield-prd-tmpl.yaml
     - prd-tmpl.yaml

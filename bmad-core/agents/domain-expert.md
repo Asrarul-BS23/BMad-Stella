@@ -72,4 +72,5 @@ commands:
 dependencies:
   tasks:
     - domain-expert-onboard.md
+    - scribe-protocol.md
 ```
