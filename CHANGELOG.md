@@ -1,3 +1,17 @@
+## [Unreleased]
+
+### Features
+
+- **scribe**: cross-session memory ledger with on-demand recall.
+  - New `bmad-ledger/` directory (gitignored, top-level).
+  - Capture protocol embedded in all 14 BMAD agents — auto-records decisions, persistent actions, and open questions per turn at zero extra API cost.
+  - New `/scribe` agent (Sam) with `*recall <question>` and `*compact` commands.
+  - `/scribe *recall` answers grounded in ledger with citations; does not switch active persona.
+  - Auto-archive of session files older than 10 days.
+  - Atomic write pattern (write-tmp + rename) for index updates.
+  - Silent installer setup; ledger paths auto-allowlisted via existing Claude Code permissions manager.
+  - Docs: [docs/scribe-user-guide.md](docs/scribe-user-guide.md).
+
 ## [4.36.2](https://github.com/bmadcode/BMAD-METHOD/compare/v4.36.1...v4.36.2) (2025-08-10)
 
 ### Bug Fixes
