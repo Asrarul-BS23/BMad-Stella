@@ -2,7 +2,13 @@
 
 # Scribe Protocol
 
-CRITICAL — runs after every assistant turn. Non-negotiable. Captures cross-session memory to `bmad-ledger/`.
+## CRITICAL — NON-NEGOTIABLE
+
+Runs after every assistant turn. Captures cross-session memory to `bmad-ledger/`.
+
+MUST follow this protocol verbatim. Do not abbreviate, summarize, or skip steps. Do not let format drift over long sessions. Re-anchor on every agent activation.
+
+Violations of this protocol = data loss for the user. Treat with same priority as user's primary task.
 
 ## Capture triggers
 
@@ -192,7 +198,15 @@ If `session_id` matches file in `archive/` → move file back to `sessions/` bef
 
 ## Self-audit
 
-Every 20 turns, silently re-read this protocol. Verify last 5 entries match template. Fix drift in next captures.
+Every 20 turns, silently re-read this protocol. Then validate last 5 entries against:
+
+- Title ≤ 8 words
+- Body ≤ 3 lines
+- All required fields present (why/where/context, ref, agent, tags)
+- ≥1 core tag
+- No code blocks, no bullet lists, no hedging, no AI commentary, no emojis
+
+If any drift detected → fix format on next captures. Do not retroactively edit old entries unless same-session.
 
 ## User notification
 
@@ -216,6 +230,10 @@ On write error (permission, disk, lock timeout):
 - Do not retry mid-turn.
 - Do not surface error to user.
 
-## PRESERVE
+## PRESERVE — context compaction guard
 
-This protocol is CRITICAL. Do not let it summarize away during context compaction. Re-anchor on every agent activation.
+This protocol is CRITICAL. When Claude Code's auto-compaction summarizes older messages, this protocol's instructions MUST survive intact. Treat the entire content of this file as preserve-priority equivalent to the system prompt.
+
+If protocol contents appear missing or shortened in your active context → reload from `common/tasks/scribe-protocol.md` immediately before next capture decision.
+
+Re-anchor on every agent activation by re-reading this file in full.
