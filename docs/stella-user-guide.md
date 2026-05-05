@@ -644,7 +644,7 @@ Use when a new developer joins the project and needs a guided tour of architectu
 
 ### Scribe Agent Commands
 
-**Activation (in Claude Code CLI):** `/scribe`
+**Activation (in Claude Code CLI):** `/BMad:agents:scribe` (tip: type `/scribe` → pick from suggestions → press **Tab**)
 **Agent:** Sam - Memory Ledger Utility
 **Icon:** 📝
 
@@ -659,7 +659,7 @@ Use when a new developer joins the project and needs a guided tour of architectu
 
 - Capture is **automatic** — every BMAD agent runs the scribe protocol embedded. No `*capture` command needed.
 - Compaction is **automatic** on every agent activation — old session files move to `bmad-ledger/archive/` silently. The `*compact` command is only a manual force-trigger.
-- `/scribe *recall` does **not** switch your active session persona (planner/dev/qa/reviewer). Sam is a one-shot utility.
+- `/BMad:agents:scribe *recall` does **not** switch your active session persona (planner/dev/qa/reviewer). Sam is a one-shot utility.
 - All ledger files live under `bmad-ledger/` (gitignored, local to your machine).
 - See [Scribe User Guide](scribe-user-guide.md) for full details.
 

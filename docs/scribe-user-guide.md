@@ -49,15 +49,22 @@ No setup. No commands. Just works.
 ## Recall (on demand)
 
 ```
-/scribe *recall <question or topic>
+/BMad:agents:scribe *recall <question or topic>
 ```
+
+### Quick way to type it
+
+1. Type `/scribe` — Claude Code shows suggestions.
+2. Pick **`/BMad:agents:scribe`**.
+3. Press **Tab** — Claude Code autocompletes.
+4. Add `*recall <your question>` and press Enter.
 
 Examples:
 
 ```
-/scribe *recall what auth decisions have we made?
-/scribe *recall JIRA-451
-/scribe *recall open questions about caching
+/BMad:agents:scribe *recall what auth decisions have we made?
+/BMad:agents:scribe *recall JIRA-451
+/BMad:agents:scribe *recall open questions about caching
 ```
 
 Sam (the scribe utility) answers with a synthesis grounded in the ledger, with references to specific entries. Your active agent (planner/dev/etc.) is **not** disrupted — control returns to it after.
@@ -71,7 +78,7 @@ Sam (the scribe utility) answers with a synthesis grounded in the ledger, with r
 Manual trigger (rarely needed — only if you want to force compaction immediately):
 
 ```
-/scribe *compact
+/BMad:agents:scribe *compact
 ```
 
 ---
@@ -84,12 +91,14 @@ Tell any agent: "stop capturing" or "this is sensitive". Captures pause for the 
 
 ## Commands
 
-| Command               | What it does                                                                      |
-| --------------------- | --------------------------------------------------------------------------------- |
-| `/scribe`             | Show help + ledger status                                                         |
-| `/scribe *recall <q>` | Query the ledger                                                                  |
-| `/scribe *compact`    | Force-run compaction now (compaction is also automatic on every agent activation) |
-| `/scribe *help`       | Show commands                                                                     |
+Tip: type `/scribe` → pick `/BMad:agents:scribe` from the suggestion list → press **Tab** to autocomplete.
+
+| Command                           | What it does                                                                      |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| `/BMad:agents:scribe`             | Show help + ledger status                                                         |
+| `/BMad:agents:scribe *recall <q>` | Query the ledger                                                                  |
+| `/BMad:agents:scribe *compact`    | Force-run compaction now (compaction is also automatic on every agent activation) |
+| `/BMad:agents:scribe *help`       | Show commands                                                                     |
 
 ---
 
@@ -114,11 +123,12 @@ No. `bmad-ledger/` is gitignored. Each developer has their own.
 
 ## Troubleshooting
 
-| Problem                                    | Fix                                                              |
-| ------------------------------------------ | ---------------------------------------------------------------- |
-| `*recall` returns "Ledger not initialized" | Run `npx bmad-stella install`                                    |
-| Permission prompt on every capture         | Re-run installer, accept permissions when prompted               |
-| Captures stopped happening                 | Check if you said "stop capturing" earlier; re-enable explicitly |
-| Index says entry exists but file missing   | Manual edit `bmad-ledger/index.yaml` to remove the orphan entry  |
+| Problem                                    | Fix                                                                                                                                     |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `*recall` returns "Ledger not initialized" | Run `npx bmad-stella install`                                                                                                           |
+| Typing `/scribe` says "Unknown command"    | Use full command `/BMad:agents:scribe` (Claude Code namespaces all BMAD agents). Tip: type `/scribe`, pick from suggestions, press Tab. |
+| Permission prompt on every capture         | Re-run installer, accept permissions when prompted                                                                                      |
+| Captures stopped happening                 | Check if you said "stop capturing" earlier; re-enable explicitly                                                                        |
+| Index says entry exists but file missing   | Manual edit `bmad-ledger/index.yaml` to remove the orphan entry                                                                         |
 
 For deeper issues, inspect `bmad-ledger/index.yaml` directly.

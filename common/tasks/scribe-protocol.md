@@ -49,7 +49,15 @@ Never rewrite body of old entries. Only append marker.
 
 ## Where to write
 
-ONLY `bmad-ledger/sessions/{session_id}.md`. Use Claude Code session_id.
+ONLY `bmad-ledger/sessions/{session_id}.md`.
+
+Resolve `session_id` ONCE per agent activation:
+
+```
+echo "<verbatim recent user message>" | node .bmad-core/utils/scribe/find-session.js
+```
+
+stdout = session_id. **Cache it in working memory.** Reuse for all subsequent captures this session. Re-invoke only if cache lost (context compaction).
 
 If file missing → create with frontmatter:
 
