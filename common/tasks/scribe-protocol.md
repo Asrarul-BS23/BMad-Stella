@@ -4,14 +4,14 @@
 
 CRITICAL — non-negotiable. Runs after every assistant turn. Captures cross-session memory to `bmad-ledger/`. Treat as preserve-priority through context compaction. Re-anchor on every activation.
 
-## Capture
+## Capture — strict order
 
-After each reply, scan exchange. Write entry if turn produced:
+1. **Decide eligibility first.** DECISION (choice affecting future work) or ACTION (persistent state change). SKIP: acks, status reads, ephemeral ops (read/test/search), repeats, AI commentary. Not eligible → STOP. No write. No notification.
+2. **Write entry** to `decisions.md` or `actions.md`. Update `index.yaml` (atomic tmp+rename).
+3. **Verify on disk.** Read target file + `index.yaml`. Confirm entry present.
+4. **Notify ONLY if Step 3 confirmed.** Append `📝 captured: {ID} — {title}` to reply.
 
-- DECISION — choice affecting future work
-- ACTION — persistent state change taken (file/infra/db/schema modified)
-
-SKIP: acknowledgements, status reads, code already in repo, ephemeral ops (read/test/search), repeats, AI commentary. Multiple types in one turn → multiple entries.
+Step 2/3 fails → SILENT skip. NEVER print `📝 captured` without verified write.
 
 ## Where to write
 
@@ -103,13 +103,7 @@ Re-read this protocol. Validate last 5 entries: short/concise/precise, all requi
 
 ## User notification
 
-After capture, append one line per entry to reply:
-
-```
-📝 captured: {ID} — {title}
-```
-
-Silent if nothing captured.
+Notification only after verified write (see Capture Step 4). Silent if nothing captured or verification failed.
 
 ## Sensitive opt-out
 
@@ -117,7 +111,7 @@ User says "stop capturing" / "this is sensitive" / similar → skip captures res
 
 ## Failure handling
 
-On write error → skip turn silently. No retry. Do not surface error.
+On write/verify error → retry once. If second attempt also fails → SILENT skip. NEVER print `📝 captured` line for unverified writes.
 
 ## PRESERVE
 
