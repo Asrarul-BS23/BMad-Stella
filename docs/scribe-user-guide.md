@@ -1,6 +1,6 @@
 # Scribe — Memory Ledger User Guide
 
-Cross-session memory for BMAD. Captures decisions, actions, and open questions automatically. Recall anytime via one command.
+Cross-session memory for BMAD. Captures decisions and actions automatically. Recall anytime via one command.
 
 ---
 
