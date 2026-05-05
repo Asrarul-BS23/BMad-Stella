@@ -3,7 +3,7 @@
 
 decision:
   format: |
-    ## DEC-{date}-{seq}  {title}
+    ## DEC-{YYYY-MM-DD-HHMMSS-mmm}  {title}
     why: {reason}
     ref: {ref}
     agent: {agent}
@@ -17,7 +17,7 @@ decision:
 
 action:
   format: |
-    ## ACT-{date}-{seq}  {title}
+    ## ACT-{YYYY-MM-DD-HHMMSS-mmm}  {title}
     where: {where}
     ref: {ref}
     agent: {agent}
@@ -29,24 +29,12 @@ action:
     agent: { required: true }
     tags: { min: 1, max: 5, required: true }
 
-question:
-  format: |
-    ## OQ-{date}-{seq}  {title}
-    context: {context}
-    agent: {agent}
-    tags: [{tags}]
-  fields:
-    title: { required: true, guidance: "short, precise, concise" }
-    context: { required: true, guidance: "short, precise, concise" }
-    agent: { required: true }
-    tags: { min: 1, max: 5, required: true }
-
 markers:
   superseded: "> [SUPERSEDED] {date} → {new_id}"
   revoked: "> [REVOKED] {date} reason: {reason}"
 
 style:
-  guidance: "short, precise, concise. proper reflection of what was decided/done/asked. LLM judges length."
+  guidance: "short, precise, concise. proper reflection of what was decided/done. LLM judges length."
   forbidden:
     - code_blocks
     - bullet_lists

@@ -9,28 +9,50 @@ CRITICAL — non-negotiable. Runs after every assistant turn. Captures cross-ses
 After each reply, scan exchange. Write entry if turn produced:
 
 - DECISION — choice affecting future work
-- ACTION — persistent state change taken (file/infra/db/schema)
-- QUESTION — unresolved problem flagged
+- ACTION — persistent state change taken (file/infra/db/schema modified)
 
-SKIP: acknowledgements, status reads ("looking at file"), code already in repo, ephemeral ops (read/test/search), repeats, AI commentary. Multiple types in one turn → multiple entries.
+SKIP: acknowledgements, status reads, code already in repo, ephemeral ops (read/test/search), repeats, AI commentary. Multiple types in one turn → multiple entries.
 
-## Entry format (strict)
+## Where to write
+
+ONLY two files:
+
+- `bmad-ledger/decisions.md` — DEC entries
+- `bmad-ledger/actions.md` — ACT entries
+
+Append-only. Edit existing entries only via supersession marker (see Write principles).
+
+## Entry format
+
+### DECISION
 
 ```
-## DEC-{YYYY-MM-DD}-{NNN}  {short title}
+## DEC-{YYYY-MM-DD-HHMMSS-mmm}  {short title}
 why: {reason}
 ref: {ticket-id | DEC-id | —}
 agent: {your-id}
 tags: [≥1 core, ...free-form]
 ```
 
-Replace `DEC` with `ACT` (use `where: {file/system}` instead of `why:`) or `OQ` (use `context: {brief}`).
+### ACTION
 
-ID: TYPE-DATE-NNN. NNN = zero-pad sequence per-day per-type, starts 001, resets midnight UTC. Read `bmad-ledger/index.yaml` for next NNN.
+```
+## ACT-{YYYY-MM-DD-HHMMSS-mmm}  {short title}
+where: {file/system}
+ref: {ticket-id | ACT-id | —}
+agent: {your-id}
+tags: [≥1 core, ...free-form]
+```
+
+## ID
+
+Format: `{TYPE}-{YYYY-MM-DD-HHMMSS-mmm}`. Generate from current UTC time. No lookup. Always unique.
+
+Example: `DEC-2026-04-30-183215-422`.
 
 ## Style
 
-Short, precise, concise. Proper reflection of what was decided/done/asked. LLM judges length — match the substance. NO code blocks, bullet lists, hedging ("maybe"/"I think"), AI commentary ("interesting"), emojis.
+Short, precise, concise. Proper reflection of decision/action. LLM judges length — match the substance. NO code blocks, bullet lists, hedging ("maybe"/"I think"), AI commentary ("interesting"), emojis.
 
 ## Tags
 
@@ -38,73 +60,33 @@ Short, precise, concise. Proper reflection of what was decided/done/asked. LLM j
 
 ## Write principles
 
-| Scenario                   | Action                                                                                                                        |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Same-session edit          | Overwrite original. No marker.                                                                                                |
-| Same-session delete        | Remove entry + index row.                                                                                                     |
-| Cross-session supersession | New entry in current file (`supersedes: OLD-ID`). Append `> [SUPERSEDED] {date} → {new_id}` to old file. Update index status. |
-| Cross-session revoke       | Append `> [REVOKED] {date} reason: {brief}` to old file. Update index. No new entry.                                          |
+| Scenario                   | Action                                                                                                                                              |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Decision/action superseded | Append new entry to current file (`supersedes: OLD-ID` line). Append `> [SUPERSEDED] {date} → {new-id}` after old entry block. Update index status. |
+| Decision/action revoked    | Append `> [REVOKED] {date} reason: {brief}` after old entry block. Update index status. No new entry.                                               |
 
-Never rewrite body of old entries. Only append marker.
-
-## Where to write
-
-ONLY `bmad-ledger/sessions/{session_id}.md`.
-
-Resolve `session_id` ONCE per agent activation:
-
-```
-echo "<verbatim recent user message>" | node .bmad-core/utils/scribe/find-session.js
-```
-
-stdout = session_id. **Cache it in working memory.** Reuse for all subsequent captures this session. Re-invoke only if cache lost (context compaction).
-
-If file missing → create with frontmatter:
-
-```markdown
----
-session_id: { id }
-started: { ISO }
-last_activity: { ISO }
-agents_active: [{ your-id }]
-tickets: []
-entry_count: 0
----
-
-# Session {id}
-
-## Decisions
-
-## Actions
-
-## Questions
-```
-
-Append entries under matching section. Update frontmatter counters on each write.
+Never rewrite body of old entries. Only append marker line.
 
 ## Index update
 
-After session-file write, update `bmad-ledger/index.yaml`:
+After file write, update `bmad-ledger/index.yaml`:
 
 1. Read existing index.
 2. Insert under `entries:` (before `stats:`):
    ```yaml
    { ID }:
-     {
-       type,
-       title,
-       session,
-       location,
-       line,
-       status: active,
-       superseded_by: null,
-       tags,
-       tickets,
-       agent,
-       created,
-     }
+     type: decision | action
+     title: '...'
+     file: decisions.md | actions.md
+     line: { line-number }
+     status: active
+     superseded_by: null
+     tags: [...]
+     ref: { ticket-or-— }
+     agent: { your-id }
+     created: { ISO timestamp }
    ```
-3. Increment `stats.total` and `stats.active`.
+3. Increment `stats.total`, `stats.{type}s`, `stats.active`.
 4. Atomic write: write `index.yaml.tmp` → rename to `index.yaml`.
 
 ## Path scope — STRICT
@@ -113,19 +95,11 @@ NEVER write outside `bmad-ledger/`. Forbidden: `bmad-docs/`, `bmad-core/`, code 
 
 ## Bootstrap
 
-If `bmad-ledger/{sessions,archive,.meta}` or `index.yaml` missing → create skeleton (installer normally handles; fallback only).
-
-## Compaction (auto on activation)
-
-On each agent activation: scan `bmad-ledger/sessions/`. For files with mtime > 10 days → move to `bmad-ledger/archive/` and update index `location`. Skip files modified within last 60s.
-
-## Resume protection
-
-If current session_id matches file in `archive/` → move back to `sessions/` before writing. Update index.
+If `bmad-ledger/`, `decisions.md`, `actions.md`, `index.yaml`, or `.meta/version.yaml` missing → create skeleton (installer normally handles; fallback only).
 
 ## Self-audit (every 20 turns)
 
-Re-read this protocol. Validate last 5 entries: short/concise/precise, all required fields present, ≥1 core tag, no forbidden style (no code blocks/bullets/hedging/AI commentary/emojis). Fix drift in next captures.
+Re-read this protocol. Validate last 5 entries: short/concise/precise, all required fields present, ≥1 core tag, no forbidden style. Fix drift in next captures.
 
 ## User notification
 

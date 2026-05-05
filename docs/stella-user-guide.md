@@ -648,17 +648,16 @@ Use when a new developer joins the project and needs a guided tour of architectu
 **Agent:** Sam - Memory Ledger Utility
 **Icon:** 📝
 
-| Command       | Purpose                                                                       | When to Use                                                                                             | Files Created/Modified                                  | Parameters             |
-| ------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------- |
-| `*help`       | Show commands + ledger status                                                 | When unsure what scribe does                                                                            | None                                                    | None                   |
-| `*recall {q}` | Query ledger; answer with synthesis + references                              | Ask about prior decisions, actions, open questions                                                      | None (read-only)                                        | `{q}` — free-form text |
-| `*compact`    | Force-run compaction now — moves files >10 days old to `bmad-ledger/archive/` | **Compaction is automatic** on every agent activation. Use this command only to trigger it immediately. | Moves files inside `bmad-ledger/`; updates `index.yaml` | None                   |
-| `*exit`       | Return control to previous active agent                                       | When done with scribe utility                                                                           | None                                                    | None                   |
+| Command       | Purpose                                          | When to Use                          | Files Created/Modified | Parameters             |
+| ------------- | ------------------------------------------------ | ------------------------------------ | ---------------------- | ---------------------- |
+| `*help`       | Show commands + ledger status                    | When unsure what scribe does         | None                   | None                   |
+| `*recall {q}` | Query ledger; answer with synthesis + references | Ask about prior decisions or actions | None (read-only)       | `{q}` — free-form text |
+| `*exit`       | Return control to previous active agent          | When done with scribe utility        | None                   | None                   |
 
 **Notes:**
 
 - Capture is **automatic** — every BMAD agent runs the scribe protocol embedded. No `*capture` command needed.
-- Compaction is **automatic** on every agent activation — old session files move to `bmad-ledger/archive/` silently. The `*compact` command is only a manual force-trigger.
+- Ledger lives in two flat files: `bmad-ledger/decisions.md` and `bmad-ledger/actions.md`, plus `index.yaml` for fast filter.
 - `/BMad:agents:scribe *recall` does **not** switch your active session persona (planner/dev/qa/reviewer). Sam is a one-shot utility.
 - All ledger files live under `bmad-ledger/` (gitignored, local to your machine).
 - See [Scribe User Guide](scribe-user-guide.md) for full details.

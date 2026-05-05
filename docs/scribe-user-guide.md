@@ -16,7 +16,6 @@ While you work with any BMAD agent (planner, dev, qa, reviewer, etc.), the scrib
 | ------------------------------------ | ------------------------------- |
 | **Decision**                         | "Use JWT not sessions for auth" |
 | **Action** (persistent state change) | "Migrated user table to UUIDs"  |
-| **Open question**                    | "Refresh token cadence?"        |
 
 Skipped: acknowledgements, status reads, repeats, ephemeral actions (read/test/search).
 
@@ -27,9 +26,10 @@ Skipped: acknowledgements, status reads, repeats, ephemeral actions (read/test/s
 ```
 your-project/
 └── bmad-ledger/         (gitignored — local to your machine)
-    ├── sessions/        active session files (≤10 days)
-    ├── archive/         older sessions (>10 days)
-    └── index.yaml       master metadata
+    ├── decisions.md     append-only DEC entries
+    ├── actions.md       append-only ACT entries
+    ├── index.yaml       metadata for fast filter
+    └── .meta/version.yaml
 ```
 
 ---
@@ -39,7 +39,7 @@ your-project/
 Just work with any BMAD agent. Captures happen silently. After a captured turn, you'll see one line:
 
 ```
-📝 captured: DEC-2026-04-30-001 — Auth: JWT
+📝 captured: DEC-2026-04-30-183215-422 — Auth: JWT
 ```
 
 No setup. No commands. Just works.
@@ -64,22 +64,10 @@ Examples:
 ```
 /BMad:agents:scribe *recall what auth decisions have we made?
 /BMad:agents:scribe *recall JIRA-451
-/BMad:agents:scribe *recall open questions about caching
+/BMad:agents:scribe *recall what changed about caching
 ```
 
 Sam (the scribe utility) answers with a synthesis grounded in the ledger, with references to specific entries. Your active agent (planner/dev/etc.) is **not** disrupted — control returns to it after.
-
----
-
-## Compaction
-
-**Automatic.** Every time you activate any BMAD agent, files older than 10 days are silently moved to `bmad-ledger/archive/`. No action needed. Recall still finds archived entries.
-
-Manual trigger (rarely needed — only if you want to force compaction immediately):
-
-```
-/BMad:agents:scribe *compact
-```
 
 ---
 
@@ -93,12 +81,11 @@ Tell any agent: "stop capturing" or "this is sensitive". Captures pause for the 
 
 Tip: type `/scribe` → pick `/BMad:agents:scribe` from the suggestion list → press **Tab** to autocomplete.
 
-| Command                           | What it does                                                                      |
-| --------------------------------- | --------------------------------------------------------------------------------- |
-| `/BMad:agents:scribe`             | Show help + ledger status                                                         |
-| `/BMad:agents:scribe *recall <q>` | Query the ledger                                                                  |
-| `/BMad:agents:scribe *compact`    | Force-run compaction now (compaction is also automatic on every agent activation) |
-| `/BMad:agents:scribe *help`       | Show commands                                                                     |
+| Command                           | What it does              |
+| --------------------------------- | ------------------------- |
+| `/BMad:agents:scribe`             | Show help + ledger status |
+| `/BMad:agents:scribe *recall <q>` | Query the ledger          |
+| `/BMad:agents:scribe *help`       | Show commands             |
 
 ---
 
@@ -111,7 +98,7 @@ No. Capture is part of the agent's normal turn. Zero extra API calls.
 No. Local files only.
 
 **Can I edit ledger entries manually?**
-Yes. They're plain markdown in `bmad-ledger/sessions/*.md`.
+Yes. They're plain markdown in `bmad-ledger/decisions.md` and `bmad-ledger/actions.md`.
 
 **What if I delete `bmad-ledger/`?**
 Re-run `npx bmad-stella install`. Skeleton recreated. Past entries lost.

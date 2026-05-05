@@ -81,12 +81,6 @@ class ClaudePermissionsManager {
       'Bash(mkdir *bmad-ledger*)',
       'Bash(dir bmad-ledger/**)',
 
-      // Scribe session discovery helper
-      'Bash(node .bmad-core/utils/scribe/find-session.js)',
-      'Bash(node .bmad-core/utils/scribe/find-session.js *)',
-      'Bash(echo * | node .bmad-core/utils/scribe/find-session.js)',
-      'Bash(echo * | node .bmad-core/utils/scribe/find-session.js *)',
-
       // Glob/Grep for ledger
       'Grep(bmad-ledger/**)',
       'Glob(bmad-ledger/**)',
