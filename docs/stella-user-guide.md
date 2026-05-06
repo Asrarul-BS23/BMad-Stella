@@ -657,6 +657,7 @@ Use when a new developer joins the project and needs a guided tour of architectu
 **Notes:**
 
 - Capture is **automatic** — every BMAD agent runs the scribe protocol embedded. No `*capture` command needed.
+- Recall is **automatic too** — every BMAD agent runs the read protocol embedded. Just ask in any agent ("what did we decide about auth?"). The agent auto-consults the ledger. `/BMad:agents:scribe *recall` is now an optional fallback.
 - Ledger lives in two flat files: `bmad-ledger/decisions.md` and `bmad-ledger/actions.md`, plus `index.yaml` for fast filter.
 - `/BMad:agents:scribe *recall` does **not** switch your active session persona (planner/dev/qa/reviewer). Sam is a one-shot utility.
 - All ledger files live under `bmad-ledger/` (gitignored, local to your machine).

@@ -37,4 +37,6 @@ jira:
       - application/json
     maxAttachmentMB: 50
     concurrency: 5
+scribe:
+  ledgerRoot: bmad-ledger
 slashPrefix: BMad

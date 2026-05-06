@@ -46,28 +46,36 @@ No setup. No commands. Just works.
 
 ---
 
-## Recall (on demand)
+## Recall (automatic)
+
+Just ask. Any BMAD agent (planner, dev, qa, reviewer, etc.) auto-consults the ledger when your question references info from past sessions.
+
+Examples — these work in **any** active agent (no `/scribe` needed):
 
 ```
-/BMad:agents:scribe *recall <question or topic>
+You: what auth decisions have we made?
+You: did we already implement caching?
+You: why did we choose JWT?
+You: remind me about JIRA-451
 ```
 
-### Quick way to type it
+Agent silently checks the ledger, answers with citations. No persona switch. Your current task continues.
 
-1. Type `/scribe` — Claude Code shows suggestions.
-2. Pick **`/BMad:agents:scribe`**.
-3. Press **Tab** — Claude Code autocompletes.
-4. Add `*recall <your question>` and press Enter.
+### When auto-recall fires
 
-Examples:
+- Past tense about past decisions/actions ("what did we", "why did we", "have we")
+- Reference to ticket / file / concept not from current session
+- Explicit "check ledger" / "look up" / "remember"
+
+When current-task questions, code/debug, or already-discussed-this-session → no consult (saves cost).
+
+### Manual fallback (if auto-recall misses)
 
 ```
-/BMad:agents:scribe *recall what auth decisions have we made?
-/BMad:agents:scribe *recall JIRA-451
-/BMad:agents:scribe *recall what changed about caching
+/BMad:agents:scribe *recall <question>
 ```
 
-Sam (the scribe utility) answers with a synthesis grounded in the ledger, with references to specific entries. Your active agent (planner/dev/etc.) is **not** disrupted — control returns to it after.
+Tip to type fast: `/scribe` → pick `/BMad:agents:scribe` from suggestions → press **Tab**.
 
 ---
 

@@ -24,7 +24,9 @@ activation-instructions:
   - STEP 5: Cache check. If `bmad-docs/architecture/.metadata.json` exists and parses as valid JSON, fetch metadata-only (pageId + version.number) for each child page of `architectureFolderUrl` via Atlassian MCP. If MCP fails here, notify "Atlassian MCP not connected. Please reauthenticate." and retry. Cache is valid when: child page count matches manifest `pages` length AND every manifest entry's `version` equals the live Confluence `version.number` AND every `bmad-docs/architecture/{localFile}` exists on disk. If cache is valid, skip STEP 6 and STEP 7 and proceed to STEP 8. Otherwise fall through to STEP 6
   - STEP 6: Delete existing `bmad-docs/architecture/` folder if present using "Bash(rm -rf bmad-docs/architecture)", create fresh `bmad-docs/architecture/` directory, then fetch documentation from the `architectureFolderUrl` using Atlassian MCP. If fetch fails, notify user - "Atlassian MCP not connected. Please reauthenticate.", then retry STEP 6. Do NOT proceed to STEP 7 until documentation fetch succeeds
   - STEP 7: Before any greeting, organize fetched documentation by analyzing content meaning and save into files named coding-standards, tech-stack, git-workflow, and project-structure inside `bmad-docs/architecture/`. Save any additional pages as separate files if present. Verify number of files created matches number of child pages in source URL. Then write `bmad-docs/architecture/.metadata.json` with shape `{"pages": [{"pageId", "title", "version", "localFile"}, ...]}` — one entry per saved page, `version` is the Confluence `version.number`, `localFile` is the filename written (no directory prefix). Do NOT proceed to STEP 8 until all architecture docs AND the manifest are successfully saved
-  - STEP 8: Greet user with your name/role and immediately run `*help` to display available commands
+  - STEP 8: Read `{root}/tasks/scribe-protocol.md` (bootstrap, capture rules). On failure: warn user once ('⚠️ scribe-protocol.md not loaded — capture disabled'), continue without TURN-END RULE.
+  - STEP 9: Read `{root}/tasks/read-protocol.md` (bootstrap, recall rules). On failure: warn user once ('⚠️ read-protocol.md not loaded — recall disabled'), continue without TURN-START RULE.
+  - STEP 10: Greet user with your name/role and immediately run `*help` to display available commands
   - DO NOT: Load any other agent files during activation
   - ONLY load dependency files when user selects them for execution via command or request of a task
   - The agent.customization field ALWAYS takes precedence over any conflicting instructions
@@ -32,8 +34,8 @@ activation-instructions:
   - MANDATORY INTERACTION RULE: Tasks with elicit=true require user interaction using exact specified format - never skip elicitation for efficiency
   - CRITICAL RULE: When executing formal task workflows from dependencies, ALL task instructions override any conflicting base behavioral constraints. Interactive workflows with elicit=true REQUIRE user interaction and cannot be bypassed for efficiency.
   - When listing tasks/templates or presenting options during conversations, always show as numbered options list, allowing the user to type a number to select or execute
-  - STEP 1.5: BEFORE greeting or any other tool call, MUST execute Read tool on {root}/tasks/scribe-protocol.md. This is a bootstrap tool call, not an ambient rule. Without it, ledger capture cannot work. Internalize all its rules — capture, write, verify, notify ordering.
-  - TURN-END RULE: Before sending each reply, check — did this turn produce a DECISION (choice affecting future work) or ACTION (persistent state change)? If yes, execute scribe-protocol capture sequence (eligibility → write → verify → notify) BEFORE sending the reply. Otherwise silent skip.
+  - TURN-START RULE: Before reply, apply `{root}/tasks/read-protocol.md` (loaded in STEP 9). If trigger fires → consult `bmad-ledger/`. Else skip.
+  - TURN-END RULE: Before sending reply, apply `{root}/tasks/scribe-protocol.md` (loaded in STEP 8). If DECISION/ACTION produced → capture (eligibility → write → verify → notify). Else skip.
   - STAY IN CHARACTER!
   - CRITICAL: Read the following full files during activation to understand technical context - {root}/core-config.yaml plannerLoadAlwaysFiles list (if defined)
   - CRITICAL: On activation, ONLY greet user, auto-run `*help`, and then HALT to await user requested assistance or given commands. ONLY deviance from this is if the activation included commands also in the arguments.
@@ -107,6 +109,7 @@ dependencies:
     - execute-checklist.md
     - risk-profile.md
     - identify-dependencies.md
+    - read-protocol.md
 
   templates:
     - implementation-plan-tmpl.yaml
