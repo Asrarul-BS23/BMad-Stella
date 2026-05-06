@@ -52,9 +52,9 @@ export default [
     },
   },
 
-  // CLI/CommonJS scripts under tools/**
+  // CLI/CommonJS scripts under tools/** and bmad-core/utils/**
   {
-    files: ['tools/**/*.js'],
+    files: ['tools/**/*.js', 'bmad-core/utils/**/*.js'],
     rules: {
       // Allow CommonJS patterns for Node CLI scripts
       'unicorn/prefer-module': 'off',

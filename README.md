@@ -56,7 +56,7 @@ npx bmad-stella install
 7. Configure Atlassian MCP Server (enter `y`)
 8. Provide JIRA instance URL (e.g., `https://stellaint.atlassian.net`)
 
-**📖 [Detailed Installation Guide](docs/stella-user-guide.md#bmad-stella-installation-process)**
+**📖 [Detailed Installation Guide](docs/stella-user-guide.md#installation)**
 
 ## Documentation & Resources
 

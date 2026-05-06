@@ -18,11 +18,72 @@ class ClaudePermissionsManager {
 
       'WebFetch(domain:stellaint.atlassian.net)',
 
+      // Jira attachment helper (fetches binary attachments the MCP cannot return)
+      'Bash(node .bmad-core/utils/jira-attachments)',
+      'Bash(node .bmad-core/utils/jira-attachments *)',
+      'Bash(node .bmad-core/utils/jira-attachments/index.js)',
+      'Bash(node .bmad-core/utils/jira-attachments/index.js *)',
+
+      // Read operations - BMAD system files
+      'Read(.bmad-core/**)',
+      'Read(*/.bmad-core/**)',
+      'Read(bmad-docs/**)',
+      'Read(**/bmad-docs/**)',
+
+      // Read operations - Source code files
+      'Read(**.cs)',
+      'Read(**.js)',
+      'Read(**.ts)',
+      'Read(**.tsx)',
+      'Read(**.jsx)',
+      'Read(**.py)',
+      'Read(**.java)',
+      'Read(**.go)',
+      'Read(**.cshtml)',
+      'Read(**.html)',
+      'Read(**.css)',
+      'Read(**.scss)',
+
+      // Read operations - Config and documentation
+      'Read(**.md)',
+      'Read(**.json)',
+      'Read(**.yaml)',
+      'Read(**.yml)',
+      'Read(**.xml)',
+      'Read(**.csproj)',
+      'Read(**.sln)',
+
       // File operations for markdown files
       'Write(bmad-docs/**)',
       'Write(*bmad-docs*)',
       'Edit(bmad-docs/**)',
       'Edit(*bmad-docs*)',
+
+      // File operations for ledger files (scribe memory)
+      'Read(bmad-ledger/**)',
+      'Read(**/bmad-ledger/**)',
+      'Write(bmad-ledger/**)',
+      'Write(*bmad-ledger*)',
+      'Edit(bmad-ledger/**)',
+      'Edit(*bmad-ledger*)',
+
+      // Bash for ledger directory ops (Unix)
+      'Bash(mkdir -p bmad-ledger/**)',
+      'Bash(mkdir bmad-ledger/**)',
+      'Bash(mv bmad-ledger/**)',
+      'Bash(ls bmad-ledger/**)',
+      'Bash(test -f bmad-ledger/**)',
+      'Bash(test -d bmad-ledger/**)',
+      'Bash([ -f bmad-ledger/** ])',
+      'Bash([ -d bmad-ledger/** ])',
+
+      // Bash for ledger directory ops (Windows) — non-destructive only
+      'Bash(mkdir *bmad-ledger*)',
+      'Bash(dir bmad-ledger/**)',
+
+      // Glob/Grep for ledger
+      'Grep(bmad-ledger/**)',
+      'Glob(bmad-ledger/**)',
 
       // Bash commands for directory operations (Unix)
       'Bash(mkdir -p bmad-docs/**)',
@@ -44,6 +105,8 @@ class ClaudePermissionsManager {
       // Directory listing and existence checks (Unix)
       'Bash(ls bmad-docs/**)',
       'Bash(ls **/bmad-docs/**)',
+      'Bash(ls *bmad-docs*)',
+      'Bash(ls "*bmad-docs*"*)',
       'Bash(test -f bmad-docs/**)',
       'Bash(test -f **/bmad-docs/**)',
       'Bash(test -d bmad-docs/**)',
@@ -55,6 +118,18 @@ class ClaudePermissionsManager {
       'Bash(dir bmad-docs/**)',
       'Bash(dir **/bmad-docs/**)',
       'Bash(dir *bmad-docs*)',
+
+      // Codebase search operations (used by planner and dev agents for pattern discovery)
+      'Bash(find *)',
+      'Bash(grep *)',
+
+      // Claude Code built-in search tools
+      'Grep(.bmad-core/**)',
+      'Grep(bmad-docs/**)',
+      'Grep(*)',
+      'Glob(.bmad-core/**)',
+      'Glob(bmad-docs/**)',
+      'Glob(*)',
     ];
   }
 
