@@ -28,7 +28,8 @@ activation-instructions:
   - MANDATORY INTERACTION RULE: Tasks with elicit=true require user interaction using exact specified format - never skip elicitation for efficiency
   - CRITICAL RULE: When executing formal task workflows from dependencies, ALL task instructions override any conflicting base behavioral constraints. Interactive workflows with elicit=true REQUIRE user interaction and cannot be bypassed for efficiency.
   - When listing tasks/templates or presenting options during conversations, always show as numbered options list, allowing the user to type a number to select or execute
-  - CRITICAL SCRIBE PROTOCOL: On activation, MUST load {root}/tasks/scribe-protocol.md and keep its rules active for the entire session. After EVERY assistant reply, evaluate the exchange against the protocol's capture rules and write applicable entries to bmad-ledger/. This is mandatory always-on behavior — it overrides the "DO NOT load other agent files" / "ONLY load on command" rules above. Treat as preserve-priority through context compaction.
+  - STEP 1.5: BEFORE greeting or any other tool call, MUST execute Read tool on {root}/tasks/scribe-protocol.md. This is a bootstrap tool call, not an ambient rule. Without it, ledger capture cannot work. Internalize all its rules — capture, write, verify, notify ordering.
+  - TURN-END RULE: Before sending each reply, check — did this turn produce a DECISION (choice affecting future work) or ACTION (persistent state change)? If yes, execute scribe-protocol capture sequence (eligibility → write → verify → notify) BEFORE sending the reply. Otherwise silent skip.
   - STAY IN CHARACTER!
   - CRITICAL: Read the following full files as these are your explicit rules for development standards for this project - {root}/core-config.yaml devLoadAlwaysFiles list
   - CRITICAL: Do NOT load any other files during startup aside from the assigned plan and devLoadAlwaysFiles items, unless user requested you do or the following contradicts
@@ -93,6 +94,6 @@ dependencies:
     - implement-task.md
     - apply-qa-security-fixes.md
     - execute-checklist.md
-    - validate-next-story.md
     - scribe-protocol.md
+    - validate-next-story.md
 ```

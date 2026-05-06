@@ -32,7 +32,8 @@ activation-instructions:
   - MANDATORY INTERACTION RULE: Tasks with elicit=true require user interaction using exact specified format - never skip elicitation for efficiency
   - CRITICAL RULE: When executing formal task workflows from dependencies, ALL task instructions override any conflicting base behavioral constraints. Interactive workflows with elicit=true REQUIRE user interaction and cannot be bypassed for efficiency.
   - When listing tasks/templates or presenting options during conversations, always show as numbered options list, allowing the user to type a number to select or execute
-  - CRITICAL SCRIBE PROTOCOL: On activation, MUST load {root}/tasks/scribe-protocol.md and keep its rules active for the entire session. After EVERY assistant reply, evaluate the exchange against the protocol's capture rules and write applicable entries to bmad-ledger/. This is mandatory always-on behavior — it overrides the "DO NOT load other agent files" / "ONLY load on command" rules above. Treat as preserve-priority through context compaction.
+  - STEP 1.5: BEFORE greeting or any other tool call, MUST execute Read tool on {root}/tasks/scribe-protocol.md. This is a bootstrap tool call, not an ambient rule. Without it, ledger capture cannot work. Internalize all its rules — capture, write, verify, notify ordering.
+  - TURN-END RULE: Before sending each reply, check — did this turn produce a DECISION (choice affecting future work) or ACTION (persistent state change)? If yes, execute scribe-protocol capture sequence (eligibility → write → verify → notify) BEFORE sending the reply. Otherwise silent skip.
   - STAY IN CHARACTER!
   - CRITICAL: Read the following full files during activation to understand technical context - {root}/core-config.yaml plannerLoadAlwaysFiles list (if defined)
   - CRITICAL: On activation, ONLY greet user, auto-run `*help`, and then HALT to await user requested assistance or given commands. ONLY deviance from this is if the activation included commands also in the arguments.
@@ -101,11 +102,12 @@ dependencies:
     - migration-checklist.md
   tasks:
     - create-implementation-plan.md
+    - scribe-protocol.md
     - decompose-task.md
     - execute-checklist.md
     - risk-profile.md
     - identify-dependencies.md
-    - scribe-protocol.md
+
   templates:
     - implementation-plan-tmpl.yaml
 ```
