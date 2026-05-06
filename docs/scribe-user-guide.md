@@ -1,6 +1,6 @@
 # Scribe — Memory Ledger User Guide
 
-Cross-session memory for BMAD. Captures decisions and actions automatically. Recall anytime via one command.
+Cross-session memory for BMAD. Captures decisions and actions automatically. Recall happens automatically when you ask in any BMAD agent.
 
 ---
 
@@ -63,11 +63,11 @@ Agent silently checks the ledger, answers with citations. No persona switch. You
 
 ### When auto-recall fires
 
-- Past tense about past decisions/actions ("what did we", "why did we", "have we")
-- Reference to ticket / file / concept not from current session
-- Explicit "check ledger" / "look up" / "remember"
+- Question asks for info NOT in current session
+- Topic is the kind ledger holds (prior decisions, actions, plan/ticket history, design rationale)
+- Explicit override: "check ledger" / "look up" / "remember from before"
 
-When current-task questions, code/debug, or already-discussed-this-session → no consult (saves cost).
+Skip cases (no consult): current-task questions, already discussed this session, procedural ("what's next?"), greetings.
 
 ### Manual fallback (if auto-recall misses)
 
@@ -82,18 +82,6 @@ Tip to type fast: `/scribe` → pick `/BMad:agents:scribe` from suggestions → 
 ## Stop capturing for sensitive content
 
 Tell any agent: "stop capturing" or "this is sensitive". Captures pause for the rest of the session.
-
----
-
-## Commands
-
-Tip: type `/scribe` → pick `/BMad:agents:scribe` from the suggestion list → press **Tab** to autocomplete.
-
-| Command                           | What it does              |
-| --------------------------------- | ------------------------- |
-| `/BMad:agents:scribe`             | Show help + ledger status |
-| `/BMad:agents:scribe *recall <q>` | Query the ledger          |
-| `/BMad:agents:scribe *help`       | Show commands             |
 
 ---
 
