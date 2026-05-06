@@ -9,6 +9,7 @@ const ideSetup = require('./ide-setup');
 const { extractYamlFromAgent } = require('../../lib/yaml-utils');
 const resourceLocator = require('./resource-locator');
 const dependencyManager = require('./dependency-manager');
+const scribeSetup = require('./scribe-setup');
 
 class Installer {
   async getCoreVersion() {
@@ -455,6 +456,15 @@ class Installer {
       spinner.text = 'Updating .gitignore...';
       spinner.stop();
       await this.updateGitignore(installDir);
+      spinner.start();
+    }
+
+    // Initialize scribe memory ledger (silent, idempotent)
+    if (config.installType !== 'expansion-only') {
+      spinner.text = 'Initializing memory ledger...';
+      spinner.stop();
+      const ledgerResult = await scribeSetup.setup(installDir);
+      scribeSetup.showSummary(ledgerResult);
       spinner.start();
     }
 
@@ -1980,7 +1990,7 @@ class Installer {
   async updateGitignore(installDir) {
     try {
       const gitignorePath = path.join(installDir, '.gitignore');
-      const bmadIgnoreEntries = ['bmad-docs/', '.claude/', '.bmad-core/'];
+      const bmadIgnoreEntries = ['bmad-docs/', 'bmad-ledger/', '.claude/', '.bmad-core/', '.env'];
 
       // Check if .gitignore exists
       const exists = await fileManager.pathExists(gitignorePath);

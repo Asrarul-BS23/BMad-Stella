@@ -1,0 +1,43 @@
+# Powered by BMAD™ Core
+# Templates for ledger entries. Used by scribe-protocol.md.
+
+decision:
+  format: |
+    ## DEC-{YYYY-MM-DD-HHMMSS-mmm}  {title}
+    why: {reason}
+    ref: {ref}
+    agent: {agent}
+    tags: [{tags}]
+  fields:
+    title: { required: true, guidance: "short, precise, concise" }
+    why: { required: true, guidance: "short, precise, concise" }
+    ref: { default: "—", description: "ticket-id or DEC-id" }
+    agent: { required: true }
+    tags: { min: 1, max: 5, required: true }
+
+action:
+  format: |
+    ## ACT-{YYYY-MM-DD-HHMMSS-mmm}  {title}
+    where: {where}
+    ref: {ref}
+    agent: {agent}
+    tags: [{tags}]
+  fields:
+    title: { required: true, guidance: "short, precise, concise" }
+    where: { required: true, description: "file path or system" }
+    ref: { default: "—" }
+    agent: { required: true }
+    tags: { min: 1, max: 5, required: true }
+
+markers:
+  superseded: "> [SUPERSEDED] {date} → {new_id}"
+  revoked: "> [REVOKED] {date} reason: {reason}"
+
+style:
+  guidance: "short, precise, concise. proper reflection of what was decided/done. LLM judges length."
+  forbidden:
+    - code_blocks
+    - bullet_lists
+    - hedging_words: ["maybe", "i think", "perhaps", "probably"]
+    - ai_commentary: ["interesting", "good idea", "nice"]
+    - emojis

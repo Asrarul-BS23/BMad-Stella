@@ -4,196 +4,151 @@
 
 Stella is an AI-powered development workflow system that guides you through the complete software development lifecycle - from planning to implementation, testing, and review. This guide will help you understand how to work with Stella's specialized agents in **Claude Code CLI** to deliver high-quality software efficiently.
 
-**Prerequisites:** All commands in this guide are executed in Claude Code CLI.
-
 ---
 
-## BMad-Stella Installation Process
+## Installation
 
 ### Prerequisites
 
-Before installing BMad-Stella, ensure you have:
+- **Node.js 20+** — [nodejs.org](https://nodejs.org)
+- **Claude Code CLI** — [setup guide](https://docs.anthropic.com/claude/docs/claude-code)
+- **Atlassian account** — JIRA access + API token ([create token](https://id.atlassian.com/manage-profile/security/api-tokens))
+- **Confluence architecture page** _(optional)_ — for auto-loading coding standards, tech stack, project structure
 
-- [ ] **Node.js** installed (v20 or higher)
-- [ ] **Claude Code CLI** installed and configured
-- [ ] **JIRA account** with access to your organization's instance
-- [ ] **Confluence page URL** for architecture documentation (optional but recommended)
-- [ ] **Project directory** where you want to install BMad-Stella
-- [ ] **Internet connection** for downloading packages
+### Install
 
-### Step-by-Step Installation
-
-#### Step 1: Run the Installer
-
-Open your terminal and run:
+Open a command prompt in your project directory and run:
 
 ```bash
 npx bmad-stella install
 ```
 
-#### Step 2: Provide Project Directory
+The installer is interactive. Most prompts have sensible defaults — press **ENTER** to accept, **SPACE** to toggle multiselect options.
 
-When prompted:
+### Walkthrough
+
+The installer asks 7 questions. Defaults are pre-selected — most users press **ENTER** through each.
+
+**1. Project directory**
 
 ```
-?  Enter the full path to your project directory where BMad should be installed:
+? Enter the full path to your project directory:
 ```
 
-Enter the full path to your project directory where you want to install BMad-Stella.
+Path where `.bmad-core/` will be installed. Use `./` if already inside your project directory.
 
-**Example:** `D:\my-project` or `/home/user/my-project` or `./` if you are already in the project directory
-
-#### Step 3: Select BMad Agile Core System
-
-When presented with system options:
+**2. What to install**
 
 ```
 ? Select what to install/update:
+  (*) BMad Agile Core System (default)
 ```
 
-Select: **BMad Agile Core System**
+Press **ENTER** to install the core. Toggle expansion packs with **SPACE** if needed.
 
-#### Step 4: Select Architecture Documentation for Your Project
-
-When prompted:
+**3. Architecture documentation source**
 
 ```
-? Select your project for architecture documentation: (Use arrow keys)
+? Select your project for architecture documentation:
 > LEADRS Core
   Risk Monitor
   SAFV
-  Quarry Connect
+  QuarryConnect
   Other (custom URL)
 ```
 
-Select the project you are currently working on from the list. If your project is not listed, select **Other (custom URL)** and provide the Confluence page URL where your architecture documentation exists.
+Pick your project. Choose **Other** to paste a custom Confluence page URL. The planner agent fetches docs from this page on activation.
 
-**Example (custom URL):** `https://yourcompany.atlassian.net/wiki/spaces/PROJ/pages/123456/Architecture`
-
-**Note:** This link will be used by the planner agent to load architecture docs (coding standards, tech stack, git workflow, project structure) during activation.
-
-#### Step 5: Select Claude Code as IDE
-
-When asked about IDE preference:
+**4. IDE**
 
 ```
 ? Which IDE(s) do you want to configure:
+  (*) Claude Code (default)
 ```
 
-Select: **Claude Code**
+Press **ENTER**. Toggle additional IDEs with **SPACE** only if needed.
 
-#### Step 6: Skip Web Bundles Installation
-
-When prompted about web bundles:
+**5. Claude Code permissions**
 
 ```
-? Would you like to include pre-built web bundles? (Y/n)
+? Grant Claude Code with BMAD related permissions? (Y/n)
 ```
 
-Enter: **n**
+Enter **y**. Adds the BMad allowlist to `.claude/settings.local.json` so agents run without permission prompts.
 
-#### Step 7: Allow Claude Code Permissions Setup
-
-When prompted about permission setup:
+**6. MCP server**
 
 ```
-Add 32 missing BMAD permissions to existing settings.local.json? (Y/n)
+? Which MCP servers do you want to configure:
+  (*) Atlassian (for JIRA integration) (default)
 ```
 
-Enter: **y**
+Press **ENTER**.
 
-#### Step 8: Configure Atlassian MCP Server
+- **If not configured:** installer asks for your JIRA URL:
 
-When prompted to select MCP servers:
+  ```
+  ? Enter Your JIRA instance URL:
+  ```
 
-```
-? Which MCP servers do you want to configure? (Select with SPACEBAR, confirm with ENTER):
->( ) Atlassian (for JIRA integration)
- ( ) Other (custom MCP server)
-```
+  Example: `https://stellaint.atlassian.net`
 
-Select **Atlassian (for JIRA integration)** using `SPACEBAR`, then press `ENTER` to confirm.
+- **If already configured:** installer skips the URL prompt and shows authentication status.
 
-**If Atlassian MCP is NOT already configured**, you will be prompted for your JIRA instance URL:
+**7. Jira API credentials**
 
-```
-? Enter Your JIRA instance URL:
-```
+Used by the Jira attachment helper to download ticket images and PDFs. Stored in a git-ignored `.env` (mode 0600).
 
-Enter: `https://stellaint.atlassian.net` (or your organization's JIRA URL)
+- **First-time setup:**
 
-**If Atlassian MCP is already configured**, it will skip the URL prompt and instead display the current authentication status:
+  ```
+  ? Configure Jira API access to auto-fetch ticket attachments? (Y/n)
+  ```
 
-```
-✓ Atlassian MCP Server is already configured
-  Checking required MCP servers...
-✅ Already configured 1 MCP server(s):
-   - atlassian
+  Enter **y**, then provide:
 
-🔒 Checking authentication status...
-  ✓ atlassian is connected and authenticated
+  ```
+  ? Atlassian site URL:       https://stellaint.atlassian.net
+  ? Atlassian account email:  you@stellainternational.com
+  ? Atlassian API token:      ********
+  ```
 
-✨ All MCP servers are authenticated and ready to use!
-```
+  [Create a token here](https://id.atlassian.com/manage-profile/security/api-tokens).
 
-#### Step 9: Complete Installation
+- **If credentials already exist in `.env`:**
 
-You should see:
+  ```
+  ✓ Detected existing credentials (you@stellainternational.com → https://stellaint.atlassian.net).
+  ? Use the detected credentials as-is? (Y/n)
+  ```
 
-```
-✓ Installation complete!
+  Press **ENTER** to reuse. Choose **n** to overwrite with fresh values.
 
-✓ BMad Method installed successfully!
+- **If you decline setup:** the helper is skipped — the planner agent will ask you to paste ticket attachments manually instead.
 
+Installation completes with a summary of installed components.
 
-🎯 Installation Summary:
-✓ .bmad-core framework installed with all agents and workflows
-✓ IDE rules and configurations set up for: claude-code
+### Post-Installation
 
-📦 Web Bundles Available:
-Pre-built web bundles are available and can be added later:
-  Run the installer again to add them to your project
-These bundles work independently and can be shared, moved, or used
-in other projects as standalone files.
+#### Authenticate Atlassian MCP
 
-📖 IMPORTANT: Please read the user guide at .bmad-core/stella-user-guide
-This guide contains essential information about the BMad-Stella workflow and how to use the agents effectively.
-```
+Required before using the planner agent.
 
-### Post-Installation: Authenticate Atlassian MCP
+1. Open Claude Code in your project directory
+2. Run `/mcp`
+3. Select **Atlassian** → follow the OAuth redirect → grant JIRA + Confluence access
+4. Verify status shows **Connected**
 
-**IMPORTANT:** Before starting with the planner agent, you must authenticate to the Atlassian MCP server.
+### Troubleshooting
 
-#### Authentication Steps:
-
-1. **Open Claude Code CLI** in your project directory
-
-2. **Run MCP authentication command:**
-
-   ```bash
-   /mcp
-   ```
-
-3. **Navigate to Atlassian:**
-   - Select or navigate to the Atlassian MCP server option
-
-4. **Complete authentication:**
-   - Follow the authentication when redirected
-   - Grant necessary permissions for JIRA and Confluence access
-
-5. **Verify authentication:**
-   - Once authenticated, you should see a success message
-   - The MCP server status should show as "Connected"
-
-### Troubleshooting Installation
-
-| Issue                                     | Solution                                                            |
-| ----------------------------------------- | ------------------------------------------------------------------- |
-| **npx command not found**                 | Install Node.js from nodejs.org                                     |
-| **Permission denied during installation** | Run with appropriate permissions or use sudo (Unix/Linux)           |
-| **Cannot connect to JIRA instance**       | Verify JIRA URL is correct and accessible from your network         |
-| **Architecture docs not loading**         | Re-authenticate Atlassian MCP: `/mcp` → Atlassian → Re-authenticate |
-| **Agent files not found**                 | Re-run installer: `npx github:Asrarul-BS23/BMad-Stella install`     |
+| Issue                         | Solution                                                                                        |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| `npx` not found               | Install Node.js 20+ from [nodejs.org](https://nodejs.org)                                       |
+| Permission denied             | Run with elevated permissions or `sudo` (Unix)                                                  |
+| Cannot reach JIRA             | Verify URL + network access                                                                     |
+| Architecture docs not loading | Re-authenticate: `/mcp` → Atlassian → Re-authenticate                                           |
+| Agent files not found         | Re-run `npx bmad-stella install`                                                                |
+| Jira attachments not loading  | Verify `.env` has `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`. Regenerate token if expired. |
 
 ---
 
@@ -201,13 +156,15 @@ This guide contains essential information about the BMad-Stella workflow and how
 
 **Environment:** All commands below are executed in **Claude Code CLI**
 
-**⚠️ Important:** Complete the [BMad-Stella Installation Process](#bmad-stella-installation-process) before following this quick start guide.
+**⚠️ Important:** Complete the [Installation](#installation) section before following this quick start guide.
 
 Every development task follows this core workflow:
 
 ```
-Planner → Dev → QA → Reviewer
-         ↑______(if fixes needed)
+                          ┌─ Domain Expert (advisor, anytime)
+                          ↓
+Planner → Dev → QA → Security → Reviewer
+         ↑__________(if fixes needed)__|
 ```
 
 **Agent Activation (in Claude Code CLI):**
@@ -215,11 +172,14 @@ Planner → Dev → QA → Reviewer
 - `/planner` - Activate planning agent
 - `/dev` - Activate development agent
 - `/qa` - Activate QA/testing agent
+- `/security` - Activate security auditor
 - `/reviewer` - Activate review agent
+- `/domain-expert` - Activate project knowledge oracle (advisory)
 
 **Must-Use Commands:**
 
-- `*retrieve-ticket-info` - Fetch JIRA ticket details
+- `*retrieve-ticket-info` - Fetch JIRA ticket details (JIRA path)
+- `*capture-requirements` - Capture requirements from non-JIRA sources (.md, .txt, direct instruction)
 - `*draft-plan` - Create implementation plan
 - `*implement-task` - Execute planned tasks
 - `*comment-plan` - Post implementation summary to JIRA (after full completion)
@@ -227,6 +187,9 @@ Planner → Dev → QA → Reviewer
 - `*implement-test` - Write test code
 - `*trace` - Map requirements to tests
 - `*run-tests` - Execute all tests
+- `*check-frontend` - Audit frontend security against the plan
+- `*check-backend` - Audit backend security against the plan
+- `*review-qa-security` - Apply QA / security fixes (dev agent)
 - `*review` - Review and optimize code
 
 **Important Optional Commands:**
@@ -234,7 +197,9 @@ Planner → Dev → QA → Reviewer
 - `*refine-plan` - Iterate on plan before dev starts
 - `*validate-plan` - Validate plan completeness
 - `*risk-profile` - Assess risks for complex stories
-- `*review-qa` - Apply QA fixes during dev
+- `*ask` / `*explain` / `*decide` - Query project knowledge (domain expert)
+- `*onboard` - Guided project onboarding for new developers (domain expert)
+- `*reload` - Refresh domain knowledge from Confluence (domain expert)
 
 ---
 
@@ -242,8 +207,11 @@ Planner → Dev → QA → Reviewer
 
 ```mermaid
 graph TD
-    A["Start Development"] --> B["Planner: *retrieve-ticket-info"]
+    A["Start Development"] --> A1{"Source?"}
+    A1 -->|JIRA Ticket| B["Planner: *retrieve-ticket-info"]
+    A1 -->|Non-JIRA<br/>(.md / .txt / direct)| B2["Planner: *capture-requirements"]
     B --> C["Planner: *draft-plan"]
+    B2 --> C
     C --> D{"High-Risk Story?"}
     D -->|Yes| E["Planner: *risk-profile"]
     D -->|No| F
@@ -267,13 +235,18 @@ graph TD
     U --> V["QA: *trace"]
     V --> W["QA: *run-tests"]
     W --> X{"QA Decision"}
-    X -->|Needs Dev Fixes| Y["Dev: *review-qa"]
+    X -->|Needs Dev Fixes| Y["Dev: *review-qa-security"]
     Y --> W1["QA: *run-tests to Verify Fixes"]
     W1 --> X
     X -->|Approved| Z
     P -->|Needs Fixes| M
     P -->|Approve Without QA| Z["IMPORTANT: Verify All Tests Pass"]
-    Z --> AA["Reviewer: *review"]
+    Z --> SEC1["Security: *check-frontend"]
+    SEC1 --> SEC2["Security: *check-backend"]
+    SEC2 --> SECX{"Violations Found?"}
+    SECX -->|Yes| SECY["Dev: *review-qa-security"]
+    SECY --> SEC1
+    SECX -->|No| AA["Reviewer: *review"]
     AA --> AB{"Reviewer Finds Issues?"}
     AB -->|Yes| AC["Reviewer: Apply Improvements Directly"]
     AC --> AD["QA: *run-tests to Verify"]
@@ -281,8 +254,15 @@ graph TD
     AB -->|No Issues| AE["Dev: *comment-plan + Mark Ticket Complete"]
     AE --> A
 
+    DE["Domain Expert: *ask / *explain / *decide<br/>(advisor — query anytime)"]
+    DE -.advises.-> C
+    DE -.advises.-> L
+    DE -.advises.-> AA
+
     style A fill:#f5f5f5,color:#000
+    style A1 fill:#e3f2fd,color:#000
     style B fill:#e8f5e9,color:#000
+    style B2 fill:#e8f5e9,color:#000
     style C fill:#e8f5e9,color:#000
     style D fill:#e3f2fd,color:#000
     style E fill:#ffd54f,color:#000
@@ -305,11 +285,16 @@ graph TD
     style X fill:#e3f2fd,color:#000
     style Y fill:#e3f2fd,color:#000
     style Z fill:#ff5722,color:#fff
+    style SEC1 fill:#b71c1c,color:#fff
+    style SEC2 fill:#b71c1c,color:#fff
+    style SECX fill:#e3f2fd,color:#000
+    style SECY fill:#e3f2fd,color:#000
     style AA fill:#f9ab00,color:#fff
     style AB fill:#e3f2fd,color:#000
     style AC fill:#f9ab00,color:#fff
     style AD fill:#ffd54f,color:#000
     style AE fill:#34a853,color:#fff
+    style DE fill:#7e57c2,color:#fff
 ```
 
 ---
@@ -348,17 +333,29 @@ graph TD
 # After trace confirms coverage, run tests:
 *run-tests
 
-# 5. Review Phase
+# 5. Security Audit
+/security
+*check-frontend bmad-docs/impl-plan/PROJ-123-plan.md
+*check-backend bmad-docs/impl-plan/PROJ-123-plan.md
+# If violations found, fix them:
+/dev
+*review-qa-security
+# Re-run security checks until clean
+/security
+*check-frontend bmad-docs/impl-plan/PROJ-123-plan.md
+*check-backend bmad-docs/impl-plan/PROJ-123-plan.md
+
+# 6. Review Phase
 /reviewer
 *review bmad-docs/impl-plan/PROJ-123-plan.md
 # Reviewer applies improvements directly if issues found
 
-# 6. Verify Improvements (if reviewer made changes)
+# 7. Verify Improvements (if reviewer made changes)
 /qa
 *run-tests
 # If tests pass, proceed to completion
 
-# 7. Mark Complete and Update JIRA
+# 8. Mark Complete and Update JIRA
 /dev
 *comment-plan bmad-docs/impl-plan/PROJ-123-plan.md
 # Mark ticket as complete
@@ -392,7 +389,7 @@ graph TD
 
 # 5. Apply QA Fixes
 /dev
-*review-qa
+*review-qa-security
 # Dev makes corrections based on QA feedback
 
 # 6. Re-run QA Validation
@@ -400,20 +397,68 @@ graph TD
 *run-tests
 # Verify fixes resolve issues
 
-# 7. Review
+# 7. Security Audit
+/security
+*check-frontend bmad-docs/impl-plan/BUG-789-plan.md
+*check-backend bmad-docs/impl-plan/BUG-789-plan.md
+# If violations found, loop back to /dev *review-qa-security and re-check
+
+# 8. Review
 /reviewer
 *review bmad-docs/impl-plan/BUG-789-plan.md
 # Reviewer applies improvements directly if issues found
 
-# 8. Verify Improvements (if reviewer made changes)
+# 9. Verify Improvements (if reviewer made changes)
 /qa
 *run-tests
 # If tests pass, proceed to completion
 
-# 9. Mark Complete and Update JIRA
+# 10. Mark Complete and Update JIRA
 /dev
 *comment-plan bmad-docs/impl-plan/BUG-789-plan.md
 # Mark ticket as complete
+```
+
+### Workflow 3: Non-JIRA Requirements (Direct / Markdown / Text File)
+
+Use when work originates outside JIRA — a brief, an internal doc, or a direct ask.
+
+```bash
+# 1. Capture Requirements (in Claude Code CLI)
+/planner
+# Option A: direct text
+*capture-requirements "Add dark-mode toggle to settings page; persist preference per user."
+# Option B: markdown / text file
+# *capture-requirements ./docs/specs/dark-mode-brief.md
+# Planner asks for screenshots, Plan ID, and confirms type (Feature/Bug/Migration)
+
+# 2. Draft and validate plan
+*draft-plan
+*validate-plan bmad-docs/impl-plan/{plan-id}-plan.md
+
+# 3. Continue with the standard flow (test-design → implement → QA → security → reviewer)
+# Skip *comment-plan at the end — there is no JIRA ticket to comment on
+```
+
+### Workflow 4: Onboarding a New Developer
+
+Use when a new developer joins the project and needs a guided tour of architecture, conventions, and tech stack.
+
+```bash
+# 1. Activate the domain expert (in Claude Code CLI)
+/domain-expert
+
+# 2. Run guided onboarding
+*onboard
+# Walks through overview, tech stack, architecture, structure, workflow, coding standards, Q&A
+
+# 3. Ad-hoc questions (anytime, during any workflow)
+*ask "How does authentication work?"
+*explain "the payment service"
+*decide "Should this be a new service or extend the existing API?"
+
+# 4. Refresh knowledge after Confluence updates
+*reload
 ```
 
 ---
@@ -422,7 +467,7 @@ graph TD
 
 ### Planning Phase
 
-1. **Always retrieve ticket info first** - Don't skip straight to planning
+1. **Always retrieve ticket info first** - Don't skip straight to planning (use `*capture-requirements` for non-JIRA sources)
 2. **Use risk-profile for complex stories** - Better to assess risks early
 3. **Validate plans before handoff** - Saves time in development
 4. **Refine based on feedback** - Iteration improves plan quality
@@ -448,6 +493,14 @@ graph TD
 6. **Run full test suite** - Including regression tests after trace confirms coverage
 7. **Document gaps clearly** - Help dev address issues
 
+### Security Phase
+
+1. **Run after QA approval** - Audit only verified code; saves cycles on flaky builds
+2. **Always run both layers** - `*check-frontend` and `*check-backend` cover different attack surfaces
+3. **Security never modifies code** - Findings land in the plan's Security Violations section; dev fixes via `*review-qa-security`
+4. **Loop until clean** - Re-run `*check-frontend` / `*check-backend` after each fix until no violations remain
+5. **Don't skip for "small" changes** - Auth, validation, and audit gaps surface in unexpected places
+
 ### Review Phase
 
 1. **Reviewer applies fixes directly** - No need to loop back to dev
@@ -456,19 +509,29 @@ graph TD
 4. **Keep changes simple** - Avoid over-engineering
 5. **Always run tests after changes** - Use `/qa` then `*run-tests` to verify improvements
 
+### Domain Expert Usage
+
+1. **Query before guessing** - Use `*ask` / `*explain` / `*decide` instead of inferring from code
+2. **Cite-from-docs reduces drift** - Sage answers only from `bmad-docs/domain-knowledge/` and `bmad-docs/architecture/`, with source citations
+3. **Use `*onboard` for new joiners** - Guided walkthrough beats ad-hoc reading
+4. **Run `*reload` after Confluence updates** - Refreshes the knowledge base from the latest docs
+5. **Treat knowledge gaps as a signal** - When Sage says "not covered", update the Confluence Domain-Knowledge page rather than letting code be the only source of truth
+
 ---
 
 ## Troubleshooting
 
-| Issue                                       | Cause                                                                                             | Solution                                                                                                                                               |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Cannot retrieve ticket or post comments** | Atlassian MCP authentication failed                                                               | /mcp → Navigate to Atlassian → Re-authenticate → Confirm JIRA URL format and ticket access                                                             |
-| **Agent cannot find plan file**             | Plan file path incorrect or not created                                                           | Ensure plan exists in `bmad-docs/impl-plan/{TICKET}-plan.md` → Provide full path                                                                       |
-| **Tests failing during validation**         | Implementation mismatch or incorrect test scenarios                                               | Review test failure messages → Verify implementation matches requirements → Use `/dev` then `*review-qa` → Use `/qa` then `*run-tests` to verify fixes |
-| **Dev agent HALTs**                         | Unapproved dependency, ambiguous requirements, 3+ failures, missing config, or failing regression | Address blocking issue (approve dependency, clarify requirements, provide config, fix tests) → Resume                                                  |
-| **`*run-tests` shows no tests**             | Test design or implementation not completed                                                       | Run `/qa` → `*test-design` → `*implement-test` → Then `*run-tests`                                                                                     |
-| **Architecture docs not loading**           | Atlassian MCP not authenticated or incorrect Confluence URL                                       | `/mcp` → Atlassian → Re-authenticate → Verify Confluence URL in core-config.yaml → Re-run `/planner` activation                                        |
-| **Agent commands not recognized**           | BMad-Stella not installed or installed incorrectly                                                | Follow Installation Process section → Run `npx github:Asrarul-BS23/BMad-Stella install`                                                                |
+| Issue                                         | Cause                                                                                             | Solution                                                                                                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cannot retrieve ticket or post comments**   | Atlassian MCP authentication failed                                                               | /mcp → Navigate to Atlassian → Re-authenticate → Confirm JIRA URL format and ticket access                                                                                                    |
+| **Attachments not auto-loaded into plan**     | Jira API credentials missing, invalid, or `.env` not present                                      | Run `npx bmad-stella install` to refresh credentials, or create `.env` with `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`. Verify with `node .bmad-core/utils/jira-attachments --self-test` |
+| **`Authentication failed (401)` from helper** | Expired or revoked Atlassian API token                                                            | Regenerate token at https://id.atlassian.com/manage-profile/security/api-tokens → Update `JIRA_API_TOKEN` in `.env` → Retry                                                                   |
+| **Agent cannot find plan file**               | Plan file path incorrect or not created                                                           | Ensure plan exists in `bmad-docs/impl-plan/{TICKET}-plan.md` → Provide full path                                                                                                              |
+| **Tests failing during validation**           | Implementation mismatch or incorrect test scenarios                                               | Review test failure messages → Verify implementation matches requirements → Use `/dev` then `*review-qa` → Use `/qa` then `*run-tests` to verify fixes                                        |
+| **Dev agent HALTs**                           | Unapproved dependency, ambiguous requirements, 3+ failures, missing config, or failing regression | Address blocking issue (approve dependency, clarify requirements, provide config, fix tests) → Resume                                                                                         |
+| **`*run-tests` shows no tests**               | Test design or implementation not completed                                                       | Run `/qa` → `*test-design` → `*implement-test` → Then `*run-tests`                                                                                                                            |
+| **Architecture docs not loading**             | Atlassian MCP not authenticated or incorrect Confluence URL                                       | `/mcp` → Atlassian → Re-authenticate → Verify Confluence URL in core-config.yaml → Re-run `/planner` activation                                                                               |
+| **Agent commands not recognized**             | BMad-Stella not installed or installed incorrectly                                                | Follow Installation section → Run `npx bmad-stella install`                                                                                                                                   |
 
 ---
 
@@ -482,16 +545,17 @@ graph TD
 **Agent:** Alex - Senior Implementation Planner
 **Icon:** 🎯
 
-| Command                 | Purpose                                                                              | When to Use                                                                                                                                                                                            | Files Created/Modified                                                   | Parameters                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `*help`                 | Display all available commands                                                       | When starting planner agent or need command list                                                                                                                                                       | None                                                                     | None                                                                                      |
-| `*retrieve-ticket-info`    | Fetch JIRA ticket details via Atlassian MCP                                                                                                                            | **First step** in planning workflow. Use when you have a JIRA ticket number or URL and need to gather requirements, acceptance criteria, and attachments before planning                               | None (displays ticket info for validation)                                                          | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
-| `*identify-dependencies`   | Find related past tickets, analyze code files modified in past work, and assess code modification requirements for the current ticket                                   | After retrieving ticket info. Use before drafting a plan for complex tickets to understand what past work is related, which files are likely impacted, and what risks or blockers exist early          | **Creates:** `bmad-docs/temporary/{TICKET-ID}-dependency-tmp.md`                                    | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
-| `*draft-plan`           | Create detailed implementation plan with tasks, technical approach, and dependencies | After retrieving ticket info and validating requirements. Transforms ticket into actionable plan with step-by-step tasks that junior developers can follow                                             | **Creates:** `bmad-docs/impl-plan/{TICKET-NUMBER}-plan.md`               | `{ticket-file-or-description}` - Ticket file path or description with Acceptance Criteria |
-| `*refine-plan`          | Iterate and improve existing implementation plan                                     | When initial plan needs more technical detail, user provides feedback, requirements change, or approach needs adjustment. Supports iterative refinement before dev handoff                             | **Modifies:** Existing plan file                                         | `{plan-file}` - Path to implementation plan                                               |
-| `*validate-plan`        | Run validation checklist on plan completeness                                        | Before handing off to dev agent. Ensures plan has all required sections, clear acceptance criteria, detailed tasks, identified dependencies, and technical decisions documented                        | None (displays validation results)                                       | `{plan-file}` - Path to implementation plan                                               |
-| `*risk-profile`         | Generate risk assessment matrix with mitigation strategies                           | For complex/high-risk stories: database migrations, schema changes, breaking API changes, multi-integration features, security-sensitive implementations, or stories affecting critical business flows | **Creates:** Risk assessment section in plan or separate assessment file | `{story}` - Story/plan reference                                                          |
-| `*exit`                 | Exit planner agent mode                                                              | When planning phase is complete and plan is validated                                                                                                                                                  | None                                                                     | None                                                                                      |
+| Command                  | Purpose                                                                                                                               | When to Use                                                                                                                                                                                                                       | Files Created/Modified                                                   | Parameters                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `*help`                  | Display all available commands                                                                                                        | When starting planner agent or need command list                                                                                                                                                                                  | None                                                                     | None                                                                                      |
+| `*retrieve-ticket-info`  | Fetch JIRA ticket details via Atlassian MCP                                                                                           | **First step (JIRA path)** in planning workflow. Use when you have a JIRA ticket number or URL and need to gather requirements, acceptance criteria, and attachments before planning                                              | None (displays ticket info for validation)                               | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
+| `*capture-requirements`  | Capture requirements from non-JIRA sources (direct text, .md, or .txt) and prepare for planning                                       | **First step (non-JIRA path)** in planning workflow. Use when work originates from a brief, internal doc, or direct ask. Asks for screenshots, Plan ID, and confirms type (Feature/Bug/Migration) before handoff to `*draft-plan` | None (displays prepared summary for validation)                          | `{input}` - Direct text (quoted) OR path to a `.md`/`.txt` file                           |
+| `*identify-dependencies` | Find related past tickets, analyze code files modified in past work, and assess code modification requirements for the current ticket | After retrieving ticket info. Use before drafting a plan for complex tickets to understand what past work is related, which files are likely impacted, and what risks or blockers exist early                                     | **Creates:** `bmad-docs/temporary/{TICKET-ID}-dependency-tmp.md`         | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
+| `*draft-plan`            | Create detailed implementation plan with tasks, technical approach, and dependencies                                                  | After retrieving ticket info and validating requirements. Transforms ticket into actionable plan with step-by-step tasks that junior developers can follow                                                                        | **Creates:** `bmad-docs/impl-plan/{TICKET-NUMBER}-plan.md`               | `{ticket-file-or-description}` - Ticket file path or description with Acceptance Criteria |
+| `*refine-plan`           | Iterate and improve existing implementation plan                                                                                      | When initial plan needs more technical detail, user provides feedback, requirements change, or approach needs adjustment. Supports iterative refinement before dev handoff                                                        | **Modifies:** Existing plan file                                         | `{plan-file}` - Path to implementation plan                                               |
+| `*validate-plan`         | Run validation checklist on plan completeness                                                                                         | Before handing off to dev agent. Ensures plan has all required sections, clear acceptance criteria, detailed tasks, identified dependencies, and technical decisions documented                                                   | None (displays validation results)                                       | `{plan-file}` - Path to implementation plan                                               |
+| `*risk-profile`          | Generate risk assessment matrix with mitigation strategies                                                                            | For complex/high-risk stories: database migrations, schema changes, breaking API changes, multi-integration features, security-sensitive implementations, or stories affecting critical business flows                            | **Creates:** Risk assessment section in plan or separate assessment file | `{story}` - Story/plan reference                                                          |
+| `*exit`                  | Exit planner agent mode                                                                                                               | When planning phase is complete and plan is validated                                                                                                                                                                             | None                                                                     | None                                                                                      |
 
 ---
 
@@ -578,6 +642,29 @@ graph TD
 
 ---
 
+### Scribe Agent Commands
+
+**Activation (in Claude Code CLI):** `/BMad:agents:scribe` (tip: type `/scribe` → pick from suggestions → press **Tab**)
+**Agent:** Sam - Memory Ledger Utility
+**Icon:** 📝
+
+| Command       | Purpose                                          | When to Use                          | Files Created/Modified | Parameters             |
+| ------------- | ------------------------------------------------ | ------------------------------------ | ---------------------- | ---------------------- |
+| `*help`       | Show commands + ledger status                    | When unsure what scribe does         | None                   | None                   |
+| `*recall {q}` | Query ledger; answer with synthesis + references | Ask about prior decisions or actions | None (read-only)       | `{q}` — free-form text |
+| `*exit`       | Return control to previous active agent          | When done with scribe utility        | None                   | None                   |
+
+**Notes:**
+
+- Capture is **automatic** — every BMAD agent runs the scribe protocol embedded. No `*capture` command needed.
+- Recall is **automatic too** — every BMAD agent runs the read protocol embedded. Just ask in any agent ("what did we decide about auth?"). The agent auto-consults the ledger. `/BMad:agents:scribe *recall` is now an optional fallback.
+- Ledger lives in two flat files: `bmad-ledger/decisions.md` and `bmad-ledger/actions.md`, plus `index.yaml` for fast filter.
+- `/BMad:agents:scribe *recall` does **not** switch your active session persona (planner/dev/qa/reviewer). Sam is a one-shot utility.
+- All ledger files live under `bmad-ledger/` (gitignored, local to your machine).
+- See [Scribe User Guide](scribe-user-guide.md) for full details.
+
+---
+
 ### File Creation Summary
 
 **By Planner Agent:**
@@ -638,7 +725,7 @@ Plus: Test files in project test directories
 
 ## Getting Started Checklist
 
-- [ ] Complete BMad-Stella installation (see Installation Process section above)
+- [ ] Complete BMad-Stella installation (see Installation section above)
 - [ ] Authenticate Atlassian MCP server with `/mcp` command
 - [ ] Verify JIRA access and permissions
 - [ ] Confirm architecture docs loaded successfully
@@ -657,7 +744,7 @@ Plus: Test files in project test directories
 
 ## Support and Resources
 
-- **Installation Issues:** See BMad-Stella Installation Process and Troubleshooting Installation sections
+- **Installation Issues:** See Installation and Troubleshooting sections
 - **MCP Authentication:** Use `/mcp` command in Claude Code CLI to authenticate or re-authenticate
 - **Agent Commands:** Use `*help` in any agent mode to see available commands
 - **Workflow Guidance:** Reference this guide when unsure of next steps

@@ -1,0 +1,23 @@
+# Powered by BMAD™ Core
+# Tag taxonomy for scribe captures. Editable per project.
+
+core_tags:
+  - auth
+  - db
+  - api
+  - frontend
+  - backend
+  - infra
+  - perf
+  - security
+  - testing
+  - architecture
+  - data
+  - ui
+  - integration
+  - deployment
+
+rules:
+  min_core_tags_per_entry: 1
+  max_tags_per_entry: 5
+  allow_free_form: true
