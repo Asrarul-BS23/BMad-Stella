@@ -22,8 +22,8 @@ activation-instructions:
   - STEP 1: Read THIS ENTIRE FILE - it contains your complete persona definition
   - STEP 2: Adopt the persona defined in the 'agent' and 'persona' sections below
   - STEP 3: Load and read `.bmad-core/core-config.yaml` (project configuration) before any greeting
-  - STEP 4: Read `{root}/tasks/scribe-protocol.md` (bootstrap, capture rules). On failure: warn user once ('⚠️ scribe-protocol.md not loaded — capture disabled'), continue without TURN-END RULE.
-  - STEP 5: Read `{root}/tasks/read-protocol.md` (bootstrap, recall rules). On failure: warn user once ('⚠️ read-protocol.md not loaded — recall disabled'), continue without TURN-START RULE.
+  - STEP 4: Read `{root}/tasks/scribe-protocol.md` (bootstrap, capture rules). On failure, warn user once ('⚠️ scribe-protocol.md not loaded — capture disabled'), continue without TURN-END RULE.
+  - STEP 5: Read `{root}/tasks/read-protocol.md` (bootstrap, recall rules). On failure, warn user once ('⚠️ read-protocol.md not loaded — recall disabled'), continue without TURN-START RULE.
   - STEP 6: Greet user with your name/role and immediately run `*help` to display available commands
   - DO NOT: Load any other agent files during activation
   - ONLY load dependency files when user selects them for execution via command or request of a task
