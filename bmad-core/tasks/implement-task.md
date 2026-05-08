@@ -7,6 +7,7 @@
 Execute an approved implementation plan by running tasks sequentially with automatic context discovery, resume support across sessions, and type-aware validation.
 
 Behavioral profiles by ticket type:
+
 - **Feature** — pattern enforcement, reuse checking, standard validation
 - **Bug** — minimal change, reproduce-first, targeted then full regression
 - **Migration** — mandatory build/test per task, health tracking, rollback notes, migration checklist gates
@@ -30,7 +31,7 @@ data:
   - devLoadAlwaysFiles (from core-config: coding-standards.md, tech-stack.md, project-structure.md)
 checklists:
   - task-dod-checklist.md
-  - migration-checklist.md  # Migration tickets only
+  - migration-checklist.md # Migration tickets only
 tasks:
   - execute-checklist.md
 ```
@@ -45,7 +46,7 @@ tasks:
 - CRITICAL: Do not ask user permission for plan file updates.
 - CRITICAL: Always update `Agent Model Used` and `File List` in `Dev Agent Record`.
 - CRITICAL: Authorized sections — Tasks/Subtasks Checkboxes, Dev Agent Record (Agent Model Used, Pre-Implementation Baseline, Debug Log, Completion Notes, File List), Deviation Record, Change Log, Status, Feedback (checkboxes only — mark resolved items).
-- CRITICAL: DO NOT modify Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Migration Details, Bug Fix Details, Feature Details, Planner Notes, Dependencies and Risks.
+- CRITICAL: DO NOT modify Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Migration Details, Bug Fix Details, Feature Details, Dependencies and Risks.
 
 ### Coding Standards
 
@@ -158,15 +159,15 @@ Confirm sub-type from Migration Details: Stack Version / Architecture Pattern / 
 
 #### 2.0 — Type Profile
 
-| Behavior | Feature | Bug | Migration |
-|---|---|---|---|
-| Pattern enforcement | ON | OFF | OFF |
-| Reuse check | ON | OFF | OFF |
-| Minimal change | OFF | ON | OFF |
-| Reproduce-first | OFF | ON | OFF |
-| Mandatory builds | OFF | OFF | ON |
-| Health tracking | OFF | OFF | ON |
-| Rollback notes | OFF | OFF | ON |
+| Behavior            | Feature | Bug | Migration |
+| ------------------- | ------- | --- | --------- |
+| Pattern enforcement | ON      | OFF | OFF       |
+| Reuse check         | ON      | OFF | OFF       |
+| Minimal change      | OFF     | ON  | OFF       |
+| Reproduce-first     | OFF     | ON  | OFF       |
+| Mandatory builds    | OFF     | OFF | ON        |
+| Health tracking     | OFF     | OFF | ON        |
+| Rollback notes      | OFF     | OFF | ON        |
 
 #### 2.1 — Read Next Task
 
@@ -191,6 +192,7 @@ Identify first unchecked `[ ]` task. Read description, subtasks, and target file
 #### 2.4 — Update Plan
 
 Authorized sections only (Critical Rules):
+
 - Mark task `[x]`
 - Update File List, Agent Model Used
 - Add Completion Notes entry (what, deviations, decisions)
@@ -248,12 +250,13 @@ Write in Completion Notes: approach, deviations, key decisions, tech debt, follo
 **Flow:** Identify root cause → fix → update plan → HALT with report (what fixed, sections updated, final file list).
 
 **Required updates:**
+
 - **Tasks/Subtasks:** Add subtask noting correction. Don't uncheck prior tasks.
 - **File List:** Update to final state (added, reverted, deleted files)
 - **Debug Log:** Bug description, root cause, fix applied
 - **Change Log:** Date, version, fix description, developer name
 
-**DO NOT modify:** Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Migration Details, Bug Fix Details, Feature Details, Planner Notes, Dependencies and Risks.
+**DO NOT modify:** Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Migration Details, Bug Fix Details, Feature Details, Dependencies and Risks.
 
 ---
 

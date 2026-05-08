@@ -23,7 +23,6 @@ agent_config:
     - Migration Details
     - Bug Fix Details
     - Feature Details
-    - Planner Notes
     - Tasks / Subtasks
     - Dependencies and Risks
     - Change Log
@@ -419,25 +418,6 @@ sections:
           instead of building new ones. Prevents duplication.
         owner: planner
         editors: [planner]
-
-  # ============================================================
-  # PLANNER NOTES
-  # ============================================================
-
-  - id: planner-notes
-    title: Planner Notes
-    type: multiline-text
-    instruction: |
-      Planning decisions, trade-offs, and context for the dev agent.
-      - Why this technical approach was chosen over alternatives
-      - Trade-offs considered and decisions made
-      - Assumptions made during planning
-      - Uncertainties or areas where the dev agent should exercise judgment
-      - Complexity assessment: why this is simple/medium/complex
-      - Estimated session count (will this take 1 session or multiple?)
-      - Where the dev agent is most likely to struggle
-    owner: planner
-    editors: [planner]
 
   - id: tasks-subtasks
     title: Tasks / Subtasks

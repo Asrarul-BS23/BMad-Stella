@@ -143,6 +143,7 @@ Verify that type-specific sections are populated with appropriate depth — not 
 - [ ] Do Not Migrate list identifies patterns to intentionally drop
 
 **Architecture Pattern migrations additionally:**
+
 - [ ] Both source and target architecture documents are referenced and accessible
 - [ ] Dependency direction rules of target pattern are explicitly stated
 - [ ] Transformation map shows file/folder moves, splits, merges, creations, and deletions
@@ -150,12 +151,14 @@ Verify that type-specific sections are populated with appropriate depth — not 
 - [ ] No tasks create dependency direction violations in the target pattern
 
 **Stack Version migrations additionally:**
+
 - [ ] Current and target version numbers are explicit
 - [ ] Breaking changes are identified with their replacements
 - [ ] Migration guide or breaking changes document is referenced (or user confirmed none available)
 - [ ] Deprecated API usage in current code is cataloged
 
 **Data migrations additionally:**
+
 - [ ] Data volume and downtime constraints are documented
 - [ ] Data transformation logic is specified
 - [ ] Data integrity verification approach is defined
@@ -191,7 +194,6 @@ If you have access to the codebase, perform these checks directly. If not, flag 
 - [ ] For migrations: current architecture description matches actual folder structure
 - [ ] For bugs: affected code path files exist and contain the referenced functions
 - [ ] Tasks are independent enough that work can pause and resume between any two tasks
-- [ ] Planner Notes section is populated with decisions, trade-offs, and complexity assessment
 
 ## VALIDATION RESULT
 

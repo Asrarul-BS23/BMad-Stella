@@ -215,7 +215,9 @@ Before defining the technical approach, verify that the plan's assumptions match
 
 Based on ticket type and information gathered:
 
-**If acceptance criteria are provided:** Validate they are complete and testable
+**Branches are mutually exclusive — pick one.**
+
+**If acceptance criteria are provided:** Use as-is. Do NOT append from the lists below.
 
 **If NOT provided, derive them per ticket type:**
 
@@ -273,6 +275,7 @@ As a senior developer, document the complete technical approach using the struct
 #### 6.1 Current State
 
 Document what exists now in the codebase relevant to this ticket:
+
 - Current code structure and file organization in the affected area
 - Current data flow or execution path (especially for bugs and migrations)
 - Existing patterns, utilities, and services that are relevant
@@ -282,6 +285,7 @@ Document what exists now in the codebase relevant to this ticket:
 #### 6.2 Target State
 
 Document what should exist after implementation is complete:
+
 - For Features: new components, endpoints, files, and how they integrate
 - For Bugs: corrected behavior and the specific code path change
 - For Migrations: target architecture, folder structure, and pattern
@@ -289,6 +293,7 @@ Document what should exist after implementation is complete:
 #### 6.3 Transformation Strategy
 
 Document how to get from current state to target state:
+
 - Implementation strategy and major components affected
 - Key design patterns and code patterns to follow
 - API/database design changes (if applicable)
@@ -306,6 +311,7 @@ Document how to get from current state to target state:
 #### 6.5 Integration Points
 
 Document where new or changed code connects to existing code:
+
 - Existing services, APIs, or modules that will be called or modified
 - Callers and consumers of code being changed
 - Shared state, configuration, or infrastructure dependencies
@@ -313,6 +319,7 @@ Document where new or changed code connects to existing code:
 #### 6.6 Pattern Conformance
 
 Document existing patterns the implementation must follow:
+
 - Reference existing files that demonstrate the pattern
 - Naming conventions, DI registration patterns, error handling patterns
 - Identify a reference implementation if one exists
@@ -320,6 +327,7 @@ Document existing patterns the implementation must follow:
 #### 6.7 Type-Specific Sections
 
 **For Migrations — populate Migration Details:**
+
 - Reference Implementation (a fully completed, already-migrated module)
 - Source State and Target State (specific to migration sub-type)
 - Source and Target Architecture References (REQUIRED for Architecture Pattern migrations)
@@ -330,27 +338,18 @@ Document existing patterns the implementation must follow:
 - Do Not Migrate list (patterns to intentionally drop)
 
 **For Bugs — populate Bug Fix Details:**
+
 - Root Cause Analysis (actual root cause, not symptoms)
 - Reproduction Steps (self-contained in the plan)
 - Affected Code Path (trace through failing execution)
 - Fix Scope Boundary (what should NOT be changed)
 
 **For Features — populate Feature Details:**
+
 - Existing Patterns to Follow (file paths to study before coding)
 - Reuse Opportunities (existing utilities/helpers to use instead of building new)
 
-#### 6.8 Planner Notes
-
-Document planning decisions and context for the dev agent:
-- Why this technical approach was chosen over alternatives
-- Trade-offs considered and decisions made
-- Assumptions made during planning
-- Uncertainties or areas where the dev agent should exercise judgment
-- Complexity assessment with reasoning
-- Estimated session count
-- Where the dev agent is most likely to struggle
-
-#### 6.9 Dependencies and Risks (Only if Applicable)
+#### 6.8 Dependencies and Risks (Only if Applicable)
 
 Include this subsection ONLY if there are actual dependencies, blockers, or risks to document. It will be in `Dependencies and Risks` section of the template.
 
@@ -378,11 +377,13 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 #### 7.1 Task Granularity by Ticket Type
 
 **For Features:**
+
 - Simple ticket (1-2 story points): 3-5 tasks with minimal subtasks
 - Medium ticket (3-5 story points): 5-8 tasks with subtasks
 - Complex ticket (8+ story points): 8-12 tasks with subtasks
 
 **For Bugs:**
+
 - 3-5 tasks maximum regardless of complexity. Complex diagnosis does NOT mean complex task count. Typical pattern:
   1. Verify reproduction (confirm the bug manifests as described)
   2. Implement root cause fix (minimal change addressing the actual cause)
@@ -391,6 +392,7 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
   5. Manual testing / user verification
 
 **For Migrations:**
+
 - 8-15 tasks. Each structural change gets its own task.
 - Each migration task MUST include a mandatory build verification subtask.
 - Include per-task rollback notes as subtasks where applicable.
@@ -415,17 +417,20 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 #### 7.4 Testing Tasks by Ticket Type
 
 **For Features:**
+
 - Write integration tests verifying the feature works with existing code
 - Identify which existing tests might break and update them
 - Perform manual testing
 
 **For Bugs:**
+
 - Write a permanent regression test that fails before the fix and passes after
 - Run targeted tests on the affected code path first
 - Run full regression suite
 - Perform manual testing of the specific bug scenario
 
 **For Migrations:**
+
 - Run before/after comparison tests (verify baseline metrics maintained)
 - Run full regression suite (not just affected tests)
 - For Architecture Pattern migrations: validate structural conformance (dependency direction, layer boundaries)
@@ -444,7 +449,6 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
   - **Migration Details** (ONLY for Migration tickets — all sub-sections populated)
   - **Bug Fix Details** (ONLY for Bug tickets — all sub-sections populated)
   - **Feature Details** (ONLY for Feature tickets — all sub-sections populated)
-  - **Planner Notes** (decisions, trade-offs, assumptions, complexity assessment)
   - Tasks / Subtasks (type-specific granularity, with checkboxes and testing tasks)
   - Dependencies and Risks (if applicable)
   - Change Log (initialize with creation entry)
