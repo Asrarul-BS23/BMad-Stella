@@ -35,10 +35,10 @@ Else → SKIP.
 
 ## Consult procedure (when triggered)
 
-1. Read `bmad-ledger/index.yaml`.
-2. Filter entries: match question keywords/IDs/tags against `tags`, `ref`, `title`. Default scope: `status: active`. Include `superseded`/`revoked` only if user asks about history.
-3. For matched entries, read body from `bmad-ledger/decisions.md` or `bmad-ledger/actions.md` at `line` position.
-4. Use as grounding for reply.
+1. Read `bmad-ledger/index.yaml` from disk.
+2. Filter entries in memory: match question keywords/IDs/tags against `tags`, `ref`, `title`. Default scope: `status: active`. Include `superseded`/`revoked` only if user asks about history.
+3. For matched entries, read body from `bmad-ledger/decisions.md` or `bmad-ledger/actions.md` (per `line` field).
+4. Use loaded entries as grounding for reply.
 
 ## Response format
 

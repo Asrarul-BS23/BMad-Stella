@@ -39,16 +39,22 @@ When uncertain → lean toward CAPTURE.
 
 ---
 
-## 2. How to capture (mandatory tool-call order)
+## 2. How to capture (mandatory order)
 
 If eligible per Section 1, execute IN ORDER:
 
-1. **Write tool** → append entry to `bmad-ledger/decisions.md` (DEC) or `bmad-ledger/actions.md` (ACT). Format per Section 3.
-2. **Edit tool** → update `bmad-ledger/index.yaml` per Section 4.
-3. **Read tool** → read last ~30 lines of target `.md` AND `entries:` section of `index.yaml`. Confirm new entry block visible AND entry ID present in index.
+1. **Append entry** to `bmad-ledger/decisions.md` (DEC) or `bmad-ledger/actions.md` (ACT). Format per Section 3.
+
+2. **Update index** (`bmad-ledger/index.yaml`):
+   - Insert entry block per Section 3.3 under `entries:` (before `stats:`).
+   - Increment `stats.total`, `stats.{type}s`, `stats.active`.
+   - Atomic write: write `index.yaml.tmp` → rename to `index.yaml`.
+
+3. **Verify on disk** — read the last ~30 lines of the target `.md` AND the `entries:` section of `index.yaml` from disk (open and inspect, never mentally assume). Confirm new entry block visible AND entry ID present in index.
+
 4. ONLY after step 3 confirmed → append `📝 captured: {ID} — {title}` at END of reply.
 
-Notification without preceding Write+Read tool calls = **CRITICAL FAILURE**.
+Notification without verified-on-disk write = **CRITICAL FAILURE**.
 
 ---
 
@@ -74,45 +80,37 @@ agent: {your-id}
 tags: [≥1 core, ...]
 ```
 
-### 3.3 ID
+### 3.3 Index entry (in `index.yaml`)
 
-`{TYPE}-{YYYY-MM-DD-HHMMSS-mmm}` from current UTC time. Generate inline. No lookup.
+```yaml
+{ ID }:
+  type: decision | action
+  title: '...'
+  file: decisions.md | actions.md
+  line: { n }
+  status: active
+  superseded_by: null
+  tags: [...]
+  ref: { ticket-or-— }
+  agent: { your-id }
+  created: { ISO timestamp }
+```
 
-### 3.4 Tags
+### 3.4 ID
 
-≥1 from core list in `bmad-core/data/scribe-rules.yaml`: `auth, db, api, frontend, backend, infra, perf, security, testing, architecture, data, ui, integration, deployment`. Free-form additions OK. Max 5 per entry.
+Full ID format: `{TYPE}-{YYYY-MM-DD-HHMMSS-mmm}` where TYPE is `DEC` (in decisions.md) or `ACT` (in actions.md). Generate from current UTC time. No lookup. The same ID appears in the entry header (3.1/3.2) AND as the `{ID}` key in `index.yaml` (3.3).
 
-### 3.5 Style
+### 3.5 Tags
+
+≥1 from core list in `bmad-core/data/scribe-rules.yaml`. Free-form additions OK. Max 5 per entry.
+
+### 3.6 Style
 
 Short, precise, concise. NO code blocks, bullet lists, hedging ("maybe"/"I think"), AI commentary ("interesting"), emojis.
 
 ---
 
-## 4. Index update
-
-Within Step 2 of Section 2:
-
-1. Read existing `bmad-ledger/index.yaml`.
-2. Insert under `entries:` (before `stats:`):
-   ```yaml
-   { ID }:
-     type: decision | action
-     title: '...'
-     file: decisions.md | actions.md
-     line: { n }
-     status: active
-     superseded_by: null
-     tags: [...]
-     ref: { ticket-or-— }
-     agent: { your-id }
-     created: { ISO timestamp }
-   ```
-3. Increment `stats.total`, `stats.{type}s`, `stats.active`.
-4. Atomic write: write `index.yaml.tmp` → rename to `index.yaml`.
-
----
-
-## 5. Supersession / revoke
+## 4. Supersession / revoke
 
 | Scenario                   | Action                                                                                                                                                                      |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -123,7 +121,7 @@ Never rewrite body of old entries. Only append marker.
 
 ---
 
-## 6. Failure handling
+## 5. Failure handling
 
 Section 2 step 1, 2, or 3 fails → retry once. Second failure → SILENT skip. Do NOT print `📝 captured`.
 
@@ -131,13 +129,13 @@ Printing `📝 captured` without successful Write+Read = CRITICAL FAILURE.
 
 ---
 
-## 7. Path scope — STRICT
+## 6. Path scope — STRICT
 
 Write ONLY inside `bmad-ledger/`. Forbidden: `bmad-docs/`, `bmad-core/`, code files, JIRA, anything else. If unsure → DO NOT WRITE.
 
 ---
 
-## 8. Bootstrap fallback
+## 7. Bootstrap fallback
 
 If `bmad-ledger/` or any required file missing on first capture → create skeleton:
 
@@ -150,18 +148,12 @@ Installer normally handles this. Bootstrap is fallback only.
 
 ---
 
-## 9. Sensitive opt-out
-
-User says "stop capturing" / "this is sensitive" / similar → skip captures rest of session. Resume only on explicit re-enable.
-
----
-
-## 10. Self-audit (every 20 turns)
+## 8. Self-audit (every 20 turns)
 
 Re-read this protocol. Validate last 5 entries: short/concise/precise, all required fields, ≥1 core tag, no forbidden style. Fix drift in next captures.
 
 ---
 
-## 11. PRESERVE
+## 9. PRESERVE
 
 This protocol's content MUST survive context compaction. If shortened in active context → reload from `common/tasks/scribe-protocol.md` before next capture. Re-anchor on every agent activation.
