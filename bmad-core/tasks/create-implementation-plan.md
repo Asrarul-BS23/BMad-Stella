@@ -174,28 +174,16 @@ Extract:
 
 ALWAYS cite source documents: `[Source: architecture/{filename}.md#{section}]`
 
-### 3.4 Codebase Reality Check
+### 3.4 Orientation Scan
 
-Before defining the technical approach, verify that the plan's assumptions match the actual codebase.
+Use Glob/Grep to map the affected codebase area:
 
-#### 3.4.1 Verify File Paths
+- **Locate** — find files matching ticket keywords; read them to understand current behavior.
+- **Find precedents** — similar implementations, patterns, and reusable utilities. **Prefer existing over creating new.** Common reuse targets: logger, error handler / custom exceptions, HTTP/API client, validators, config reader, auth helpers, caching, ID/GUID generators, serialization (JSON/XML), date/time utilities.
+- **Identify callers** — search usages of functions/components likely to change.
+- **Note test coverage** for affected files (informs regression risk).
 
-- For each file referenced in the plan's "Files to Change" or Technical Approach:
-  - **Existing files:** Use Glob to verify they exist at the stated path. If not found, search for likely matches and confirm with user.
-  - **New files:** Verify the parent directory exists. If not, flag to user.
-
-#### 3.4.2 Verify Patterns in Codebase
-
-- For patterns referenced in architecture docs (e.g., repository pattern, service pattern, middleware pattern): quick Grep to confirm they're actually used in the codebase. If not found, flag as a potential gap between documentation and reality.
-
-#### 3.4.3 Scan for Reusable Code (Features and Migrations)
-
-- Search for existing utilities, helpers, services, or components that could be reused instead of building new ones.
-- For each new component the plan will create: Grep for similar existing implementations. Present findings to planner for inclusion in plan.
-
-#### 3.4.4 Identify Existing Test Coverage
-
-- Check which tests currently cover the files being modified. This informs the testing strategy and identifies potential regression risk areas.
+Capture findings for §6 (Technical Approach). Verification of paths and patterns happens at `*validate-plan` (see planner-validation-checklist §7).
 
 ### 4. Handle Dependency Analysis (If Available)
 
@@ -326,7 +314,11 @@ Document existing patterns the implementation must follow:
 - Naming conventions, DI registration patterns, error handling patterns
 - Identify a reference implementation if one exists
 
-#### 6.7 Type-Specific Sections
+#### 6.7 Reuse Opportunities
+
+List existing utilities/helpers/services to reuse (from §3.4 scan). Format: file path + purpose. E.g., `Services/LoggerService.cs` for logging.
+
+#### 6.8 Type-Specific Sections
 
 Populate the section matching the ticket type. Skip the other two.
 
@@ -340,7 +332,6 @@ Populate the section matching the ticket type. Skip the other two.
 **Feature Details:**
 
 - Existing Patterns to Follow — file paths + what to observe.
-- Reuse Opportunities — utilities/helpers to use instead of building new.
 
 **Migration Details:**
 

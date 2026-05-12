@@ -145,6 +145,12 @@ sections:
         owner: planner
         editors: [planner]
 
+      - id: reuse-opportunities
+        title: Reuse Opportunities
+        type: multiline-text
+        owner: planner
+        editors: [planner]
+
   # ============================================================
   # TYPE-SPECIFIC SECTIONS
   # Only populate the section matching the ticket type.
@@ -187,12 +193,6 @@ sections:
     sections:
       - id: existing-patterns-to-follow
         title: Existing Patterns to Follow
-        type: multiline-text
-        owner: planner
-        editors: [planner]
-
-      - id: reuse-opportunities
-        title: Reuse Opportunities
         type: multiline-text
         owner: planner
         editors: [planner]
