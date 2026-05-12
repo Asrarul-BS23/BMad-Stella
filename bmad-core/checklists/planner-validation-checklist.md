@@ -22,7 +22,7 @@ VALIDATION PRINCIPLES:
 3. Actionability - Tasks are specific enough to execute without ambiguity
 4. Self-Sufficiency - Dev agent won't need to read architecture docs (context is embedded)
 5. Testability - Testing approach is clear and comprehensive
-6. Type-Awareness - Plan has appropriate depth for its ticket type (Feature/Bug/Migration)
+6. Type-Awareness - Plan has appropriate depth for its ticket type (Bug/Feature/Migration)
 7. Codebase Accuracy - Plan references match the actual state of the codebase
 
 REMEMBER: We're creating plans for dev agents who need complete technical context embedded, explicit file paths and patterns, clear task breakdown, all architectural decisions made, and no external document hunting.
@@ -128,7 +128,25 @@ We're checking for COMPREHENSIVE detail that eliminates ambiguity and external l
 
 Verify that type-specific sections are populated with appropriate depth — not just present, but substantively filled with actionable details.]]
 
-### 6a. Migration-Specific Checks (ONLY if Ticket Type = Migration)
+### 6a. Bug Fix-Specific Checks (ONLY if Ticket Type = Bug)
+
+- [ ] Root cause is identified in Bug Fix Details (not just symptoms described)
+- [ ] Root cause analysis distinguishes root cause from workaround
+- [ ] Reproduction steps are documented in the plan (self-contained, not just a reference to the original source)
+- [ ] Affected code path is traced (entry point → data flow → failure point)
+- [ ] Fix scope is bounded (what will NOT be changed is explicitly stated)
+- [ ] Fix addresses root cause, not just symptom
+- [ ] Permanent regression test for the specific bug is planned (not temporary)
+- [ ] Task count is 3-5 regardless of complexity (complex diagnosis ≠ complex task count)
+
+### 6b. Feature-Specific Checks (ONLY if Ticket Type = Feature)
+
+- [ ] Integration points with existing code are identified
+- [ ] Existing patterns to follow are referenced with codebase file path examples
+- [ ] Reuse opportunities are documented (existing utilities/helpers to use instead of building new)
+- [ ] Impact on existing tests is assessed (which tests might break)
+
+### 6c. Migration-Specific Checks (ONLY if Ticket Type = Migration)
 
 - [ ] Migration sub-type is classified (Stack Version / Architecture Pattern / Infrastructure / Data / Hybrid)
 - [ ] Source state and target state are clearly defined with specifics
@@ -162,24 +180,6 @@ Verify that type-specific sections are populated with appropriate depth — not 
 - [ ] Data volume and downtime constraints are documented
 - [ ] Data transformation logic is specified
 - [ ] Data integrity verification approach is defined
-
-### 6b. Bug Fix-Specific Checks (ONLY if Ticket Type = Bug)
-
-- [ ] Root cause is identified in Bug Fix Details (not just symptoms described)
-- [ ] Root cause analysis distinguishes root cause from workaround
-- [ ] Reproduction steps are documented in the plan (self-contained, not just a reference to the original source)
-- [ ] Affected code path is traced (entry point → data flow → failure point)
-- [ ] Fix scope is bounded (what will NOT be changed is explicitly stated)
-- [ ] Fix addresses root cause, not just symptom
-- [ ] Permanent regression test for the specific bug is planned (not temporary)
-- [ ] Task count is 3-5 regardless of complexity (complex diagnosis ≠ complex task count)
-
-### 6c. Feature-Specific Checks (ONLY if Ticket Type = Feature)
-
-- [ ] Integration points with existing code are identified
-- [ ] Existing patterns to follow are referenced with codebase file path examples
-- [ ] Reuse opportunities are documented (existing utilities/helpers to use instead of building new)
-- [ ] Impact on existing tests is assessed (which tests might break)
 
 ## 7. CODEBASE REALITY VALIDATION
 

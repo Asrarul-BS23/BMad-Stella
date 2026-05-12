@@ -31,10 +31,10 @@ optional:
 - Gate (YAML): `{qa_root}/gates/{epic}.{story}-*.yml`
   - If multiple, use the most recent by modified time
 - Assessments (Markdown):
-  - Test Design: `{qa_root}/assessments/{ticket_number}-*-test-design-*.md`
-  - Traceability: `{qa_root}/assessments/{ticket_number}-*-trace-*.md`
-  - Risk Profile: `{qa_root}/assessments/{ticket_number}-*-risk-*.md`
-  - NFR Assessment: `{qa_root}/assessments/{ticket_number}-*-nfr-*.md`
+  - Test Design: `{qa_root}/assessments/{plan_id}-*-test-design-*.md`
+  - Traceability: `{qa_root}/assessments/{plan_id}-*-trace-*.md`
+  - Risk Profile: `{qa_root}/assessments/{plan_id}-*-risk-*.md`
+  - NFR Assessment: `{qa_root}/assessments/{plan_id}-*-nfr-*.md`
 
 ## Security Violation Source
 
@@ -54,7 +54,7 @@ optional:
 ### 0) Load Core Config & Locate Plan
 
 - Read `.bmad-core/core-config.yaml` and resolve `qa_root` and `plan_root`
-- Locate plan file in `{plan_root}/{ticket_number}-*.md`
+- Locate plan file in `{plan_root}/{plan_id}-*.md`
   - HALT if missing and ask for correct plan id/path
 
 ### 1) Collect QA Findings

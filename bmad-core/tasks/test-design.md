@@ -8,8 +8,8 @@ Create comprehensive test scenarios with appropriate test level recommendations 
 
 ```yaml
 required:
-  - task_id: '{ticket_number}-{ticket_title_short}' # e.g., "1.3"
-  - task_path: 'bmad-docs/impl-plan/{ticket_number}-*.md' # Path from core-config.yaml
+  - task_id: '{plan_id}-{ticket_title_short}' # e.g., "1.3"
+  - task_path: 'bmad-docs/impl-plan/{plan_id}-*.md' # Path from core-config.yaml
   - task_title: '{title}' # If missing, derive from task file H1
   - task_slug: '{slug}' # If missing, derive from title (lowercase, hyphenated)
 ```
@@ -64,7 +64,7 @@ For each identified test need, create:
 
 ```yaml
 test_scenario:
-  id: '{ticket_number}-{LEVEL}-{SEQ}'
+  id: '{plan_id}-{LEVEL}-{SEQ}'
   requirement: 'AC reference'
   priority: P0|P1|P2|P3
   level: unit|integration|e2e
@@ -86,10 +86,10 @@ Ensure:
 
 ### Output 1: Test Design Document
 
-**Save to:** `qa.qaLocation/assessments/{ticket_number}-{ticket_title_short}-test-design-{YYYYMMDD}.md`
+**Save to:** `qa.qaLocation/assessments/{plan_id}-{ticket_title_short}-test-design-{YYYYMMDD}.md`
 
 ```markdown
-# Test Design: Task {ticket_number}-{ticket_title_short}
+# Test Design: Task {plan_id}-{ticket_title_short}
 
 Date: {date}
 Designer: Quinn (Test Architect)
@@ -152,7 +152,7 @@ test_design:
 Print for use by trace-requirements task:
 
 ```text
-Test design matrix: qa.qaLocation/assessments/{ticket_number}-{ticket_title_short}-test-design-{YYYYMMDD}.md
+Test design matrix: qa.qaLocation/assessments/{plan_id}-{ticket_title_short}-test-design-{YYYYMMDD}.md
 P0 tests identified: {count}
 ```
 

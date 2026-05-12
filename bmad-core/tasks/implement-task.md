@@ -46,7 +46,7 @@ tasks:
 - CRITICAL: Do not ask user permission for plan file updates.
 - CRITICAL: Always update `Agent Model Used` and `File List` in `Dev Agent Record`.
 - CRITICAL: Authorized sections — Tasks/Subtasks Checkboxes, Dev Agent Record (Agent Model Used, Pre-Implementation Baseline, Debug Log, Completion Notes, File List), Deviation Record, Change Log, Status, Feedback (checkboxes only — mark resolved items).
-- CRITICAL: DO NOT modify Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Migration Details, Bug Fix Details, Feature Details, Dependencies and Risks.
+- CRITICAL: DO NOT modify Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Bug Fix Details, Feature Details, Migration Details, Dependencies and Risks.
 
 ### Coding Standards
 
@@ -79,9 +79,9 @@ tasks:
 #### 0.2 — Parse Plan
 
 - Read plan file fully. Extract:
-  - **Ticket type** (Feature/Bug/Migration) and **subtype** (Stack Version/Architecture Pattern/etc.)
-  - **Ticket Number / Plan ID** from Ticket Information
-  - **All file paths** from all plan sections (Technical Approach, Tasks/Subtasks, Migration Details, Bug Fix Details, Feature Details)
+  - **Ticket type** (Bug/Feature/Migration) and **subtype** (Stack Version/Architecture Pattern/etc.)
+  - **Plan ID** from Ticket Information
+  - **All file paths** from all plan sections (Technical Approach, Tasks/Subtasks, Bug Fix Details, Feature Details, Migration Details)
   - **Architecture citations** (`[Source: architecture/filename.md#section]`)
   - **Task list** with completion status (`[x]` vs `[ ]`)
   - **Dev Agent Record** contents (Baseline, File List, Debug Log, Completion Notes)
@@ -125,7 +125,7 @@ tasks:
 
 ### Step 1: Migration Detection (ONLY if Migration)
 
-**Feature/Bug tickets → skip to Step 2.**
+**Bug/Feature tickets → skip to Step 2.**
 
 #### 1.1 — Classify Migration Type
 
@@ -159,15 +159,15 @@ Confirm sub-type from Migration Details: Stack Version / Architecture Pattern / 
 
 #### 2.0 — Type Profile
 
-| Behavior            | Feature | Bug | Migration |
-| ------------------- | ------- | --- | --------- |
-| Pattern enforcement | ON      | OFF | OFF       |
-| Reuse check         | ON      | OFF | OFF       |
-| Minimal change      | OFF     | ON  | OFF       |
-| Reproduce-first     | OFF     | ON  | OFF       |
-| Mandatory builds    | OFF     | OFF | ON        |
-| Health tracking     | OFF     | OFF | ON        |
-| Rollback notes      | OFF     | OFF | ON        |
+| Behavior            | Bug | Feature | Migration |
+| ------------------- | --- | ------- | --------- |
+| Pattern enforcement | OFF | ON      | OFF       |
+| Reuse check         | OFF | ON      | OFF       |
+| Minimal change      | ON  | OFF     | OFF       |
+| Reproduce-first     | ON  | OFF     | OFF       |
+| Mandatory builds    | OFF | OFF     | ON        |
+| Health tracking     | OFF | OFF     | ON        |
+| Rollback notes      | OFF | OFF     | ON        |
 
 #### 2.1 — Read Next Task
 
@@ -245,7 +245,7 @@ Write in Completion Notes: approach, deviations, key decisions, tech debt, follo
 
 ## Post-Implementation Bug Fix
 
-**Trigger:** ALWAYS run after fixing ANY bug reported by user after implementation (applies to all ticket types — Feature, Bug, or Migration).
+**Trigger:** ALWAYS run after fixing ANY bug reported by user after implementation (applies to all ticket types — Bug, Feature, or Migration).
 
 **Flow:** Identify root cause → fix → update plan → HALT with report (what fixed, sections updated, final file list).
 
@@ -256,7 +256,7 @@ Write in Completion Notes: approach, deviations, key decisions, tech debt, follo
 - **Debug Log:** Bug description, root cause, fix applied
 - **Change Log:** Date, version, fix description, developer name
 
-**DO NOT modify:** Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Migration Details, Bug Fix Details, Feature Details, Dependencies and Risks.
+**DO NOT modify:** Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Bug Fix Details, Feature Details, Migration Details, Dependencies and Risks.
 
 ---
 

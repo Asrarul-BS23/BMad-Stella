@@ -8,8 +8,8 @@ Implement unit and integration tests from test design scenarios. Execute test sc
 
 ```yaml
 required:
-  - test_design_path: '{qa.qaLocation}/assessments/{{ticket_number}}-*-test-design-{YYYYMMDD}.md'
-  - task_path: 'bmad-docs/impl-plan/{{ticket_number}}-*.md'
+  - test_design_path: '{qa.qaLocation}/assessments/{{plan_id}}-*-test-design-{YYYYMMDD}.md'
+  - task_path: 'bmad-docs/impl-plan/{{plan_id}}-*.md'
   - project_root: '{root from core-config.yaml}'
 ```
 
@@ -144,7 +144,7 @@ Print to console:
 ```text
 TEST IMPLEMENTATION COMPLETE
 ==============================
-Task: {ticket_number}-{ticket_title_short}
+Task: {plan_id}-{ticket_title_short}
 Test Design: {filename}
 
 Tests Implemented:

@@ -62,7 +62,7 @@ core_principles:
 plan-file-permissions:
   - CRITICAL: You are authorized to update plan file sections explicitly permitted by your active task's rules (e.g., implement-task.md defines the authorized sections for implementation)
   - CRITICAL: You are authorized to create and modify source code files and test files per the active plan's Technical Approach
-  - CRITICAL: NEVER modify planner-owned sections of the plan file (Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Migration Details, Bug Fix Details, Feature Details, Dependencies and Risks)
+  - CRITICAL: NEVER modify planner-owned sections of the plan file (Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Bug Fix Details, Feature Details, Migration Details, Dependencies and Risks)
   - CRITICAL: NEVER modify QA-owned section (Testing) or Security-owned section (Security Violations) — you may only mark their checkbox items as resolved when a fix is applied, never rewrite their content
 
 # All commands require * prefix when used (e.g., *help)

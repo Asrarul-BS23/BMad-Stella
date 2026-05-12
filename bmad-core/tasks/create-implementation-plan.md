@@ -4,9 +4,7 @@
 
 ## Purpose
 
-To transform requirements from any source — JIRA tickets, direct instructions, markdown/text files — covering features, bugs, and migrations into comprehensive, actionable implementation plans that provide junior developers with all the technical details, step-by-step tasks, and context needed to implement the solution without additional research. This task handles variable input quality - from complete requirements to just ticket titles or screenshots.
-
-Plans are type-aware: Features, Bugs, and Migrations each receive specialized planning treatment — different questions, different architecture reading strategies, different acceptance criteria, different task granularity, and different validation requirements.
+Transform requirements from any source (JIRA tickets, direct instructions, markdown/text files) into actionable implementation plans for junior developers. Plans are type-aware: bugs, features, and migrations each receive specialized treatment — different questions, architecture reading strategies, acceptance criteria, task granularity, and validation. Handles variable input quality, from complete requirements to just ticket titles or screenshots.
 
 ## CRITICAL RULES
 
@@ -20,8 +18,6 @@ Plans are type-aware: Features, Bugs, and Migrations each receive specialized pl
    - **Perform targeted search:** Use hints + structure knowledge to create focused Glob/Grep searches instead of broad codebase scans
    - **Identify impacted files:** When modifying a function, component, or interface, search for its usages across codebase using targeted Glob/Grep before making changes. Update all impacted files accordingly.
 
-**DUAL ARCHITECTURE INPUT (Architecture Pattern Migrations):** HALT planning if either the source or target architecture document is missing. Both are required to produce a transformation map.
-
 ## SEQUENTIAL Task Execution (Do not proceed until current Task is complete)
 
 ### 0. Load Core Configuration
@@ -34,7 +30,7 @@ Plans are type-aware: Features, Bugs, and Migrations each receive specialized pl
 
 #### 1.1 Determine Input Type and Extract Information
 
-- **If input is a JIRA ticket number or URL:** Fetch via Atlassian MCP. If MCP fails → HALT: "Atlassian MCP not connected. Please reauthenticate."
+- **If input is a JIRA ticket number or URL:** Fetch via Atlassian MCP. On MCP failure → apply `mcp-failure` rule (see planner.md `shared-rules`).
 - **If input is a .md file path:** Read the file completely
 - **If input is a .txt file path:** Read the file completely
 - **If input is a screenshot/image:** Analyze the image to extract details
@@ -45,12 +41,17 @@ Plans are type-aware: Features, Bugs, and Migrations each receive specialized pl
 
 Extract the following (or derive if missing):
 
-- **Ticket Number / Plan ID:** From JIRA: use ticket number (e.g., PROJ-123). From other sources: use the Plan ID provided by user or auto-generate as YYYY-MM-DD-short-title
-- **Ticket Type:** Identify as Feature, Bug, or Migration
-- **Ticket Subtype:** For Migrations, classify as Stack Version / Architecture Pattern / Infrastructure / Data / Hybrid. Set N/A for Feature/Bug.
+- **Plan ID:** Apply `plan-id-format` rule (see planner.md `shared-rules`).
+- **Ticket Type:** Identify as Bug, Feature, or Migration
+- **Ticket Subtype:** For Migrations, classify as one of the following. Set N/A for Bug/Feature.
+  - **Stack Version** — dependency version changes, API updates, deprecation replacements
+  - **Architecture Pattern** — structural reorganization (e.g., MVC → Clean Architecture, layered → hexagonal)
+  - **Infrastructure** — deployment/hosting/cloud provider changes
+  - **Data** — database schema changes, data transformations, engine migrations
+  - **Hybrid** — combination of the above
 - **Title:** The ticket summary
 - **Description:** Full description if available
-- **Requirements:** Explicit requirements if provided
+- **Requirements:** Explicit requirements if provided; if not, derive from description and acceptance criteria. Each must be clear, specific, and testable.
 - **Acceptance Criteria:** Explicit ACs if provided (if not, you'll derive them later)
 - **Additional Context:** Screenshots, examples, error messages, stack traces
 
@@ -68,17 +69,7 @@ If critical information is missing, ask the user targeted questions. Questions a
 
 **CRITICAL:** Only ask essential questions. Use your senior developer judgment to infer reasonable details when possible.
 
-#### 2.1 For Features
-
-- What is the expected user workflow?
-- What are the key functional requirements?
-- Are there specific UI/UX requirements?
-- What data needs to be captured/displayed?
-- Are there integration requirements with existing features?
-- Are there existing patterns or similar features in the codebase the implementation should follow?
-- **Which files need modification?** (Offer both options as per CRITICAL RULES)
-
-#### 2.2 For Bugs
+#### 2.1 For Bugs
 
 - What is the expected behavior vs. actual behavior?
 - **What is the identified root cause?** (Not just symptoms — the actual code path or logic error responsible)
@@ -87,7 +78,17 @@ If critical information is missing, ask the user targeted questions. Questions a
 - What is the impact and severity?
 - Are there error messages or stack traces?
 - **What is the minimal change scope?** What should NOT be touched during this fix?
-- **Which files contain the bug?** (Offer both options as per CRITICAL RULES)
+- **Which files contain the bug?**
+
+#### 2.2 For Features
+
+- What is the expected user workflow?
+- What are the key functional requirements?
+- Are there specific UI/UX requirements?
+- What data needs to be captured/displayed?
+- Are there integration requirements with existing features?
+- Are there existing patterns or similar features in the codebase the implementation should follow?
+- **Which files need modification?**
 
 #### 2.3 For Migrations — Stack Version
 
@@ -97,7 +98,7 @@ If critical information is missing, ask the user targeted questions. Questions a
 - Are there configuration format changes between versions?
 - Can the migration be done incrementally or does it require a big-bang switch?
 - Are there coexistence requirements (old and new versions running simultaneously)?
-- **Which files need modification?** (Offer both options as per CRITICAL RULES)
+- **Which files need modification?**
 
 #### 2.4 For Migrations — Architecture Pattern
 
@@ -110,7 +111,7 @@ If critical information is missing, ask the user targeted questions. Questions a
 - Should the migration be file-by-file, module-by-module, or layer-by-layer?
 - Is there a fully completed, already-migrated module that can serve as the reference implementation?
 - What patterns from the old architecture should NOT be carried over? (the "Do Not Migrate" list)
-- **Which files/modules are affected?** (Offer both options as per CRITICAL RULES)
+- **Which files/modules are affected?**
 
 #### 2.5 For Migrations — Infrastructure / Data / Hybrid
 
@@ -120,7 +121,7 @@ If critical information is missing, ask the user targeted questions. Questions a
 - **For Infrastructure migrations:** What cloud/platform changes are involved? What configuration files need updating? Are there environment-specific concerns?
 - Are there dependencies on other systems?
 - What is the rollback strategy?
-- **Which files need modification?** (Offer both options as per CRITICAL RULES)
+- **Which files need modification?**
 
 #### 2.6 For Database Changes (All Ticket Types)
 
@@ -130,7 +131,6 @@ If critical information is missing, ask the user targeted questions. Questions a
   - **Database migration tasks must be handled by the user** (add in tasks list but tell user to do this)
   - If specific fields to add to a model or a new model structure are NOT specified in the ticket info/requirements:
     - **Ask the user to specify the fields to be added or the model structure** (field names, types, constraints, relationships)
-  - **If uncertain about any database-related details, ALWAYS ask the user** - do not make assumptions or proceed silently
   - Document the model/table changes needed in the Technical Approach section
 
 ### 3. Gather Architecture Context
@@ -174,26 +174,26 @@ Extract:
 
 ALWAYS cite source documents: `[Source: architecture/{filename}.md#{section}]`
 
-### 3.5. Codebase Reality Check
+### 3.4 Codebase Reality Check
 
 Before defining the technical approach, verify that the plan's assumptions match the actual codebase.
 
-#### 3.5.1 Verify File Paths
+#### 3.4.1 Verify File Paths
 
 - For each file referenced in the plan's "Files to Change" or Technical Approach:
   - **Existing files:** Use Glob to verify they exist at the stated path. If not found, search for likely matches and confirm with user.
   - **New files:** Verify the parent directory exists. If not, flag to user.
 
-#### 3.5.2 Verify Patterns in Codebase
+#### 3.4.2 Verify Patterns in Codebase
 
 - For patterns referenced in architecture docs (e.g., repository pattern, service pattern, middleware pattern): quick Grep to confirm they're actually used in the codebase. If not found, flag as a potential gap between documentation and reality.
 
-#### 3.5.3 Scan for Reusable Code (Features and Migrations)
+#### 3.4.3 Scan for Reusable Code (Features and Migrations)
 
 - Search for existing utilities, helpers, services, or components that could be reused instead of building new ones.
 - For each new component the plan will create: Grep for similar existing implementations. Present findings to planner for inclusion in plan.
 
-#### 3.5.4 Identify Existing Test Coverage
+#### 3.4.4 Identify Existing Test Coverage
 
 - Check which tests currently cover the files being modified. This informs the testing strategy and identifies potential regression risk areas.
 
@@ -201,13 +201,13 @@ Before defining the technical approach, verify that the plan's assumptions match
 
 **Check and Load:**
 
-- Check if `bmad-docs/temporary/{plan-id}-dependency-tmp.md` exists
+- Check if `bmad-docs/temporary/{plan_id}-dependency-tmp.md` exists
 - If exists: Read and extract all dependency information (technical, infrastructure, third-party, data dependencies, blockers, risks)
 - If not exists: Proceed without pre-analyzed dependencies
 
 **After Planning Completion:**
 
-- If all dependencies addressed: Delete `bmad-docs/temporary/{plan-id}-dependency-tmp.md`
+- If all dependencies addressed: Delete `bmad-docs/temporary/{plan_id}-dependency-tmp.md`
 - If ticket will be decomposed into subtasks: Keep file with remaining dependencies for future subtasks
 - Document cleanup action in implementation plan
 
@@ -221,7 +221,16 @@ Based on ticket type and information gathered:
 
 **If NOT provided, derive them per ticket type:**
 
-#### 5.1 For Features
+#### 5.1 For Bugs
+
+- Root cause is identified and documented
+- Fix addresses root cause, not just symptom
+- Reproduction steps no longer reproduce the bug
+- Permanent regression test for the specific bug exists
+- Adjacent functionality verified unbroken
+- No scope creep — only the minimal necessary changes are made
+
+#### 5.2 For Features
 
 - Functional requirements (what the feature does)
 - UI/UX requirements (how it looks/behaves)
@@ -230,15 +239,6 @@ Based on ticket type and information gathered:
 - Pattern conformance (follows existing codebase patterns)
 - Performance requirements (if applicable)
 - Security requirements (if applicable)
-
-#### 5.2 For Bugs
-
-- Root cause is identified and documented
-- Fix addresses root cause, not just symptom
-- Reproduction steps no longer reproduce the bug
-- Permanent regression test for the specific bug exists
-- Adjacent functionality verified unbroken
-- No scope creep — only the minimal necessary changes are made
 
 #### 5.3 For Migrations — Stack Version
 
@@ -268,6 +268,10 @@ Based on ticket type and information gathered:
 - Performance maintained or improved
 - Environment-specific configurations correctly isolated
 
+#### 5.6 Validate Derived ACs with User
+
+After deriving ACs (5.1–5.5), display them to the user and ask for confirmation, edits, or additions before proceeding to §6. This makes the derive path symmetric with the "provided" path — both end with user-validated ACs.
+
 ### 6. Define Technical Approach and Decisions
 
 As a senior developer, document the complete technical approach using the structured sub-sections from the template.
@@ -286,8 +290,8 @@ Document what exists now in the codebase relevant to this ticket:
 
 Document what should exist after implementation is complete:
 
-- For Features: new components, endpoints, files, and how they integrate
 - For Bugs: corrected behavior and the specific code path change
+- For Features: new components, endpoints, files, and how they integrate
 - For Migrations: target architecture, folder structure, and pattern
 
 #### 6.3 Transformation Strategy
@@ -301,12 +305,10 @@ Document how to get from current state to target state:
 
 #### 6.4 File Structure Planning
 
-**🚨 REMINDER:** Follow the FILE LOCATION DISCOVERY approach from CRITICAL RULES (offer both options to user).
-
-- **New files to create** (with full paths) - **AS Project Structure**
-- **Existing files to modify** - **Use FILE LOCATION DISCOVERY approach**
-- **Files to delete** (for migrations) - **Use FILE LOCATION DISCOVERY approach**
-- **Directory structure changes**
+- New files to create (with full paths)
+- Existing files to modify
+- Files to delete (for migrations)
+- Directory structure changes
 
 #### 6.5 Integration Points
 
@@ -326,61 +328,38 @@ Document existing patterns the implementation must follow:
 
 #### 6.7 Type-Specific Sections
 
-**For Migrations — populate Migration Details:**
+Populate the section matching the ticket type. Skip the other two.
 
-- Reference Implementation (a fully completed, already-migrated module)
-- Source State and Target State (specific to migration sub-type)
-- Source and Target Architecture References (REQUIRED for Architecture Pattern migrations)
-- Transformation Map (structural diff: what moves, splits, merges, gets created, gets deleted)
-- Migration Strategy (incremental vs big-bang, migration order, intermediate states)
-- Rollback Plan (overall + per-task rollback notes)
-- Health Criteria (test count, build warnings, performance benchmarks)
-- Do Not Migrate list (patterns to intentionally drop)
+**Bug Fix Details:**
 
-**For Bugs — populate Bug Fix Details:**
+- Root Cause Analysis — actual cause, not symptoms; code path + trigger conditions.
+- Reproduction Steps — self-contained in the plan.
+- Affected Code Path — entry point → data flow → failing function.
+- Fix Scope Boundary — what must NOT be touched.
 
-- Root Cause Analysis (actual root cause, not symptoms)
-- Reproduction Steps (self-contained in the plan)
-- Affected Code Path (trace through failing execution)
-- Fix Scope Boundary (what should NOT be changed)
+**Feature Details:**
 
-**For Features — populate Feature Details:**
+- Existing Patterns to Follow — file paths + what to observe.
+- Reuse Opportunities — utilities/helpers to use instead of building new.
 
-- Existing Patterns to Follow (file paths to study before coding)
-- Reuse Opportunities (existing utilities/helpers to use instead of building new)
+**Migration Details:**
 
-#### 6.8 Dependencies and Risks (Only if Applicable)
-
-Include this subsection ONLY if there are actual dependencies, blockers, or risks to document. It will be in `Dependencies and Risks` section of the template.
-
-**If dependency file was loaded (Step 4):**
-
-- Integrate all dependencies from the analysis file
-- Incorporate identified blockers with severity levels
-- Add any additional dependencies or blockers discovered during planning
-- Document mitigation strategies for high-risk items
-
-**If no dependency file exists but risks/dependencies identified:**
-
-- Identify technical dependencies
-- Note potential blockers with severity
-- Highlight areas of uncertainty requiring investigation
-
-**If no dependencies or risks:** Skip this subsection entirely
+- Reference Implementation — already-migrated module to use as canonical example.
+- Source State — what we're migrating FROM (versions / pattern / infra / data).
+- Target State — what we're migrating TO.
+- Source Architecture Reference — link/path to current arch doc.
+- Target Architecture Reference — link/path to target arch doc.
+- Transformation Map — file/folder moves, splits, merges, creations, deletions.
+- Migration Strategy — incremental vs big-bang; order; intermediate states.
+- Rollback Plan — overall + per-task notes.
+- Health Criteria — test count, build warnings, perf benchmarks to maintain.
+- Do Not Migrate — patterns to intentionally drop.
 
 ### 7. Create Implementation Task List
-
-**🚨 REMINDER:** Follow the FILE LOCATION DISCOVERY approach from CRITICAL RULES for all file paths.
 
 Break down implementation into sequential tasks with checkboxes. Reference acceptance criteria (AC: #).
 
 #### 7.1 Task Granularity by Ticket Type
-
-**For Features:**
-
-- Simple ticket (1-2 story points): 3-5 tasks with minimal subtasks
-- Medium ticket (3-5 story points): 5-8 tasks with subtasks
-- Complex ticket (8+ story points): 8-12 tasks with subtasks
 
 **For Bugs:**
 
@@ -390,6 +369,12 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
   3. Write permanent regression test for the specific bug
   4. Verify fix resolves the issue and no regressions
   5. Manual testing / user verification
+
+**For Features:**
+
+- Simple ticket (1-2 story points): 3-5 tasks with minimal subtasks
+- Medium ticket (3-5 story points): 5-8 tasks with subtasks
+- Complex ticket (8+ story points): 8-12 tasks with subtasks
 
 **For Migrations:**
 
@@ -416,18 +401,18 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 
 #### 7.4 Testing Tasks by Ticket Type
 
-**For Features:**
-
-- Write integration tests verifying the feature works with existing code
-- Identify which existing tests might break and update them
-- Perform manual testing
-
 **For Bugs:**
 
 - Write a permanent regression test that fails before the fix and passes after
 - Run targeted tests on the affected code path first
 - Run full regression suite
 - Perform manual testing of the specific bug scenario
+
+**For Features:**
+
+- Write integration tests verifying the feature works with existing code
+- Identify which existing tests might break and update them
+- Perform manual testing
 
 **For Migrations:**
 
@@ -437,18 +422,35 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 - For Stack Version migrations: verify no deprecated API usage remains
 - Perform manual testing of migrated functionality
 
-### 8. Populate Implementation Plan Template
+### 8. Document Dependencies and Risks (Only if Applicable)
+
+Include this section ONLY if there are actual dependencies, blockers, or risks to document. It populates the `Dependencies and Risks` section of the template.
+
+**If dependency file was loaded (Step 4):**
+
+- Integrate all dependencies from the analysis file
+- Incorporate identified blockers with severity levels
+- Add any additional dependencies or blockers discovered during planning
+- Document mitigation strategies for high-risk items
+
+**If no dependency file exists but risks/dependencies identified:**
+
+- Identify technical dependencies
+- Note potential blockers with severity
+- Highlight areas of uncertainty requiring investigation
+
+**If no dependencies or risks:** Skip this section entirely
+
+### 9. Populate Implementation Plan Template
 
 - Use `{root}/templates/implementation-plan-tmpl.yaml` structure
 - Fill all sections completely:
   - Status (set to "Draft - Awaiting Review")
-  - Ticket Information (number, type, **subtype**, title, description, original source)
+  - Ticket Information (Plan ID, type, **subtype**, title, input source, description)
   - Requirements (explicit or derived)
   - Acceptance Criteria (type-specific, derived or provided)
   - Technical Approach (structured: Current State, Target State, Transformation Strategy, Integration Points, Pattern Conformance)
-  - **Migration Details** (ONLY for Migration tickets — all sub-sections populated)
-  - **Bug Fix Details** (ONLY for Bug tickets — all sub-sections populated)
-  - **Feature Details** (ONLY for Feature tickets — all sub-sections populated)
+  - Type-specific section (one only, per §6.7)
   - Tasks / Subtasks (type-specific granularity, with checkboxes and testing tasks)
   - Dependencies and Risks (if applicable)
   - Change Log (initialize with creation entry)
@@ -457,17 +459,17 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
   - Security Violations (leave empty - populated by security agent post-implementation)
   - Feedback (leave empty initially)
 
-### 9. Implementation Plan Completion and Review
+### 10. Implementation Plan Completion and Review
 
 - Review all sections for completeness and accuracy
 - Verify all technical details include source citations
 - Ensure tasks align with requirements, acceptance criteria, and architecture constraints
-- **Verify type-specific sections are populated** (Migration Details / Bug Fix Details / Feature Details)
+- **Verify type-specific sections are populated** (Bug Fix Details / Feature Details / Migration Details)
 - Create directory if not exists: `/bmad-docs/impl-plan/`
 - Update plan status to "Draft - Awaiting Review" and save as: `bmad-docs/impl-plan/{{plan_id}}-{{ticket_title_short}}.md`
 - Provide summary to user including:
   - **Plan created:** `bmad-docs/impl-plan/{{plan_id}}-{{ticket_title_short}}.md`
-  - **Ticket Type:** Feature / Bug / Migration (subtype if applicable)
+  - **Ticket Type:** Bug / Feature / Migration (subtype if applicable)
   - **Tasks / Subtasks:** Total count of main tasks and subtasks
   - **Summary:** Brief overview of acceptance criteria and key technical decisions
   - Any deviations or conflicts noted between task and architecture
@@ -478,7 +480,7 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
   - Request refinements (use \*refine-plan command)
   - Ask questions or provide additional context
 
-### 10. Post-Approval Cleanup
+### 11. Post-Approval Cleanup
 
 - On user approval, update plan status to "Approved"
 - If plan source is a JIRA ticket, run Bash: `node .bmad-core/utils/jira-attachments {TICKET-KEY} --purge --quiet`
