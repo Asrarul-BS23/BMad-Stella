@@ -26,7 +26,6 @@ agent_config:
     - Tasks / Subtasks
     - Dependencies and Risks
     - Change Log
-    - Feedback
 
 sections:
   - id: status
@@ -392,10 +391,8 @@ sections:
 
   - id: feedback
     title: Feedback
-    type: multiline-text
+    type: bullet-list
     instruction: |
-      Consolidated feedback from reviews and refinements.
-      Include feedback from planner reviews, code reviews, or QA testing.
-      Use Change Log to track when feedback was incorporated.
-    owner: planner
-    editors: [planner, dev-agent, qa-agent]
+      Populated by the QA agent after testing. Dev agent resolves each item and marks its checkbox [x] when the fix is applied.
+    owner: qa-agent
+    editors: [qa-agent, dev-agent]

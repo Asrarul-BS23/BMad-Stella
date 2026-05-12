@@ -8,15 +8,13 @@ Transform requirements from any source (JIRA tickets, direct instructions, markd
 
 ## CRITICAL RULES
 
-**FILE LOCATION DISCOVERY:** When file locations are needed, ALWAYS ASK the user first which approach they prefer:
+**FILE LOCATION DISCOVERY:** When file locations are needed:
 
-1. **User provides paths:** User can directly specify full file paths if they know them
-
-2. **System scans codebase:** Use Glob/Grep to search and detect relevant files if user doesn't know exact locations
-   - **Get search hints first:** Ask user for helpful hints to narrow the search (e.g., "Look in services folder", "Related to authentication", "Files with 'payment' in name", "Backend API files")
-   - **Check project structure docs:** ALWAYS read `bmad-docs/architecture/project-structure.md` (or `project-structure.md`) FIRST to understand file locations and naming conventions
-   - **Perform targeted search:** Use hints + structure knowledge to create focused Glob/Grep searches instead of broad codebase scans
-   - **Identify impacted files:** When modifying a function, component, or interface, search for its usages across codebase using targeted Glob/Grep before making changes. Update all impacted files accordingly.
+- **If user provides paths:** use them directly.
+- **Otherwise, scan the codebase:**
+  - Read `bmad-docs/architecture/project-structure.md` (or `project-structure.md`) first to understand file locations and naming conventions.
+  - Ask user for search hints (e.g., "services folder", "authentication-related", "payment files").
+  - Perform targeted Glob/Grep searches; avoid broad scans.
 
 ## SEQUENTIAL Task Execution (Do not proceed until current Task is complete)
 
@@ -448,7 +446,7 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
   - Dev Agent Record (leave empty - dev agent will populate during implementation)
   - Deviation Record (leave empty - dev agent will populate if implementation diverges from plan)
   - Security Violations (leave empty - populated by security agent post-implementation)
-  - Feedback (leave empty initially)
+  - Feedback (leave empty - populated by QA agent post-testing; dev agent resolves)
 
 ### 10. Implementation Plan Completion and Review
 
