@@ -123,6 +123,7 @@ CRITICAL: Dev agent is ONLY authorized to update these sections of the plan file
   - File List (all added/modified/deleted files)
 - Change Log (new dated entry describing applied fixes)
 - `## Security Violations` checkboxes in `{implementation_plan}` — mark `[ ]` → `[x]` only; never alter violation text, severity, location, or fix fields
+- Deviation Record — only if the fix diverged from the planned Technical Approach: Planned / Actual / Reason.
 - Status (see Rule below)
 
 Status Rule:

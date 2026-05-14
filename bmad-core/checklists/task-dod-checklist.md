@@ -4,7 +4,7 @@
 
 ## Instructions for Developer Agent
 
-Before marking an implementation plan as 'Under Review', please go through each item in this checklist. Report the status of each item (e.g., [x] Done, [ ] Not Done, [N/A] Not Applicable) and provide brief comments if necessary.
+Before marking an implementation plan as 'Ready for Review', please go through each item in this checklist. Report the status of each item (e.g., [x] Done, [ ] Not Done, [N/A] Not Applicable) and provide brief comments if necessary.
 
 [[LLM: INITIALIZATION INSTRUCTIONS - TASK DOD VALIDATION
 
@@ -40,14 +40,14 @@ The goal is quality delivery, not just checking boxes.]]
    - [ ] Basic security best practices (e.g., input validation, proper error handling, no hardcoded secrets) applied for new/modified code.
    - [ ] No new linter errors or warnings introduced.
    - [ ] Code is well-commented where necessary (clarifying complex logic, not obvious statements).
+   - [ ] Modification history header added/updated in every modified file (per coding-standards.md format).
 
 3. **Testing:**
 
-   [[LLM: Testing proves your code works. Be honest about test coverage]]
-   - [ ] All required unit tests as per the plan and Testing Standards (in Technical Context / Dev Notes) are implemented.
-   - [ ] All required integration tests (if applicable) as per the plan and Testing Standards are implemented.
-   - [ ] All tests (unit, integration, E2E if applicable) pass successfully.
-   - [ ] Test coverage meets project standards (if defined in Technical Context / Dev Notes).
+   [[LLM: Dev validates the change with temporary tests + manual checks. Permanent test suite is QA's responsibility.]]
+   - [ ] Temporary validation tests written during implementation and deleted after confirming the change works.
+   - [ ] Existing test suite (unit/integration/E2E) runs and passes — no regressions introduced.
+   - [ ] Manual testing of the specific scenario completed.
 
 4. **Functionality & Verification:**
 
@@ -83,7 +83,7 @@ The goal is quality delivery, not just checking boxes.]]
 
    [[LLM: Did you follow the plan? Deviations should be justified]]
    - [ ] Implementation follows the Technical Approach specified in the plan.
-   - [ ] Any deviations from the Technical Approach are documented in Completion Notes with justification.
+   - [ ] Any deviations from the Technical Approach are documented in the Deviation Record section (Planned / Actual / Reason).
    - [ ] File structure matches what was specified in Technical Context / Dev Notes (File Locations and Project Structure section).
 
 8. **Documentation (If Applicable):**
@@ -107,4 +107,6 @@ After completing the checklist:
 
 Be honest - it's better to flag issues now than have them discovered later.]]
 
+- [ ] If post-implementation bugs were fixed during this session, the plan was updated per the Post-Implementation Bug Fix rules in implement-task.md.
+- [ ] Status set to "Ready for Review".
 - [ ] I, the Developer Agent, confirm that all applicable items above have been addressed.

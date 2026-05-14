@@ -31,7 +31,15 @@ sections:
   - id: status
     title: Status
     type: choice
-    choices: [Draft - Awaiting Review, Approved, In Progress, Under Review, Completed]
+    choices:
+      [
+        Draft - Awaiting Review,
+        Approved,
+        In Progress,
+        Ready for Review,
+        Ready for Done,
+        Blocked — Security,
+      ]
     instruction: Select the current status of the implementation plan
     owner: planner
     editors: [planner, dev-agent]
@@ -109,7 +117,6 @@ sections:
 
   - id: technical-approach
     title: Technical Approach
-    instruction: Structured technical strategy written by planner as a senior developer guiding junior developers.
     elicit: true
     owner: planner
     editors: [planner]
@@ -150,11 +157,7 @@ sections:
         owner: planner
         editors: [planner]
 
-  # ============================================================
-  # TYPE-SPECIFIC SECTIONS
-  # Only populate the section matching the ticket type.
-  # Leave the others empty or omit them in the output.
-  # ============================================================
+  # Type-specific sections (one of three is populated per plan)
 
   - id: bugfix-details
     title: Bug Fix Details
@@ -292,12 +295,9 @@ sections:
         owner: planner
         editors: [planner]
 
-  - id: test-implementation-notes
+  - id: testing
     title: Testing
-    instruction: |
-      This section is populated by the qa agent during test implementation.
-      Planner: Document testing requirements in the Tasks/Subtasks section.
-      QA agent: Document test implementation details, coverage, and results here.
+    instruction: Test implementation details, coverage, and results.
     owner: qa-agent
     editors: [qa-agent]
 
@@ -312,17 +312,12 @@ sections:
   - id: security-violations
     title: Security Violations
     type: bullet-list
-    instruction: |
-      Populated by the security agent (Sam) after running *check-frontend or *check-backend commands
-      against the implemented plan. Do NOT populate this section manually.
-      Security agent will replace this entire section on re-audit to reflect the latest state.
-      Dev agent (Bob) resolves each violation and marks its checkbox [x] when the fix is applied.
+    instruction: Security audit findings as checkbox items, each with severity, file:line, and fix action.
     owner: security-agent
     editors: [security-agent, dev-agent]
 
   - id: dev-agent-record
     title: Dev Agent Record
-    instruction: This section is populated by the development agent during implementation
     owner: dev-agent
     editors: [dev-agent]
     sections:
@@ -336,12 +331,11 @@ sections:
       - id: pre-implementation-baseline
         title: Pre-Implementation Baseline
         instruction: |
-          Captured by dev agent before implementation starts.
-          - Test results snapshot: pass count, fail count, skip count
-          - Build state snapshot: success/failure, warning count
-          - Folder structure snapshot (for migrations): affected directory tree
-          - Current API contracts (for migrations affecting interfaces)
-          This baseline enables before/after comparison at completion.
+          Migration-only. Snapshot before implementation starts:
+          - Test results: pass / fail / skip counts
+          - Build state: success/failure + warning count
+          - Folder structure of affected directories
+          - API contracts (if interfaces are migrated)
         owner: dev-agent
         editors: [dev-agent]
 
@@ -353,16 +347,7 @@ sections:
 
       - id: completion-notes
         title: Completion Notes
-        instruction: |
-          Key decisions, deviations, and context from implementation sessions.
-          Each entry should include session date and brief description.
-          This section enables session continuity — future sessions read this
-          to understand what was done and why.
-          - Approach taken and any deviations from original plan
-          - Key decisions made during implementation
-          - Known limitations or tech debt introduced
-          - Recommendations for follow-up work
-          - Per-task rollback notes (migration only)
+        instruction: Key decisions, deviations, and context per session (include session date + brief description).
         owner: dev-agent
         editors: [dev-agent]
 
@@ -376,23 +361,16 @@ sections:
     title: Deviation Record
     type: multiline-text
     instruction: |
-      Documents where actual implementation diverged from the planned Technical Approach.
-      Each entry records three fields:
+      Deviations from the planned Technical Approach. Each entry has three fields:
       - Planned: what the Technical Approach specified
       - Actual: what was actually implemented
       - Reason: why the deviation was necessary
-
-      This section bridges the gap between the frozen plan and the implementation truth.
-      The Technical Approach stays as the original intent (useful for review),
-      and the Deviation Record tells what actually happened.
-      Reviewers and future developers should read both sections together.
     owner: dev-agent
     editors: [dev-agent]
 
   - id: feedback
     title: Feedback
     type: bullet-list
-    instruction: |
-      Populated by the QA agent after testing. Dev agent resolves each item and marks its checkbox [x] when the fix is applied.
+    instruction: QA feedback as checkbox items, marked [x] when incorporated.
     owner: qa-agent
     editors: [qa-agent, dev-agent]

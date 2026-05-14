@@ -212,7 +212,6 @@ Based on ticket type and information gathered:
 - Root cause is identified and documented
 - Fix addresses root cause, not just symptom
 - Reproduction steps no longer reproduce the bug
-- Permanent regression test for the specific bug exists
 - Adjacent functionality verified unbroken
 - No scope creep — only the minimal necessary changes are made
 
@@ -355,8 +354,8 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 - 3-5 tasks maximum regardless of complexity. Complex diagnosis does NOT mean complex task count. Typical pattern:
   1. Verify reproduction (confirm the bug manifests as described)
   2. Implement root cause fix (minimal change addressing the actual cause)
-  3. Write permanent regression test for the specific bug
-  4. Verify fix resolves the issue and no regressions
+  3. Write temporary validation test; verify fix; delete after confirming
+  4. Run targeted + full regression on existing test suite
   5. Manual testing / user verification
 
 **For Features:**
@@ -388,28 +387,10 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 3. Integration (connecting components)
 4. Error handling
 
-#### 7.4 Testing Tasks by Ticket Type
+#### 7.4 Testing Tasks
 
-**For Bugs:**
-
-- Write a permanent regression test that fails before the fix and passes after
-- Run targeted tests on the affected code path first
-- Run full regression suite
-- Perform manual testing of the specific bug scenario
-
-**For Features:**
-
-- Write integration tests verifying the feature works with existing code
-- Identify which existing tests might break and update them
-- Perform manual testing
-
-**For Migrations:**
-
-- Run before/after comparison tests (verify baseline metrics maintained)
-- Run full regression suite (not just affected tests)
-- For Architecture Pattern migrations: validate structural conformance (dependency direction, layer boundaries)
-- For Stack Version migrations: verify no deprecated API usage remains
-- Perform manual testing of migrated functionality
+- Write and run temporary validation tests, then delete.
+- Manual testing of the scenario.
 
 ### 8. Document Dependencies and Risks (Only if Applicable)
 

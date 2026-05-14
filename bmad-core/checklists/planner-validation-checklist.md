@@ -90,8 +90,7 @@ We're checking for COMPREHENSIVE detail that eliminates ambiguity and external l
 2. Specific test cases are detailed
 3. Testing frameworks and patterns are specified
 4. Coverage requirements are stated
-5. Testing tasks are included in the task breakdown
-6. Testing strategy matches the ticket type]]
+5. Testing tasks are included in the task breakdown]]
 
 - [ ] Test files specified with full paths
 - [ ] Specific test cases detailed (happy path, errors, edge cases)
@@ -99,7 +98,6 @@ We're checking for COMPREHENSIVE detail that eliminates ambiguity and external l
 - [ ] Coverage requirements stated
 - [ ] Manual testing steps included (if applicable)
 - [ ] Testing tasks included in task breakdown with checkboxes
-- [ ] Testing strategy matches ticket type (feature integration tests ≠ bug regression tests ≠ migration health tests)
 
 ## 5. DEPENDENCIES, RISKS & COMPLETENESS
 
@@ -136,7 +134,6 @@ Verify that type-specific sections are populated with appropriate depth — not 
 - [ ] Affected code path is traced (entry point → data flow → failure point)
 - [ ] Fix scope is bounded (what will NOT be changed is explicitly stated)
 - [ ] Fix addresses root cause, not just symptom
-- [ ] Permanent regression test for the specific bug is planned (not temporary)
 - [ ] Task count is 3-5 regardless of complexity (complex diagnosis ≠ complex task count)
 
 ### 6b. Feature-Specific Checks (ONLY if Ticket Type = Feature)
