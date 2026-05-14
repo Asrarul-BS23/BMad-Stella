@@ -2,13 +2,13 @@
 
 # Scribe Protocol
 
-CRITICAL — non-negotiable. Runs at end of every assistant turn. Captures cross-session memory to `bmad-ledger/`. Survive context compaction. Re-anchor on every activation.
+CRITICAL — non-negotiable. Runs at end of every assistant turn. Captures cross-session notes to `bmad-docs/bmad-notes/notes.md`. Survive context compaction. Re-anchor on every activation.
 
 ---
 
 ## 1. When to capture
 
-### 1.1 DECISION — if turn produced ANY of:
+Capture a NOTE if the turn produced ANY of:
 
 1. **Choice / approach** — picked X over Y, methodology, strategy, sequence
 2. **Adoption** — pattern, library, tool, framework, convention, standard
@@ -19,16 +19,7 @@ CRITICAL — non-negotiable. Runs at end of every assistant turn. Captures cross
 7. **Lesson / gotcha / finding** — non-obvious finding worth remembering
 8. **Acceptance criteria** — definition of "done" agreed upon
 
-### 1.2 ACTION — at coherent unit boundary (NOT per file edit):
-
-- Plan task completed (checkbox flipped, section marked done)
-- User transitions ("next", "done", "moving on", switches persona)
-- Agent self-summarizes completion ("implemented X", "refactored Y", "migration applied")
-- Multi-edit sequence finishes with all related files done + tests pass
-
-ACTION captures the WORK UNIT, not the edits. Bad: "Edited middleware.ts". Good: "Implemented JWT auth middleware".
-
-### 1.3 SKIP
+### SKIP
 
 - Mid-work edits without unit-boundary signal
 - Pure exploration / brainstorm without resolution
@@ -43,16 +34,11 @@ When uncertain → lean toward CAPTURE.
 
 If eligible per Section 1, execute IN ORDER:
 
-1. **Append entry** to `bmad-ledger/decisions.md` (DEC) or `bmad-ledger/actions.md` (ACT). Format per Section 3.
+1. **Append entry** to `bmad-docs/bmad-notes/notes.md`. Format per Section 3.
 
-2. **Update index** (`bmad-ledger/index.yaml`):
-   - Insert entry block per Section 3.3 under `entries:` (before `stats:`).
-   - Increment `stats.total`, `stats.{type}s`, `stats.active`.
-   - Atomic write: write `index.yaml.tmp` → rename to `index.yaml`.
+2. **Verify on disk** — read the last ~30 lines of `notes.md` from disk (open and inspect, never mentally assume). Confirm new entry block visible AND ID present.
 
-3. **Verify on disk** — read the last ~30 lines of the target `.md` AND the `entries:` section of `index.yaml` from disk (open and inspect, never mentally assume). Confirm new entry block visible AND entry ID present in index.
-
-4. ONLY after step 3 confirmed → append `📝 captured: {ID} — {title}` at END of reply.
+3. ONLY after step 2 confirmed → append `📝 captured: {ID} — {title}` at END of reply.
 
 Notification without verified-on-disk write = **CRITICAL FAILURE**.
 
@@ -60,51 +46,25 @@ Notification without verified-on-disk write = **CRITICAL FAILURE**.
 
 ## 3. Entry format
 
-### 3.1 DECISION
-
 ```
-## DEC-{YYYY-MM-DD-HHMMSS-mmm}  {short title}
-why: {reason}
-ref: {ticket | DEC-id | —}
+## NOTE-{YYYY-MM-DD-HHMMSS-mmm}  {short title}
+{1-3 line body — explain what / why / where as relevant}
+ref: {ticket | NOTE-id | —}
 agent: {your-id}
 tags: [≥1 core, ...]
 ```
 
-### 3.2 ACTION
+### 3.1 ID
 
-```
-## ACT-{YYYY-MM-DD-HHMMSS-mmm}  {short title}
-where: {file/system}
-ref: {ticket | DEC-id | —}
-agent: {your-id}
-tags: [≥1 core, ...]
-```
+Format: `NOTE-{YYYY-MM-DD-HHMMSS-mmm}`. Generate from current UTC time. No lookup. Always unique.
 
-### 3.3 Index entry (in `index.yaml`)
+Example: `NOTE-2026-05-14-183215-422`.
 
-```yaml
-{ ID }:
-  type: decision | action
-  title: '...'
-  file: decisions.md | actions.md
-  line: { n }
-  status: active
-  superseded_by: null
-  tags: [...]
-  ref: { ticket-or-— }
-  agent: { your-id }
-  created: { ISO timestamp }
-```
-
-### 3.4 ID
-
-Full ID format: `{TYPE}-{YYYY-MM-DD-HHMMSS-mmm}` where TYPE is `DEC` (in decisions.md) or `ACT` (in actions.md). Generate from current UTC time. No lookup. The same ID appears in the entry header (3.1/3.2) AND as the `{ID}` key in `index.yaml` (3.3).
-
-### 3.5 Tags
+### 3.2 Tags
 
 ≥1 from core list in `bmad-core/data/scribe-rules.yaml`. Free-form additions OK. Max 5 per entry.
 
-### 3.6 Style
+### 3.3 Style
 
 Short, precise, concise. NO code blocks, bullet lists, hedging ("maybe"/"I think"), AI commentary ("interesting"), emojis.
 
@@ -112,10 +72,10 @@ Short, precise, concise. NO code blocks, bullet lists, hedging ("maybe"/"I think
 
 ## 4. Supersession / revoke
 
-| Scenario                   | Action                                                                                                                                                                      |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Decision/action superseded | New entry in current file (`supersedes: OLD-ID` line). Append `> [SUPERSEDED] {date} → {new-id}` after old entry. Index: old `status: superseded`, `superseded_by: NEW-ID`. |
-| Decision/action revoked    | Append `> [REVOKED] {date} reason: {brief}` after old entry. Index: old `status: revoked`. No new entry.                                                                    |
+| Scenario   | Action                                                                                                           |
+| ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| Superseded | Append new note with `supersedes: OLD-ID` line. Append `> [SUPERSEDED] {date} → {new-id}` after old entry block. |
+| Revoked    | Append `> [REVOKED] {date} reason: {brief}` after old entry block. No new entry.                                 |
 
 Never rewrite body of old entries. Only append marker.
 
@@ -123,7 +83,7 @@ Never rewrite body of old entries. Only append marker.
 
 ## 5. Failure handling
 
-Section 2 step 1, 2, or 3 fails → retry once. Second failure → SILENT skip. Do NOT print `📝 captured`.
+Section 2 step 1 or 2 fails → retry once. Second failure → SILENT skip. Do NOT print `📝 captured`.
 
 Printing `📝 captured` without successful Write+Read = CRITICAL FAILURE.
 
@@ -131,18 +91,17 @@ Printing `📝 captured` without successful Write+Read = CRITICAL FAILURE.
 
 ## 6. Path scope — STRICT
 
-Write ONLY inside `bmad-ledger/`. Forbidden: `bmad-docs/`, `bmad-core/`, code files, JIRA, anything else. If unsure → DO NOT WRITE.
+Write ONLY to `bmad-docs/bmad-notes/notes.md`. Forbidden: any other path under `bmad-docs/`, `bmad-core/`, code files, JIRA, anything else. If unsure → DO NOT WRITE.
 
 ---
 
 ## 7. Bootstrap fallback
 
-If `bmad-ledger/` or any required file missing on first capture → create skeleton:
+If `bmad-docs/bmad-notes/notes.md` missing on first capture → create the directory and file with a header comment:
 
-- `bmad-ledger/decisions.md` (with header comment)
-- `bmad-ledger/actions.md` (with header comment)
-- `bmad-ledger/index.yaml` (seed: version 2, empty entries, zero stats)
-- `bmad-ledger/.meta/version.yaml` (`version: 2`)
+```
+<!-- BMAD scribe notes. Append-only. Edit existing entries only via supersession/revoke marker. -->
+```
 
 Installer normally handles this. Bootstrap is fallback only.
 

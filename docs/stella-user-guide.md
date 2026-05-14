@@ -642,26 +642,11 @@ Use when a new developer joins the project and needs a guided tour of architectu
 
 ---
 
-### Scribe Agent Commands
+### Scribe Notes
 
-**Activation (in Claude Code CLI):** `/BMad:agents:scribe` (tip: type `/scribe` → pick from suggestions → press **Tab**)
-**Agent:** Sam - Memory Ledger Utility
-**Icon:** 📝
+Every BMAD agent auto-captures decisions and findings to a single append-only file at `bmad-docs/bmad-notes/notes.md`. Captures happen at the end of each turn — no commands, no setup. Open the file directly (or grep it) to review past notes.
 
-| Command       | Purpose                                          | When to Use                          | Files Created/Modified | Parameters             |
-| ------------- | ------------------------------------------------ | ------------------------------------ | ---------------------- | ---------------------- |
-| `*help`       | Show commands + ledger status                    | When unsure what scribe does         | None                   | None                   |
-| `*recall {q}` | Query ledger; answer with synthesis + references | Ask about prior decisions or actions | None (read-only)       | `{q}` — free-form text |
-| `*exit`       | Return control to previous active agent          | When done with scribe utility        | None                   | None                   |
-
-**Notes:**
-
-- Capture is **automatic** — every BMAD agent runs the scribe protocol embedded. No `*capture` command needed.
-- Recall is **automatic too** — every BMAD agent runs the read protocol embedded. Just ask in any agent ("what did we decide about auth?"). The agent auto-consults the ledger. `/BMad:agents:scribe *recall` is now an optional fallback.
-- Ledger lives in two flat files: `bmad-ledger/decisions.md` and `bmad-ledger/actions.md`, plus `index.yaml` for fast filter.
-- `/BMad:agents:scribe *recall` does **not** switch your active session persona (planner/dev/qa/reviewer). Sam is a one-shot utility.
-- All ledger files live under `bmad-ledger/` (gitignored, local to your machine).
-- See [Scribe User Guide](scribe-user-guide.md) for full details.
+See [Scribe User Guide](scribe-user-guide.md) for the full details.
 
 ---
 

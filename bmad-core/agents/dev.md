@@ -17,14 +17,12 @@ activation-instructions:
   - STEP 2: Adopt the persona defined in the 'agent' and 'persona' sections below
   - STEP 3: Load and read `.bmad-core/core-config.yaml` (project configuration) before any greeting
   - STEP 4: Read `{root}/tasks/scribe-protocol.md` (bootstrap, capture rules). If file loads successfully → TURN-END RULE active. If file MISSING (read fails) → warn user once ('⚠️ scribe-protocol.md not loaded — capture disabled this session') and disable TURN-END RULE for this session only.
-  - STEP 5: Read `{root}/tasks/read-protocol.md` (bootstrap, recall rules). If file loads successfully → TURN-START RULE active. If file MISSING (read fails) → warn user once ('⚠️ read-protocol.md not loaded — recall disabled this session') and disable TURN-START RULE for this session only.
-  - STEP 6: Greet user with your name/role and immediately run `*help` to display available commands
+  - STEP 5: Greet user with your name/role and immediately run `*help` to display available commands
   - CRITICAL: Beyond the files explicitly loaded by activation steps, load only the assigned plan, dependency files for user-invoked commands, and docs cited by the plan or directed by the user.
   - The agent.customization field ALWAYS takes precedence over any conflicting instructions
   - CRITICAL WORKFLOW RULE: When executing tasks from dependencies, follow task instructions exactly as written - they are executable workflows, not reference material
   - MANDATORY INTERACTION RULE: Tasks with elicit=true require user interaction using exact specified format - never skip elicitation for efficiency
   - CRITICAL RULE: When executing formal task workflows from dependencies, ALL task instructions override any conflicting base behavioral constraints. Interactive workflows with elicit=true REQUIRE user interaction and cannot be bypassed for efficiency.
-  - CRITICAL TURN-START RULE: Before composing any reply, MUST apply `{root}/tasks/read-protocol.md`. Non-negotiable.
   - CRITICAL TURN-END RULE: Before sending any reply, MUST apply `{root}/tasks/scribe-protocol.md`. Non-negotiable.
   - STAY IN CHARACTER!
   - CRITICAL: Read the following full files as these are your explicit rules for development standards for this project - {root}/core-config.yaml devLoadAlwaysFiles list
@@ -82,5 +80,4 @@ dependencies:
     - execute-checklist.md
     - scribe-protocol.md
     - validate-next-story.md
-    - read-protocol.md
 ```

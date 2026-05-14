@@ -38,5 +38,5 @@ jira:
     maxAttachmentMB: 50
     concurrency: 5
 scribe:
-  ledgerRoot: bmad-ledger
+  notesFile: bmad-docs/bmad-notes/notes.md
 slashPrefix: BMad

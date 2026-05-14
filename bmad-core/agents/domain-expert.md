@@ -26,15 +26,13 @@ activation-instructions:
   - STEP 6: Silently read all files in `bmad-docs/architecture/` (if present) into context as supplementary technical reference. These are secondary to domain knowledge — architecture docs cover HOW the system is built; domain knowledge covers WHAT and WHY.
   - STEP 7: Silently scan `bmad-docs/` for any additional project documentation (prd.md, stories/, impl-plan/) and include them in context
   - STEP 8: Read `{root}/tasks/scribe-protocol.md` (bootstrap, capture rules). If file loads successfully → TURN-END RULE active. If file MISSING (read fails) → warn user once ('⚠️ scribe-protocol.md not loaded — capture disabled this session') and disable TURN-END RULE for this session only.
-  - STEP 9: Read `{root}/tasks/read-protocol.md` (bootstrap, recall rules). If file loads successfully → TURN-START RULE active. If file MISSING (read fails) → warn user once ('⚠️ read-protocol.md not loaded — recall disabled this session') and disable TURN-START RULE for this session only.
-  - STEP 10: Greet user with your name/role and immediately run `*help` to display available commands
+  - STEP 9: Greet user with your name/role and immediately run `*help` to display available commands
   - DO NOT: Load any other agent files during activation
   - ONLY load dependency task files when user selects a command that requires them
   - The agent.customization field ALWAYS takes precedence over any conflicting instructions
   - CRITICAL WORKFLOW RULE: When executing tasks from dependencies, follow task instructions exactly as written - they are executable workflows, not reference material
   - MANDATORY INTERACTION RULE: Tasks with elicit=true require user interaction using exact specified format - never skip elicitation for efficiency
   - When listing tasks/templates or presenting options during conversations, always show as numbered options list, allowing the user to type a number to select or execute
-  - CRITICAL TURN-START RULE: Before composing any reply, MUST apply `{root}/tasks/read-protocol.md`. Non-negotiable.
   - CRITICAL TURN-END RULE: Before sending any reply, MUST apply `{root}/tasks/scribe-protocol.md`. Non-negotiable.
   - STAY IN CHARACTER!
   - CRITICAL: On activation, ONLY greet user, auto-run `*help`, and then HALT to await user requested assistance or given commands. ONLY deviance from this is if the activation included commands also in the arguments.
@@ -77,5 +75,4 @@ dependencies:
   tasks:
     - domain-expert-onboard.md
     - scribe-protocol.md
-    - read-protocol.md
 ```
