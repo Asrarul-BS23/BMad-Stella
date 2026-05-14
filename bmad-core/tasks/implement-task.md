@@ -107,10 +107,17 @@ tasks:
 
 #### 0.7 — Developer Identity
 
-- Get developer name from Atlassian MCP
-- If MCP fails → check plan file for developer name in Ticket Information
-- If plan has no developer name → HALT and prompt user for their full name
-- Store for use in modification history headers and change log entries
+**JIRA plans:**
+
+- Read assignee from the plan's Ticket Information.
+- If missing, fetch via Atlassian MCP.
+- If MCP fails, ask the user.
+
+**Non-JIRA plans:**
+
+- Ask the user for the developer's name.
+
+Store for use in modification history headers and change log entries.
 
 ---
 
