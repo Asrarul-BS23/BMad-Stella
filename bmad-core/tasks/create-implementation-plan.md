@@ -259,13 +259,13 @@ After deriving ACs (5.1–5.5), display them to the user and ask for confirmatio
 
 ### 6. Define Technical Approach and Decisions
 
-As a senior developer, document the complete technical approach using the structured sub-sections from the template.
+As a senior developer, document the complete technical decisions, references to existing files, data flows, and named patterns using the structured sub-sections from the template.
 
 #### 6.1 Current State
 
 Document what exists now in the codebase relevant to this ticket:
 
-- Current code structure and file organization in the affected area
+- Concise description of current code structure and file organization in the affected area
 - Current data flow or execution path (especially for bugs and migrations)
 - Existing patterns, utilities, and services that are relevant
 - Current test coverage of affected files
@@ -273,7 +273,7 @@ Document what exists now in the codebase relevant to this ticket:
 
 #### 6.2 Target State
 
-Document what should exist after implementation is complete:
+Describe concisely - what should exist after implementation is complete:
 
 - For Bugs: corrected behavior and the specific code path change
 - For Features: new components, endpoints, files, and how they integrate
@@ -281,10 +281,10 @@ Document what should exist after implementation is complete:
 
 #### 6.3 Transformation Strategy
 
-Document how to get from current state to target state:
+Describe how to get from current state to target state:
 
 - Implementation strategy and major components affected
-- Key design patterns and code patterns to follow
+- Key design patterns and implementation patterns to follow
 - API/database design changes (if applicable)
 - Technology/framework choices
 
@@ -375,7 +375,7 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 #### 7.2 Task Guidelines (All Types)
 
 - Tasks should be logical implementation steps, not overly granular
-- DO NOT include code snippets in tasks
+- DO NOT include code snippets in tasks - you are senior giving instructions, not implementing
 - Avoid micro-tasks like "create file X" or "add import statement"
 - Group related implementation steps into meaningful tasks
 - Reference architecture docs where applicable [Source: {doc}]
@@ -386,11 +386,9 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 2. Core implementation (main features/fix/migration steps)
 3. Integration (connecting components)
 4. Error handling
-
-#### 7.4 Testing Tasks
-
-- Write and run temporary validation tests, then delete.
-- Manual testing of the scenario.
+5. **Testing (always include these 2 final tasks):**
+   - Write and run temporary unit tests, then delete
+   - Perform manual testing
 
 ### 8. Document Dependencies and Risks (Only if Applicable)
 
@@ -421,7 +419,7 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
   - Acceptance Criteria (type-specific, derived or provided)
   - Technical Approach (structured: Current State, Target State, Transformation Strategy, Integration Points, Pattern Conformance)
   - Type-specific section (one only, per §6.7)
-  - Tasks / Subtasks (type-specific granularity, with checkboxes and testing tasks)
+  - Tasks / Subtasks (type-specific granularity, with checkboxes and 2 testing tasks)
   - Dependencies and Risks (if applicable)
   - Change Log (initialize with creation entry)
   - Dev Agent Record (leave empty - dev agent will populate during implementation)

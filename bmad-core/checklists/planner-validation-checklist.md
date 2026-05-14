@@ -76,7 +76,6 @@ We're checking for COMPREHENSIVE detail that eliminates ambiguity and external l
 3. Source citations [Source: ...] are for validator verification only
 4. Instructions are clear and unambiguous]]
 
-- [ ] Dev agent can implement without reading architecture docs
 - [ ] Critical information is in the plan (not just referenced)
 - [ ] Instructions are clear and unambiguous
 - [ ] No treasure hunting required for essential information
