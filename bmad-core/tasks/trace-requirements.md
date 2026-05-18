@@ -97,23 +97,23 @@ trace:
     full: Y
     partial: Z
     none: W
-  planning_ref: 'qa.qaLocation/assessments/{ticket_number}-*-test-design-{YYYYMMDD}.md'
+  planning_ref: 'qa.qaLocation/assessments/{plan_id}-*-test-design-{YYYYMMDD}.md'
   uncovered:
     - ac: 'AC3'
       reason: 'No test found for password reset timing'
-  notes: 'See qa.qaLocation/assessments/{ticket_number}-*-trace-{YYYYMMDD}.md'
+  notes: 'See qa.qaLocation/assessments/{plan_id}-*-trace-{YYYYMMDD}.md'
 ```
 
 ### Output 2: Traceability Report
 
-**Save to:** `qa.qaLocation/assessments/{ticket_number}-{ticket_title_short}-trace-{YYYYMMDD}.md`
+**Save to:** `qa.qaLocation/assessments/{plan_id}-{ticket_title_short}-trace-{YYYYMMDD}.md`
 
 Create a traceability report with:
 
 ```markdown
 # Requirements Traceability Matrix
 
-## Task: {ticket_number} - {title}
+## Task: {plan_id} - {title}
 
 ### Coverage Summary
 
@@ -252,7 +252,7 @@ This traceability feeds into quality gates:
 **Print this line for review task to quote:**
 
 ```text
-Trace matrix: qa.qaLocation/assessments/{ticket_number}-{ticket_title_short}-trace-{YYYYMMDD}.md
+Trace matrix: qa.qaLocation/assessments/{plan_id}-{ticket_title_short}-trace-{YYYYMMDD}.md
 ```
 
 - Full coverage → PASS contribution

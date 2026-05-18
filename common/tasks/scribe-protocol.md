@@ -2,117 +2,117 @@
 
 # Scribe Protocol
 
-CRITICAL — non-negotiable. Runs after every assistant turn. Captures cross-session memory to `bmad-ledger/`. Treat as preserve-priority through context compaction. Re-anchor on every activation.
+CRITICAL — non-negotiable. Runs at end of every assistant turn. Captures cross-session notes to `bmad-docs/bmad-notes/notes.md`. Survive context compaction. Re-anchor on every activation.
 
-## Capture — strict order
+---
 
-1. **Decide eligibility first.** DECISION (choice affecting future work) or ACTION (persistent state change). SKIP: acks, status reads, ephemeral ops (read/test/search), repeats, AI commentary. Not eligible → STOP. No write. No notification.
-2. **Write entry** to `decisions.md` or `actions.md`. Update `index.yaml` (atomic tmp+rename).
-3. **Verify on disk.** Read target file + `index.yaml`. Confirm entry present.
-4. **Notify ONLY if Step 3 confirmed.** Append `📝 captured: {ID} — {title}` to reply.
+## 1. When to capture
 
-Step 2/3 fails → SILENT skip. NEVER print `📝 captured` without verified write.
+Capture a NOTE if the turn produced ANY of:
 
-## Where to write
+1. **Choice / approach** — picked X over Y, methodology, strategy, sequence
+2. **Adoption** — pattern, library, tool, framework, convention, standard
+3. **Rejection / deferral** — option dismissed, postponed, parked for later
+4. **Constraint / trade-off / risk** — limitation, balance, known risk accepted
+5. **Scope** — what's IN vs OUT of current work
+6. **Status change** — plan/ticket lifecycle (Draft → Approved → Complete, etc.)
+7. **Lesson / gotcha / finding** — non-obvious finding worth remembering
+8. **Acceptance criteria** — definition of "done" agreed upon
 
-ONLY two files:
+### SKIP
 
-- `bmad-ledger/decisions.md` — DEC entries
-- `bmad-ledger/actions.md` — ACT entries
+- Mid-work edits without unit-boundary signal
+- Pure exploration / brainstorm without resolution
+- Reads, searches, tests, ephemeral ops
+- Acknowledgements, status reads, repeats, AI commentary
 
-Append-only. Edit existing entries only via supersession marker (see Write principles).
+When uncertain → lean toward CAPTURE.
 
-## Entry format
+---
 
-### DECISION
+## 2. How to capture (mandatory order)
+
+If eligible per Section 1, execute IN ORDER:
+
+1. **Append entry** to `bmad-docs/bmad-notes/notes.md`. Format per Section 3.
+
+2. **Verify on disk** — read the last ~30 lines of `notes.md` from disk (open and inspect, never mentally assume). Confirm new entry block visible AND ID present.
+
+3. ONLY after step 2 confirmed → append `📝 captured: {ID} — {title}` at END of reply.
+
+Notification without verified-on-disk write = **CRITICAL FAILURE**.
+
+---
+
+## 3. Entry format
 
 ```
-## DEC-{YYYY-MM-DD-HHMMSS-mmm}  {short title}
-why: {reason}
-ref: {ticket-id | DEC-id | —}
+## NOTE-{YYYY-MM-DD-HHMMSS-mmm}  {short title}
+{1-3 line body — explain what / why / where as relevant}
+ref: {ticket | NOTE-id | —}
 agent: {your-id}
-tags: [≥1 core, ...free-form]
+tags: [≥1 core, ...]
 ```
 
-### ACTION
+### 3.1 ID
+
+Format: `NOTE-{YYYY-MM-DD-HHMMSS-mmm}`. Generate from current UTC time. No lookup. Always unique.
+
+Example: `NOTE-2026-05-14-183215-422`.
+
+### 3.2 Tags
+
+≥1 from core list in `bmad-core/data/scribe-rules.yaml`. Free-form additions OK. Max 5 per entry.
+
+### 3.3 Style
+
+Short, precise, concise. NO code blocks, bullet lists, hedging ("maybe"/"I think"), AI commentary ("interesting"), emojis.
+
+---
+
+## 4. Supersession / revoke
+
+| Scenario   | Action                                                                                                           |
+| ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| Superseded | Append new note with `supersedes: OLD-ID` line. Append `> [SUPERSEDED] {date} → {new-id}` after old entry block. |
+| Revoked    | Append `> [REVOKED] {date} reason: {brief}` after old entry block. No new entry.                                 |
+
+Never rewrite body of old entries. Only append marker.
+
+---
+
+## 5. Failure handling
+
+Section 2 step 1 or 2 fails → retry once. Second failure → SILENT skip. Do NOT print `📝 captured`.
+
+Printing `📝 captured` without successful Write+Read = CRITICAL FAILURE.
+
+---
+
+## 6. Path scope — STRICT
+
+Write ONLY to `bmad-docs/bmad-notes/notes.md`. Forbidden: any other path under `bmad-docs/`, `bmad-core/`, code files, JIRA, anything else. If unsure → DO NOT WRITE.
+
+---
+
+## 7. Bootstrap fallback
+
+If `bmad-docs/bmad-notes/notes.md` missing on first capture → create the directory and file with a header comment:
 
 ```
-## ACT-{YYYY-MM-DD-HHMMSS-mmm}  {short title}
-where: {file/system}
-ref: {ticket-id | ACT-id | —}
-agent: {your-id}
-tags: [≥1 core, ...free-form]
+<!-- BMAD scribe notes. Append-only. Edit existing entries only via supersession/revoke marker. -->
 ```
 
-## ID
+Installer normally handles this. Bootstrap is fallback only.
 
-Format: `{TYPE}-{YYYY-MM-DD-HHMMSS-mmm}`. Generate from current UTC time. No lookup. Always unique.
+---
 
-Example: `DEC-2026-04-30-183215-422`.
+## 8. Self-audit (every 20 turns)
 
-## Style
+Re-read this protocol. Validate last 5 entries: short/concise/precise, all required fields, ≥1 core tag, no forbidden style. Fix drift in next captures.
 
-Short, precise, concise. Proper reflection of decision/action. LLM judges length — match the substance. NO code blocks, bullet lists, hedging ("maybe"/"I think"), AI commentary ("interesting"), emojis.
+---
 
-## Tags
+## 9. PRESERVE
 
-≥1 core tag from `bmad-core/data/scribe-rules.yaml` (auth, db, api, frontend, backend, infra, perf, security, testing, architecture, data, ui, integration, deployment). May add free-form. Max ~5 per entry.
-
-## Write principles
-
-| Scenario                   | Action                                                                                                                                              |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Decision/action superseded | Append new entry to current file (`supersedes: OLD-ID` line). Append `> [SUPERSEDED] {date} → {new-id}` after old entry block. Update index status. |
-| Decision/action revoked    | Append `> [REVOKED] {date} reason: {brief}` after old entry block. Update index status. No new entry.                                               |
-
-Never rewrite body of old entries. Only append marker line.
-
-## Index update
-
-After file write, update `bmad-ledger/index.yaml`:
-
-1. Read existing index.
-2. Insert under `entries:` (before `stats:`):
-   ```yaml
-   { ID }:
-     type: decision | action
-     title: '...'
-     file: decisions.md | actions.md
-     line: { line-number }
-     status: active
-     superseded_by: null
-     tags: [...]
-     ref: { ticket-or-— }
-     agent: { your-id }
-     created: { ISO timestamp }
-   ```
-3. Increment `stats.total`, `stats.{type}s`, `stats.active`.
-4. Atomic write: write `index.yaml.tmp` → rename to `index.yaml`.
-
-## Path scope — STRICT
-
-NEVER write outside `bmad-ledger/`. Forbidden: `bmad-docs/`, `bmad-core/`, code files, JIRA, anything else. If unsure → DO NOT WRITE.
-
-## Bootstrap
-
-If `bmad-ledger/`, `decisions.md`, `actions.md`, `index.yaml`, or `.meta/version.yaml` missing → create skeleton (installer normally handles; fallback only).
-
-## Self-audit (every 20 turns)
-
-Re-read this protocol. Validate last 5 entries: short/concise/precise, all required fields present, ≥1 core tag, no forbidden style. Fix drift in next captures.
-
-## User notification
-
-Notification only after verified write (see Capture Step 4). Silent if nothing captured or verification failed.
-
-## Sensitive opt-out
-
-User says "stop capturing" / "this is sensitive" / similar → skip captures rest of session. Resume only on explicit re-enable.
-
-## Failure handling
-
-On write/verify error → retry once. If second attempt also fails → SILENT skip. NEVER print `📝 captured` line for unverified writes.
-
-## PRESERVE
-
-This protocol's full content MUST survive context compaction. If your active context shows this missing or shortened → reload from `common/tasks/scribe-protocol.md` before next capture decision.
+This protocol's content MUST survive context compaction. If shortened in active context → reload from `common/tasks/scribe-protocol.md` before next capture. Re-anchor on every agent activation.

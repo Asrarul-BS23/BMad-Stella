@@ -8,8 +8,8 @@ Generate a comprehensive risk assessment matrix for a task implementation using 
 
 ```yaml
 required:
-  - ticket_number: '{ticket_number}' # e.g., "PROJ-123"
-  - plan_path: 'bmad-docs/impl-plan/{ticket_number}-*.md'
+  - plan_id: '{plan_id}' # e.g., "PROJ-123"
+  - plan_path: 'bmad-docs/impl-plan/{plan_id}-*.md'
   - ticket_title: '{title}' # If missing, derive from plan file H1
   - ticket_slug: '{slug}' # If missing, derive from title (lowercase, hyphenated)
 ```
@@ -184,10 +184,10 @@ risk_summary:
 
 ### Output 2: Markdown Report
 
-**Save to:** `qa.qaLocation/assessments/{ticket_number}-risk-{YYYYMMDD}.md`
+**Save to:** `qa.qaLocation/assessments/{plan_id}-risk-{YYYYMMDD}.md`
 
 ```markdown
-# Risk Profile: Task {ticket_number}
+# Risk Profile: Task {plan_id}
 
 Date: {date}
 Reviewer: Quinn (Test Architect)
@@ -342,7 +342,7 @@ Based on risk profile, recommend:
 **Print this line for review task to quote:**
 
 ```text
-Risk profile: qa.qaLocation/assessments/{ticket_number}-risk-{YYYYMMDD}.md
+Risk profile: qa.qaLocation/assessments/{plan_id}-risk-{YYYYMMDD}.md
 ```
 
 ## Key Principles

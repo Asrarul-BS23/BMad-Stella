@@ -459,12 +459,12 @@ class Installer {
       spinner.start();
     }
 
-    // Initialize scribe memory ledger (silent, idempotent)
+    // Initialize scribe notes (silent, idempotent)
     if (config.installType !== 'expansion-only') {
-      spinner.text = 'Initializing memory ledger...';
+      spinner.text = 'Initializing notes...';
       spinner.stop();
-      const ledgerResult = await scribeSetup.setup(installDir);
-      scribeSetup.showSummary(ledgerResult);
+      const notesResult = await scribeSetup.setup(installDir);
+      scribeSetup.showSummary(notesResult);
       spinner.start();
     }
 
@@ -1990,7 +1990,7 @@ class Installer {
   async updateGitignore(installDir) {
     try {
       const gitignorePath = path.join(installDir, '.gitignore');
-      const bmadIgnoreEntries = ['bmad-docs/', 'bmad-ledger/', '.claude/', '.bmad-core/', '.env'];
+      const bmadIgnoreEntries = ['bmad-docs/', '.claude/', '.bmad-core/', '.env'];
 
       // Check if .gitignore exists
       const exists = await fileManager.pathExists(gitignorePath);

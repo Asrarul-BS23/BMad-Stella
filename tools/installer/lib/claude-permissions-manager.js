@@ -59,31 +59,30 @@ class ClaudePermissionsManager {
       'Edit(bmad-docs/**)',
       'Edit(*bmad-docs*)',
 
-      // File operations for ledger files (scribe memory)
-      'Read(bmad-ledger/**)',
-      'Read(**/bmad-ledger/**)',
-      'Write(bmad-ledger/**)',
-      'Write(*bmad-ledger*)',
-      'Edit(bmad-ledger/**)',
-      'Edit(*bmad-ledger*)',
+      // File operations for scribe notes
+      'Read(bmad-docs/bmad-notes/**)',
+      'Read(**/bmad-docs/bmad-notes/**)',
+      'Write(bmad-docs/bmad-notes/**)',
+      'Write(*bmad-notes*)',
+      'Edit(bmad-docs/bmad-notes/**)',
+      'Edit(*bmad-notes*)',
 
-      // Bash for ledger directory ops (Unix)
-      'Bash(mkdir -p bmad-ledger/**)',
-      'Bash(mkdir bmad-ledger/**)',
-      'Bash(mv bmad-ledger/**)',
-      'Bash(ls bmad-ledger/**)',
-      'Bash(test -f bmad-ledger/**)',
-      'Bash(test -d bmad-ledger/**)',
-      'Bash([ -f bmad-ledger/** ])',
-      'Bash([ -d bmad-ledger/** ])',
+      // Bash for notes directory ops (Unix)
+      'Bash(mkdir -p bmad-docs/bmad-notes/**)',
+      'Bash(mkdir bmad-docs/bmad-notes/**)',
+      'Bash(ls bmad-docs/bmad-notes/**)',
+      'Bash(test -f bmad-docs/bmad-notes/**)',
+      'Bash(test -d bmad-docs/bmad-notes/**)',
+      'Bash([ -f bmad-docs/bmad-notes/** ])',
+      'Bash([ -d bmad-docs/bmad-notes/** ])',
 
-      // Bash for ledger directory ops (Windows) — non-destructive only
-      'Bash(mkdir *bmad-ledger*)',
-      'Bash(dir bmad-ledger/**)',
+      // Bash for notes directory ops (Windows) — non-destructive only
+      'Bash(mkdir *bmad-notes*)',
+      'Bash(dir bmad-docs/bmad-notes/**)',
 
-      // Glob/Grep for ledger
-      'Grep(bmad-ledger/**)',
-      'Glob(bmad-ledger/**)',
+      // Glob/Grep for notes
+      'Grep(bmad-docs/bmad-notes/**)',
+      'Glob(bmad-docs/bmad-notes/**)',
 
       // Bash commands for directory operations (Unix)
       'Bash(mkdir -p bmad-docs/**)',

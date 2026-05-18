@@ -430,7 +430,7 @@ Use when work originates outside JIRA — a brief, an internal doc, or a direct 
 *capture-requirements "Add dark-mode toggle to settings page; persist preference per user."
 # Option B: markdown / text file
 # *capture-requirements ./docs/specs/dark-mode-brief.md
-# Planner asks for screenshots, Plan ID, and confirms type (Feature/Bug/Migration)
+# Planner asks for screenshots, Plan ID, and confirms type (Bug/Feature/Migration)
 
 # 2. Draft and validate plan
 *draft-plan
@@ -549,7 +549,7 @@ Use when a new developer joins the project and needs a guided tour of architectu
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | `*help`                  | Display all available commands                                                                                                        | When starting planner agent or need command list                                                                                                                                                                                  | None                                                                     | None                                                                                      |
 | `*retrieve-ticket-info`  | Fetch JIRA ticket details via Atlassian MCP                                                                                           | **First step (JIRA path)** in planning workflow. Use when you have a JIRA ticket number or URL and need to gather requirements, acceptance criteria, and attachments before planning                                              | None (displays ticket info for validation)                               | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
-| `*capture-requirements`  | Capture requirements from non-JIRA sources (direct text, .md, or .txt) and prepare for planning                                       | **First step (non-JIRA path)** in planning workflow. Use when work originates from a brief, internal doc, or direct ask. Asks for screenshots, Plan ID, and confirms type (Feature/Bug/Migration) before handoff to `*draft-plan` | None (displays prepared summary for validation)                          | `{input}` - Direct text (quoted) OR path to a `.md`/`.txt` file                           |
+| `*capture-requirements`  | Capture requirements from non-JIRA sources (direct text, .md, or .txt) and prepare for planning                                       | **First step (non-JIRA path)** in planning workflow. Use when work originates from a brief, internal doc, or direct ask. Asks for screenshots, Plan ID, and confirms type (Bug/Feature/Migration) before handoff to `*draft-plan` | None (displays prepared summary for validation)                          | `{input}` - Direct text (quoted) OR path to a `.md`/`.txt` file                           |
 | `*identify-dependencies` | Find related past tickets, analyze code files modified in past work, and assess code modification requirements for the current ticket | After retrieving ticket info. Use before drafting a plan for complex tickets to understand what past work is related, which files are likely impacted, and what risks or blockers exist early                                     | **Creates:** `bmad-docs/temporary/{TICKET-ID}-dependency-tmp.md`         | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                    |
 | `*draft-plan`            | Create detailed implementation plan with tasks, technical approach, and dependencies                                                  | After retrieving ticket info and validating requirements. Transforms ticket into actionable plan with step-by-step tasks that junior developers can follow                                                                        | **Creates:** `bmad-docs/impl-plan/{TICKET-NUMBER}-plan.md`               | `{ticket-file-or-description}` - Ticket file path or description with Acceptance Criteria |
 | `*refine-plan`           | Iterate and improve existing implementation plan                                                                                      | When initial plan needs more technical detail, user provides feedback, requirements change, or approach needs adjustment. Supports iterative refinement before dev handoff                                                        | **Modifies:** Existing plan file                                         | `{plan-file}` - Path to implementation plan                                               |
@@ -642,26 +642,11 @@ Use when a new developer joins the project and needs a guided tour of architectu
 
 ---
 
-### Scribe Agent Commands
+### Scribe Notes
 
-**Activation (in Claude Code CLI):** `/BMad:agents:scribe` (tip: type `/scribe` → pick from suggestions → press **Tab**)
-**Agent:** Sam - Memory Ledger Utility
-**Icon:** 📝
+Every BMAD agent auto-captures decisions and findings to a single append-only file at `bmad-docs/bmad-notes/notes.md`. Captures happen at the end of each turn — no commands, no setup. Open the file directly (or grep it) to review past notes.
 
-| Command       | Purpose                                          | When to Use                          | Files Created/Modified | Parameters             |
-| ------------- | ------------------------------------------------ | ------------------------------------ | ---------------------- | ---------------------- |
-| `*help`       | Show commands + ledger status                    | When unsure what scribe does         | None                   | None                   |
-| `*recall {q}` | Query ledger; answer with synthesis + references | Ask about prior decisions or actions | None (read-only)       | `{q}` — free-form text |
-| `*exit`       | Return control to previous active agent          | When done with scribe utility        | None                   | None                   |
-
-**Notes:**
-
-- Capture is **automatic** — every BMAD agent runs the scribe protocol embedded. No `*capture` command needed.
-- Recall is **automatic too** — every BMAD agent runs the read protocol embedded. Just ask in any agent ("what did we decide about auth?"). The agent auto-consults the ledger. `/BMad:agents:scribe *recall` is now an optional fallback.
-- Ledger lives in two flat files: `bmad-ledger/decisions.md` and `bmad-ledger/actions.md`, plus `index.yaml` for fast filter.
-- `/BMad:agents:scribe *recall` does **not** switch your active session persona (planner/dev/qa/reviewer). Sam is a one-shot utility.
-- All ledger files live under `bmad-ledger/` (gitignored, local to your machine).
-- See [Scribe User Guide](scribe-user-guide.md) for full details.
+See [Scribe User Guide](scribe-user-guide.md) for the full details.
 
 ---
 

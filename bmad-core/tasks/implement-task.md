@@ -6,11 +6,6 @@
 
 Execute an approved implementation plan by running tasks sequentially with automatic context discovery, resume support across sessions, and type-aware validation.
 
-Behavioral profiles by ticket type:
-- **Feature** — pattern enforcement, reuse checking, standard validation
-- **Bug** — minimal change, reproduce-first, targeted then full regression
-- **Migration** — mandatory build/test per task, health tracking, rollback notes, migration checklist gates
-
 ## Inputs
 
 ```yaml
@@ -30,7 +25,7 @@ data:
   - devLoadAlwaysFiles (from core-config: coding-standards.md, tech-stack.md, project-structure.md)
 checklists:
   - task-dod-checklist.md
-  - migration-checklist.md  # Migration tickets only
+  - migration-checklist.md # Migration tickets only
 tasks:
   - execute-checklist.md
 ```
@@ -39,13 +34,11 @@ tasks:
 
 ## Critical Rules (ALL Ticket Types)
 
-### Plan File Updates — Authorized Sections ONLY
+### Plan File Updates
 
-- CRITICAL: Only update sections listed below. DO NOT modify any other sections.
-- CRITICAL: Do not ask user permission for plan file updates.
-- CRITICAL: Always update `Agent Model Used` and `File List` in `Dev Agent Record`.
-- CRITICAL: Authorized sections — Tasks/Subtasks Checkboxes, Dev Agent Record (Agent Model Used, Pre-Implementation Baseline, Debug Log, Completion Notes, File List), Deviation Record, Change Log, Status, Feedback (checkboxes only — mark resolved items).
-- CRITICAL: DO NOT modify Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Migration Details, Bug Fix Details, Feature Details, Planner Notes, Dependencies and Risks.
+- Do not ask user permission for plan-file updates.
+- Always update `Agent Model Used` and `File List` in `Dev Agent Record`.
+- Plan-file edit permissions are defined by the template's per-section `editors:` field. Only modify sections where you are listed as an editor.
 
 ### Coding Standards
 
@@ -60,7 +53,6 @@ tasks:
 - Ask questions instead of failing silently
 
 - CRITICAL: Never load full architecture documents. Only load cited sections. If a single file exceeds 500 lines, load only the relevant function/class.
-- Context budget: **Tier 1 (always keep):** current task + its files + coding standards. **Tier 2 (if room):** session history + architecture citations. **Tier 3 (on demand):** prior tasks' files + full debug log. Before each task in Step 2, drop Tier 3 and keep Tier 1+2. For plans with 8+ tasks, load only current task's files.
 
 ---
 
@@ -78,9 +70,9 @@ tasks:
 #### 0.2 — Parse Plan
 
 - Read plan file fully. Extract:
-  - **Ticket type** (Feature/Bug/Migration) and **subtype** (Stack Version/Architecture Pattern/etc.)
-  - **Ticket Number / Plan ID** from Ticket Information
-  - **All file paths** from all plan sections (Technical Approach, Tasks/Subtasks, Migration Details, Bug Fix Details, Feature Details)
+  - **Ticket type** (Bug/Feature/Migration) and **subtype** (Stack Version/Architecture Pattern/etc.)
+  - **Plan ID** from Ticket Information
+  - **All file paths** from all plan sections (Technical Approach, Tasks/Subtasks, Bug Fix Details, Feature Details, Migration Details)
   - **Architecture citations** (`[Source: architecture/filename.md#section]`)
   - **Task list** with completion status (`[x]` vs `[ ]`)
   - **Dev Agent Record** contents (Baseline, File List, Debug Log, Completion Notes)
@@ -90,7 +82,7 @@ tasks:
 
 - Count completed `[x]` vs total tasks
 - If resuming (completed > 0): read File List, Debug Log, Completion Notes. Show: "Resuming Task N. Tasks 1-M done. Files modified: [list or none]. Known issues: [list or none]. Proceed?" → HALT for confirmation
-- If fresh (completed = 0): proceed
+- If fresh (completed = 0): set status to "In Progress"; proceed
 
 #### 0.4 — Selective Context Loading
 
@@ -115,16 +107,23 @@ tasks:
 
 #### 0.7 — Developer Identity
 
-- Get developer name from Atlassian MCP
-- If MCP fails → check plan file for developer name in Ticket Information
-- If plan has no developer name → HALT and prompt user for their full name
-- Store for use in modification history headers and change log entries
+**JIRA plans:**
+
+- Read assignee from the plan's Ticket Information.
+- If missing, fetch via Atlassian MCP.
+- If MCP fails, ask the user.
+
+**Non-JIRA plans:**
+
+- Ask the user for the developer's name.
+
+Store for use in modification history headers and change log entries.
 
 ---
 
 ### Step 1: Migration Detection (ONLY if Migration)
 
-**Feature/Bug tickets → skip to Step 2.**
+**Bug/Feature tickets → skip to Step 2.**
 
 #### 1.1 — Classify Migration Type
 
@@ -158,15 +157,16 @@ Confirm sub-type from Migration Details: Stack Version / Architecture Pattern / 
 
 #### 2.0 — Type Profile
 
-| Behavior | Feature | Bug | Migration |
-|---|---|---|---|
-| Pattern enforcement | ON | OFF | OFF |
-| Reuse check | ON | OFF | OFF |
-| Minimal change | OFF | ON | OFF |
-| Reproduce-first | OFF | ON | OFF |
-| Mandatory builds | OFF | OFF | ON |
-| Health tracking | OFF | OFF | ON |
-| Rollback notes | OFF | OFF | ON |
+Reuse check applies to all ticket types — use items listed in the plan's Reuse Opportunities section instead of creating new components.
+
+| Behavior            | Bug | Feature | Migration |
+| ------------------- | --- | ------- | --------- |
+| Pattern enforcement | OFF | ON      | OFF       |
+| Minimal change      | ON  | OFF     | OFF       |
+| Reproduce-first     | ON  | OFF     | OFF       |
+| Mandatory builds    | OFF | OFF     | ON        |
+| Health tracking     | OFF | OFF     | ON        |
+| Rollback notes      | OFF | OFF     | ON        |
 
 #### 2.1 — Read Next Task
 
@@ -191,6 +191,7 @@ Identify first unchecked `[ ]` task. Read description, subtasks, and target file
 #### 2.4 — Update Plan
 
 Authorized sections only (Critical Rules):
+
 - Mark task `[x]`
 - Update File List, Agent Model Used
 - Add Completion Notes entry (what, deviations, decisions)
@@ -207,16 +208,14 @@ Authorized sections only (Critical Rules):
 
 #### 2.6 — Failure Recovery
 
-- 1st failure: analyze. Context gap → self-resolve via search. Code error → attempt fix.
-- 2nd failure attempting the same fix on the same code: HALT with diagnostic. Add Debug Log entry.
-- Counter resets per task. Different errors = independent counters.
-- Never attempt the same fix a 3rd time — escalate to user.
+- On failure: analyze first. Context gap → self-resolve via search. Code error → attempt fix.
+- If the same fix on the same code fails twice, HALT with diagnostic. Add Debug Log entry. Don't retry the same approach a third time — escalate to user.
 
 #### 2.7 — Cross-Task Verification
 
-Trigger A: After every 3 completed tasks, do a sanity check that all prior modifications still work together.
-Trigger B: After completing any task that modified a file a prior task also modified, re-verify prior changes still work (imports resolve, no regressions).
-Either trigger detecting a conflict → HALT.
+- When a task touches a file an earlier task also touched, re-verify the earlier change still works (imports resolve, no regressions).
+- On accumulating drift suspicion (multiple recent tasks edited overlapping areas), do a sanity check that prior modifications still work together.
+- Conflict detected → HALT.
 
 ---
 
@@ -241,19 +240,22 @@ Write in Completion Notes: approach, deviations, key decisions, tech debt, follo
 
 ---
 
-## Post-Implementation Bug Fix
+## Mid- and Post-Implementation Changes
 
-**Trigger:** ALWAYS run after fixing ANY bug reported by user after implementation (applies to all ticket types — Feature, Bug, or Migration).
+**Trigger:** ALWAYS run when applying any bug fix or enhancement at any lifecycle stage — during In Progress, after Ready for Review, after Ready for Done, or later. Applies to all ticket types — Bug, Feature, or Migration. Use minimal change with root-cause discipline for bugs and minimal scope for enhancements; write a temporary validation test, run targeted + full regression, then delete the temp test before HALTing.
 
-**Flow:** Identify root cause → fix → update plan → HALT with report (what fixed, sections updated, final file list).
+**Flow:** Identify root cause / scope → apply change → write temporary validation test → run targeted + full regression → delete temp test → update plan → HALT with report (what changed, sections updated, final file list).
 
 **Required updates:**
-- **Tasks/Subtasks:** Add subtask noting correction. Don't uncheck prior tasks.
-- **File List:** Update to final state (added, reverted, deleted files)
-- **Debug Log:** Bug description, root cause, fix applied
-- **Change Log:** Date, version, fix description, developer name
 
-**DO NOT modify:** Ticket Information, Requirements, Acceptance Criteria, Technical Approach, Migration Details, Bug Fix Details, Feature Details, Planner Notes, Dependencies and Risks.
+- **Tasks/Subtasks:** Append the corrective or enhancement subtask under the original task most closely related to the change. Don't uncheck prior tasks.
+- **File List:** Update to final state (added, reverted, deleted files).
+- **Debug Log:** Change description (bug or enhancement), root cause or rationale, what was applied. Note WHEN the change was made.
+- **Change Log:** Date, version, change description, developer name.
+- **Deviation Record:** If the change diverged from the planned Technical Approach, add a Planned / Actual / Reason entry referencing the Debug Log entry.
+- **Status:** Set back to "Ready for Review" if the plan had already reached that state.
+
+Edit only sections where you are listed in the template's `editors:` field.
 
 ---
 
@@ -262,22 +264,3 @@ Write in Completion Notes: approach, deviations, key decisions, tech debt, follo
 HALT for: unapproved dependencies | ambiguous requirements | 2 consecutive failures (same issue) | missing config | failing regression | migration health degradation | context gaps | file path mismatches | plan staleness (referenced files changed since plan was written)
 
 ---
-
-## Validation Checklist
-
-- [ ] All tasks/subtasks marked [x]
-- [ ] All tests pass (full regression)
-- [ ] Coding standards applied to all modified files
-- [ ] Modification history headers in all modified files
-- [ ] File List complete in Dev Agent Record
-- [ ] Agent Model Used set
-- [ ] Completion Notes has implementation summary
-- [ ] Change Log updated
-- [ ] Deviation Record populated (if deviations occurred)
-- [ ] task-dod-checklist passed
-- [ ] (Migration) migration-checklist POST-MIGRATION CHECKPOINT passed
-- [ ] (Migration, 6+ tasks) MID-MIGRATION CHECKPOINT passed (check Debug Log for entry)
-- [ ] (Migration) Baseline vs final comparison documented
-- [ ] (Migration) Per-task rollback notes recorded in Completion Notes
-- [ ] (If post-implementation bugs were fixed) Plan updated per Post-Implementation Bug Fix rules
-- [ ] Status set to "Ready for Review"
