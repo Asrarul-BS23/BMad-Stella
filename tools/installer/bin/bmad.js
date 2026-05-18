@@ -348,6 +348,10 @@ async function promptInstallation() {
         name: 'Quarry Connect',
         url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1188200468/QuarryConnect',
       },
+      dre: {
+        name: 'DRE',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1364983831/DRE',
+      },
       other: {
         name: 'Other (custom URL)',
         url: null,
