@@ -11,8 +11,8 @@ class DependencyManager {
         name: 'Atlassian MCP Server',
         description:
           'Required for JIRA integration (retrieve-ticket-information, comment-plan commands)',
-        transport: 'sse',
-        url: 'https://mcp.atlassian.com/v1/sse',
+        transport: 'http',
+        url: 'https://mcp.atlassian.com/v1/mcp',
         envVars: {
           JIRA_BASE_URL: {
             description: 'Your JIRA instance URL (e.g., https://yourcompany.atlassian.net)',
