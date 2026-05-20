@@ -44,8 +44,8 @@ The goal is quality delivery, not just checking boxes.]]
 
 3. **Testing:**
 
-   [[LLM: Dev validates the change with temporary tests + manual checks. Permanent test suite is QA's responsibility.]]
-   - [ ] Temporary validation tests written during implementation and deleted after confirming the change works.
+   [[LLM: Dev validates with manual checks; temp tests are for important business logic only. Permanent test suite is QA's responsibility.]]
+   - [ ] Temporary validation tests written and deleted — only for important, cheaply-testable business logic (services, validators, transformations, parsers). Mark [N/A] for UI/CSS/markup/DOM-wiring.
    - [ ] Existing test suite (unit/integration/E2E) runs and passes — no regressions introduced.
    - [ ] Manual testing of the specific scenario completed.
 

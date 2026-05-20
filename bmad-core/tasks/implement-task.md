@@ -242,9 +242,9 @@ Write in Completion Notes: approach, deviations, key decisions, tech debt, follo
 
 ## Mid- and Post-Implementation Changes
 
-**Trigger:** ALWAYS run when applying any bug fix or enhancement at any lifecycle stage — during In Progress, after Ready for Review, after Ready for Done, or later. Applies to all task types — Bug, Feature, or Migration. Use minimal change with root-cause discipline for bugs and minimal scope for enhancements; write a temporary validation test, run targeted + full regression, then delete the temp test before HALTing.
+**Trigger:** ALWAYS run when applying any bug fix or enhancement at any lifecycle stage — during In Progress, after Ready for Review, after Ready for Done, or later. Applies to all task types — Bug, Feature, or Migration. Use minimal change with root-cause discipline for bugs and minimal scope for enhancements; run targeted + full regression; add a temporary validation test only for important, cheaply-testable business logic (skip UI/CSS/markup/DOM-wiring); manual-verify before HALTing.
 
-**Flow:** Identify root cause / scope → apply change → write temporary validation test → run targeted + full regression → delete temp test → update plan → HALT with report (what changed, sections updated, final file list).
+**Flow:** Identify root cause / scope → apply change → write temp test if change is important business logic → run targeted + full regression → delete temp test if written → manual verification → update plan → HALT with report.
 
 **Required updates:**
 

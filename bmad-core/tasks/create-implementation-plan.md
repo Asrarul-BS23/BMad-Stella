@@ -344,12 +344,7 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 
 **For Bugs:**
 
-- 3-5 tasks maximum regardless of complexity. Complex diagnosis does NOT mean complex task count. Typical pattern:
-  1. Verify reproduction (confirm the bug manifests as described)
-  2. Implement root cause fix (minimal change addressing the actual cause)
-  3. Write temporary validation test; verify fix; delete after confirming
-  4. Run targeted + full regression on existing test suite
-  5. Manual testing / user verification
+- 2-4 tasks max. Bug-specific work: root-cause fix (minimal change). Testing per §7.3.
 
 **For Features:**
 
@@ -379,9 +374,9 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 2. Core implementation (main features/fix/migration steps)
 3. Integration (connecting components)
 4. Error handling
-5. **Testing (always include these 2 final tasks):**
-   - Write and run temporary unit tests, then delete
-   - Perform manual testing
+5. **Testing:**
+   - Write and run temporary unit tests, then delete — only for important, cheaply-testable business logic (services, validators, transformations, parsers). Skip UI/CSS/markup/DOM-wiring.
+   - Perform manual testing.
 
 ### 8. Document Dependencies and Risks (Only if Applicable)
 

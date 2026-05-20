@@ -133,7 +133,7 @@ Verify that type-specific sections are populated with appropriate depth — not 
 - [ ] Affected code path is traced (entry point → data flow → failure point)
 - [ ] Fix scope is bounded (what will NOT be changed is explicitly stated)
 - [ ] Fix addresses root cause, not just symptom
-- [ ] Task count is 3-5 regardless of complexity (complex diagnosis ≠ complex task count)
+- [ ] Task count is 2-4 regardless of complexity (complex diagnosis ≠ complex task count)
 
 ### 6b. Feature-Specific Checks (ONLY if Task Type = Feature)
 
