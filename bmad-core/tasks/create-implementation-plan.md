@@ -367,6 +367,7 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 - Avoid micro-tasks like "create file X" or "add import statement"
 - Group related implementation steps into meaningful tasks
 - Reference architecture docs where applicable [Source: {doc}]
+- Subtasks: only what's necessary. No code. Skip steps already in coding-standards.md, other plan sections, or obvious actions.
 
 #### 7.3 Task Categories to Include
 

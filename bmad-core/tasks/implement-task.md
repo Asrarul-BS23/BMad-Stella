@@ -101,7 +101,7 @@ tasks:
 
 **Features — Pattern Discovery:** Scan plan-referenced codebase areas for naming conventions, helpers, service patterns, error handling. Store as "Implementation Patterns." Grep for similar implementations before creating new components.
 
-**Bugs — Impact Analysis:** Read files from Affected Code Path. Verify paths match actual code — if not, HALT and report mismatch. Trace failing data flow. Ask user to confirm reproduction steps before any code change.
+**Bugs — Impact Analysis:** Read files from Affected Code Path. Verify paths match actual code — if not, HALT and report mismatch. Trace failing data flow.
 
 **Migrations** — see Step 1.
 
@@ -163,7 +163,6 @@ Reuse check applies to all task types — use items listed in the plan's Reuse O
 | ------------------- | --- | ------- | --------- |
 | Pattern enforcement | OFF | ON      | OFF       |
 | Minimal change      | ON  | OFF     | OFF       |
-| Reproduce-first     | ON  | OFF     | OFF       |
 | Mandatory builds    | OFF | OFF     | ON        |
 | Health tracking     | OFF | OFF     | ON        |
 | Rollback notes      | OFF | OFF     | ON        |
