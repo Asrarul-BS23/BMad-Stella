@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Transform requirements from any source (JIRA tickets, direct instructions, markdown/text files) into actionable implementation plans for junior developers. Plans are type-aware: bugs, features, and migrations each receive specialized treatment — different questions, architecture reading strategies, acceptance criteria, task granularity, and validation. Handles variable input quality, from complete requirements to just ticket titles or screenshots.
+Transform requirements from any source (JIRA tickets, direct instructions, markdown/text files) into actionable implementation plans for junior developers. Plans are type-aware: bugs, features, and migrations each receive specialized treatment — different questions, architecture reading strategies, acceptance criteria, task granularity, and validation. Handles variable input quality, from complete requirements to just task titles or screenshots.
 
 ## CRITICAL RULES
 
@@ -28,26 +28,24 @@ Transform requirements from any source (JIRA tickets, direct instructions, markd
 
 #### 1.1 Determine Input Type and Extract Information
 
-- **If input is a JIRA ticket number or URL:** Fetch via Atlassian MCP. On MCP failure → apply `mcp-failure` rule (see planner.md `shared-rules`).
-- **If input is a .md file path:** Read the file completely
-- **If input is a .txt file path:** Read the file completely
-- **If input is a screenshot/image:** Analyze the image to extract details
-- **If input is direct text (typed by user):** Use the provided description as-is
-- **If input includes images alongside text:** Process both — text for requirements, images for visual context
+- **JIRA ticket/URL:** Fetch via Atlassian MCP; on failure → `mcp-failure` rule (see planner.md `shared-rules`).
+- **File (.md/.txt):** Read fully.
+- **Image:** Analyze for context.
+- **Text:** Use as-is.
 
-#### 1.2 Extract Core Ticket Information
+#### 1.2 Extract Core Task Information
 
 Extract the following (or derive if missing):
 
 - **Plan ID:** Apply `plan-id-format` rule (see planner.md `shared-rules`).
-- **Ticket Type:** Identify as Bug, Feature, or Migration
-- **Ticket Subtype:** For Migrations, classify as one of the following. Set N/A for Bug/Feature.
+- **Task Type:** Identify as Bug, Feature, or Migration
+- **Task Subtype:** For Migrations, classify as one of the following. Set N/A for Bug/Feature.
   - **Stack Version** — dependency version changes, API updates, deprecation replacements
   - **Architecture Pattern** — structural reorganization (e.g., MVC → Clean Architecture, layered → hexagonal)
   - **Infrastructure** — deployment/hosting/cloud provider changes
   - **Data** — database schema changes, data transformations, engine migrations
   - **Hybrid** — combination of the above
-- **Title:** The ticket summary
+- **Title:** The task summary
 - **Description:** Full description if available
 - **Requirements:** Explicit requirements if provided; if not, derive from description and acceptance criteria. Each must be clear, specific, and testable.
 - **Acceptance Criteria:** Explicit ACs if provided (if not, you'll derive them later)
@@ -57,13 +55,13 @@ Extract the following (or derive if missing):
 
 Based on what's available, inform the user:
 
-- "✓ Complete ticket with requirements and acceptance criteria"
+- "✓ Complete task with requirements and acceptance criteria"
 - "⚠ Partial information - will derive requirements and acceptance criteria"
 - "⚠ Minimal information (title only) - will need to ask clarifying questions"
 
 ### 2. Clarify Missing Information (If Needed)
 
-If critical information is missing, ask the user targeted questions. Questions are organized by ticket type — ask ONLY the questions relevant to the ticket type.
+If critical information is missing, ask the user targeted questions. Questions are organized by task type — ask ONLY the questions relevant to the task type.
 
 **CRITICAL:** Only ask essential questions. Use your senior developer judgment to infer reasonable details when possible.
 
@@ -121,13 +119,13 @@ If critical information is missing, ask the user targeted questions. Questions a
 - What is the rollback strategy?
 - **Which files need modification?**
 
-#### 2.6 For Database Changes (All Ticket Types)
+#### 2.6 For Database Changes (All Task Types)
 
 - Analyze: Does this work require any database table updates or creation?
-- **If not mentioned in ticket and uncertain, ASK the user** - better to clarify than assume
+- **If not mentioned in task and uncertain, ASK the user** - better to clarify than assume
 - If YES:
   - **Database migration tasks must be handled by the user** (add in tasks list but tell user to do this)
-  - If specific fields to add to a model or a new model structure are NOT specified in the ticket info/requirements:
+  - If specific fields to add to a model or a new model structure are NOT specified in the task info/requirements:
     - **Ask the user to specify the fields to be added or the model structure** (field names, types, constraints, relationships)
   - Document the model/table changes needed in the Technical Approach section
 
@@ -139,15 +137,15 @@ If critical information is missing, ask the user targeted questions. Questions a
 - **Else**: Use monolithic `architectureFile` for similar sections
 - **Fallback**: If no `architecture/` folder exists, check for `Claude.md` in project root for architecture and project information
 
-#### 3.2 Read Architecture Documents Based on Ticket Type
+#### 3.2 Read Architecture Documents Based on Task Type
 
-**For ALL Tickets:** tech-stack.md, unified-project-structure.md, coding-standards.md
+**For ALL Tasks:** tech-stack.md, project-structure.md, coding-standards.md
 
-**For Backend/API Tickets, additionally:** data-models.md, database-schema.md, backend-architecture.md, rest-api-spec.md, external-apis.md
+**For Backend/API Tasks, additionally:** data-models.md, database-schema.md, backend-architecture.md, rest-api-spec.md, external-apis.md
 
-**For Frontend/UI Tickets, additionally:** frontend-architecture.md, components.md, core-workflows.md, data-models.md
+**For Frontend/UI Tasks, additionally:** frontend-architecture.md, components.md, core-workflows.md, data-models.md
 
-**For Full-Stack Tickets:** Read both Backend and Frontend sections above
+**For Full-Stack Tasks:** Read both Backend and Frontend sections above
 
 **For Bugs:** Focus on architecture relevant to the affected code path, error handling patterns, logging and debugging guidelines
 
@@ -157,29 +155,33 @@ If critical information is missing, ask the user targeted questions. Questions a
 
 **For Migrations — Infrastructure/Data:** Read deployment and infrastructure docs, data models, database schema, and environment configuration docs.
 
-#### 3.3 Extract Ticket-Specific Technical Details
+#### 3.3 Extract Task-Specific Technical Details
 
-Extract ONLY information directly relevant to implementing this ticket. Do NOT invent new libraries, patterns, or standards not in the source documents.
+Extract ONLY information directly relevant to implementing this task. Do NOT invent new libraries, patterns, or standards not in the source documents.
 
 Extract:
 
-- Specific data models, schemas, or structures the ticket will use
+- Specific data models, schemas, or structures the task will use
 - API endpoints to implement or consume
 - Component specifications for UI elements
 - File paths and naming conventions for new code
-- Security or performance considerations affecting the ticket
+- Security or performance considerations affecting the task
 - Dependencies and third-party libraries
 
 ALWAYS cite source documents: `[Source: architecture/{filename}.md#{section}]`
 
 ### 3.4 Orientation Scan
 
-Use Glob/Grep to map the affected codebase area:
+Use project-structure.md to scope searches. No repo-wide globs.
 
-- **Locate** — find files matching ticket keywords; read them to understand current behavior.
-- **Find precedents** — similar implementations, patterns, and reusable utilities. **Prefer existing over creating new.** Common reuse targets: logger, error handler / custom exceptions, HTTP/API client, validators, config reader, auth helpers, caching, ID/GUID generators, serialization (JSON/XML), date/time utilities.
-- **Identify callers** — search usages of functions/components likely to change.
-- **Note test coverage** for affected files (informs regression risk).
+1. Map task → architectural area from project-structure.md.
+2. Glob/Grep with directory-prefix patterns (e.g., `src/services/**`); never `**/*`.
+3. Locate — files matching task keywords within scope.
+4. Find precedents — reusable utilities within scope (logger, error handler, HTTP client, validators, config, auth, caching, IDs, serialization, date/time).
+5. Identify callers — search usages of functions/components likely to change.
+6. Note test coverage for affected files.
+
+If project-structure.md doesn't cover the area, ask the user for a search hint.
 
 Capture findings for §6 (Technical Approach). Verification of paths and patterns happens at `*validate-plan` (see planner-validation-checklist §7).
 
@@ -194,18 +196,18 @@ Capture findings for §6 (Technical Approach). Verification of paths and pattern
 **After Planning Completion:**
 
 - If all dependencies addressed: Delete `bmad-docs/temporary/{plan_id}-dependency-tmp.md`
-- If ticket will be decomposed into subtasks: Keep file with remaining dependencies for future subtasks
+- If task will be decomposed into subtasks: Keep file with remaining dependencies for future subtasks
 - Document cleanup action in implementation plan
 
 ### 5. Derive or Validate Acceptance Criteria
 
-Based on ticket type and information gathered:
+Based on task type and information gathered:
 
 **Branches are mutually exclusive — pick one.**
 
 **If acceptance criteria are provided:** Use as-is. Do NOT append from the lists below.
 
-**If NOT provided, derive them per ticket type:**
+**If NOT provided, derive them per task type:**
 
 #### 5.1 For Bugs
 
@@ -221,7 +223,6 @@ Based on ticket type and information gathered:
 - UI/UX requirements (how it looks/behaves)
 - Data validation requirements
 - Integration requirements (how it connects to existing features)
-- Pattern conformance (follows existing codebase patterns)
 - Performance requirements (if applicable)
 - Security requirements (if applicable)
 
@@ -263,7 +264,7 @@ As a senior developer, document the complete technical decisions, references to 
 
 #### 6.1 Current State
 
-Document what exists now in the codebase relevant to this ticket:
+Document what exists now in the codebase relevant to this task:
 
 - Concise description of current code structure and file organization in the affected area
 - Current data flow or execution path (especially for bugs and migrations)
@@ -303,21 +304,13 @@ Document where new or changed code connects to existing code:
 - Callers and consumers of code being changed
 - Shared state, configuration, or infrastructure dependencies
 
-#### 6.6 Pattern Conformance
-
-Document existing patterns the implementation must follow:
-
-- Reference existing files that demonstrate the pattern
-- Naming conventions, DI registration patterns, error handling patterns
-- Identify a reference implementation if one exists
-
-#### 6.7 Reuse Opportunities
+#### 6.6 Reuse Opportunities
 
 List existing utilities/helpers/services to reuse (from §3.4 scan). Format: file path + purpose. E.g., `Services/LoggerService.cs` for logging.
 
-#### 6.8 Type-Specific Sections
+#### 6.7 Type-Specific Sections
 
-Populate the section matching the ticket type. Skip the other two.
+Populate the section matching the task type. Skip the other two.
 
 **Bug Fix Details:**
 
@@ -347,7 +340,7 @@ Populate the section matching the ticket type. Skip the other two.
 
 Break down implementation into sequential tasks with checkboxes. Reference acceptance criteria (AC: #).
 
-#### 7.1 Task Granularity by Ticket Type
+#### 7.1 Task Granularity by Task Type
 
 **For Bugs:**
 
@@ -360,9 +353,9 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 
 **For Features:**
 
-- Simple ticket (1-2 story points): 3-5 tasks with minimal subtasks
-- Medium ticket (3-5 story points): 5-8 tasks with subtasks
-- Complex ticket (8+ story points): 8-12 tasks with subtasks
+- Simple task (1-2 story points): 3-5 tasks with minimal subtasks
+- Medium task (3-5 story points): 5-8 tasks with subtasks
+- Complex task (8+ story points): 8-12 tasks with subtasks
 
 **For Migrations:**
 
@@ -414,10 +407,10 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
 - Use `{root}/templates/implementation-plan-tmpl.yaml` structure
 - Fill all sections completely:
   - Status (set to "Draft - Awaiting Review")
-  - Ticket Information (Plan ID, type, **subtype**, title, input source, description)
+  - Task Information (Plan ID, type, **subtype**, title, input source, description)
   - Requirements (explicit or derived)
   - Acceptance Criteria (type-specific, derived or provided)
-  - Technical Approach (structured: Current State, Target State, Transformation Strategy, Integration Points, Pattern Conformance)
+  - Technical Approach (structured: Current State, Target State, Transformation Strategy, Integration Points)
   - Type-specific section (one only, per §6.7)
   - Tasks / Subtasks (type-specific granularity, with checkboxes and 2 testing tasks)
   - Dependencies and Risks (if applicable)
@@ -434,10 +427,10 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
 - Ensure tasks align with requirements, acceptance criteria, and architecture constraints
 - **Verify type-specific sections are populated** (Bug Fix Details / Feature Details / Migration Details)
 - Create directory if not exists: `/bmad-docs/impl-plan/`
-- Update plan status to "Draft - Awaiting Review" and save as: `bmad-docs/impl-plan/{{plan_id}}-{{ticket_title_short}}.md`
+- Update plan status to "Draft - Awaiting Review" and save as: `bmad-docs/impl-plan/{{plan_id}}-{{task_title_short}}.md`
 - Provide summary to user including:
-  - **Plan created:** `bmad-docs/impl-plan/{{plan_id}}-{{ticket_title_short}}.md`
-  - **Ticket Type:** Bug / Feature / Migration (subtype if applicable)
+  - **Plan created:** `bmad-docs/impl-plan/{{plan_id}}-{{task_title_short}}.md`
+  - **Task Type:** Bug / Feature / Migration (subtype if applicable)
   - **Tasks / Subtasks:** Total count of main tasks and subtasks
   - **Summary:** Brief overview of acceptance criteria and key technical decisions
   - Any deviations or conflicts noted between task and architecture

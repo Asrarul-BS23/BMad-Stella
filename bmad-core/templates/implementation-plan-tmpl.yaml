@@ -6,7 +6,7 @@ template:
   version: 2.0
   output:
     format: markdown
-    filename: bmad-docs/impl-plan/{{plan_id}}-{{ticket_title_short}}.md
+    filename: bmad-docs/impl-plan/{{plan_id}}-{{task_title_short}}.md
     title: "Implementation Plan: {{plan_id}} - {{title}}"
 
 workflow:
@@ -16,7 +16,7 @@ workflow:
 agent_config:
   editable_sections:
     - Status
-    - Ticket Information
+    - Task Information
     - Requirements
     - Acceptance Criteria
     - Technical Approach
@@ -44,8 +44,8 @@ sections:
     owner: planner
     editors: [planner, dev-agent]
 
-  - id: ticket-info
-    title: Ticket Information
+  - id: task-info
+    title: Task Information
     instruction: Core information about the task — from JIRA ticket, direct instruction, or input file
     owner: planner
     editors: [planner]
@@ -58,16 +58,16 @@ sections:
         owner: planner
         editors: [planner]
 
-      - id: ticket-type
-        title: Ticket Type
+      - id: task-type
+        title: Task Type
         type: choice
         choices: [Bug, Feature, Migration]
         elicit: true
         owner: planner
         editors: [planner]
 
-      - id: ticket-subtype
-        title: Ticket Subtype
+      - id: task-subtype
+        title: Task Subtype
         type: choice
         choices: [Stack Version, Architecture Pattern, Infrastructure, Data, Hybrid, N/A]
         elicit: true
@@ -78,7 +78,7 @@ sections:
         title: Title
         type: text
         template: "{{title}}"
-        instruction: Brief, descriptive title of the ticket
+        instruction: Brief, descriptive title of the task
         elicit: true
         owner: planner
         editors: [planner]
@@ -141,12 +141,6 @@ sections:
 
       - id: integration-points
         title: Integration Points
-        type: multiline-text
-        owner: planner
-        editors: [planner]
-
-      - id: pattern-conformance
-        title: Pattern Conformance
         type: multiline-text
         owner: planner
         editors: [planner]

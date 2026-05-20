@@ -15,7 +15,7 @@ Capture a NOTE if the turn produced ANY of:
 3. **Rejection / deferral** — option dismissed, postponed, parked for later
 4. **Constraint / trade-off / risk** — limitation, balance, known risk accepted
 5. **Scope** — what's IN vs OUT of current work
-6. **Status change** — plan/ticket lifecycle (Draft → Approved → Complete, etc.)
+6. **Status change** — plan/task lifecycle (Draft → Approved → Complete, etc.)
 7. **Lesson / gotcha / finding** — non-obvious finding worth remembering
 8. **Acceptance criteria** — definition of "done" agreed upon
 
@@ -49,7 +49,7 @@ Notification without verified-on-disk write = **CRITICAL FAILURE**.
 ```
 ## NOTE-{YYYY-MM-DD-HHMMSS-mmm}  {short title}
 {1-3 line body — explain what / why / where as relevant}
-ref: {ticket | NOTE-id | —}
+ref: {task | NOTE-id | —}
 agent: {your-id}
 tags: [≥1 core, ...]
 ```
