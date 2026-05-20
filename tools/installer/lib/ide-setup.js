@@ -921,6 +921,7 @@ class IdeSetup extends BaseIdeSetup {
     }
 
     console.log(chalk.green(`\n✓ Created Cursor rules in ${cursorRulesDir}`));
+    await this.installUserLevelAgents('cursor', installDir);
     return true;
   }
 
@@ -959,6 +960,7 @@ class IdeSetup extends BaseIdeSetup {
       }
     }
 
+    await this.installUserLevelAgents('crush', installDir);
     return true;
   }
 
@@ -1000,6 +1002,7 @@ class IdeSetup extends BaseIdeSetup {
     // Setup Claude Code permissions in settings.local.json
     await claudePermissionsManager.checkAndSetupPermissions(installDir, spinner);
 
+    await this.installUserLevelAgents('claude-code', installDir);
     return true;
   }
 
@@ -1135,6 +1138,7 @@ class IdeSetup extends BaseIdeSetup {
       }
     }
 
+    await this.installUserLevelAgents('iflow-cli', installDir);
     return true;
   }
 
@@ -1980,7 +1984,7 @@ class IdeSetup extends BaseIdeSetup {
     }
 
     console.log(chalk.green(`\n✓ Created Cline rules in ${clineRulesDir}`));
-
+    await this.installUserLevelAgents('cline', installDir);
     return true;
   }
 
@@ -2056,6 +2060,7 @@ CRITICAL: You are to execute the BMad Task defined below.
       chalk.dim('You can now use commands like /bmad:agents:dev or /bmad:tasks:create-doc.'),
     );
 
+    await this.installUserLevelAgents('gemini', installDir);
     return true;
   }
 
@@ -2459,6 +2464,125 @@ tools: ['changes', 'codebase', 'fetch', 'findTestFiles', 'githubRepo', 'problems
     }
 
     return true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // User-level agent installation (user-agents/ directory)
+  // ---------------------------------------------------------------------------
+
+  async getUserLevelAgentIds(installDir) {
+    const userAgentsDir = path.join(installDir, '.bmad-core', 'user-agents');
+    if (!(await fileManager.pathExists(userAgentsDir))) return [];
+    const glob = require('glob');
+    return glob.sync('*.md', { cwd: userAgentsDir }).map((f) => path.basename(f, '.md'));
+  }
+
+  resolveUserPath(p) {
+    const os = require('node:os');
+    return p.startsWith('~/') ? path.join(os.homedir(), p.slice(2)) : p;
+  }
+
+  getProjectLevelAgentsDir(ide, installDir, slashPrefix) {
+    const dirs = {
+      'claude-code': path.join(installDir, '.claude', 'commands', slashPrefix, 'agents'),
+      cursor: path.join(installDir, '.cursor', 'rules', 'bmad'),
+      cline: path.join(installDir, '.clinerules'),
+      gemini: path.join(installDir, '.gemini', 'commands', 'BMad', 'agents'),
+      crush: path.join(installDir, '.crush', 'commands', slashPrefix, 'agents'),
+      'iflow-cli': path.join(installDir, '.iflow', 'commands', slashPrefix, 'agents'),
+    };
+    return dirs[ide] || null;
+  }
+
+  async writeUserAgentFile(ide, agentId, srcPath, targetDir, installDir) {
+    const agentContent = await fileManager.readFile(srcPath);
+
+    if (['claude-code', 'crush', 'iflow-cli'].includes(ide)) {
+      const content = `# /${agentId} Command\n\nWhen this command is used, adopt the following agent persona:\n\n${agentContent}`;
+      await fileManager.writeFile(path.join(targetDir, `${agentId}.md`), content);
+    } else
+      switch (ide) {
+        case 'cursor': {
+          const mdcContent = await this.createAgentRuleContent(agentId, srcPath, installDir, 'mdc');
+          await fileManager.writeFile(path.join(targetDir, `${agentId}.mdc`), mdcContent);
+
+          break;
+        }
+        case 'cline': {
+          const title = agentId
+            .split('-')
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ');
+          const relativePath = path.relative(installDir, srcPath).replaceAll('\\', '/');
+          const content =
+            `# ${title} Agent\n\n` +
+            `When the user types \`@${agentId}\`, adopt this persona:\n\n` +
+            `\`\`\`\n${agentContent}\n\`\`\`\n\n` +
+            `Full definition: [${relativePath}](${relativePath})\n`;
+          await fileManager.writeFile(path.join(targetDir, `${agentId}.md`), content);
+
+          break;
+        }
+        case 'gemini': {
+          const title = agentId
+            .split('-')
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ');
+          const toml = `description = "Activates the ${title} command."\nprompt = """\n${agentContent}\n"""`;
+          await fileManager.writeFile(path.join(targetDir, `${agentId}.toml`), toml);
+
+          break;
+        }
+        // No default
+      }
+  }
+
+  async installUserLevelAgents(ide, installDir) {
+    const ideConfig = await configLoader.getIdeConfiguration(ide);
+    if (!ideConfig?.['user-rule-dir']) return;
+
+    const userAgentIds = await this.getUserLevelAgentIds(installDir);
+    if (userAgentIds.length === 0) return;
+
+    const userTargetDir = this.resolveUserPath(ideConfig['user-rule-dir']);
+    let userLevelSucceeded = false;
+
+    try {
+      await fileManager.ensureDirectory(userTargetDir);
+      for (const agentId of userAgentIds) {
+        const srcPath = path.join(installDir, '.bmad-core', 'user-agents', `${agentId}.md`);
+        if (!(await fileManager.pathExists(srcPath))) continue;
+        await this.writeUserAgentFile(ide, agentId, srcPath, userTargetDir, installDir);
+        console.log(chalk.green(`✓ User agent installed globally: /${agentId}`));
+      }
+      console.log(chalk.green(`✓ User-level agents installed to ${userTargetDir}`));
+      userLevelSucceeded = true;
+    } catch (error) {
+      const reason = ['EACCES', 'EPERM', 'EROFS'].includes(error.code)
+        ? `Permission denied (${error.code})`
+        : error.message;
+      console.log(chalk.yellow(`⚠ Cannot write to ${userTargetDir}: ${reason}`));
+      console.log(chalk.yellow(`  Falling back to project-level install...`));
+    }
+
+    if (!userLevelSucceeded) {
+      const slashPrefix = await this.getCoreSlashPrefix(installDir);
+      const fallbackDir = this.getProjectLevelAgentsDir(ide, installDir, slashPrefix);
+      if (!fallbackDir) return;
+      try {
+        await fileManager.ensureDirectory(fallbackDir);
+        for (const agentId of userAgentIds) {
+          const srcPath = path.join(installDir, '.bmad-core', 'user-agents', `${agentId}.md`);
+          if (!(await fileManager.pathExists(srcPath))) continue;
+          await this.writeUserAgentFile(ide, agentId, srcPath, fallbackDir, installDir);
+          console.log(chalk.green(`✓ User agent installed at project level: /${agentId}`));
+        }
+        console.log(chalk.green(`✓ User agents installed at project level: ${fallbackDir}`));
+        console.log(chalk.dim(`  For global access, manually copy to: ${userTargetDir}`));
+      } catch (error) {
+        console.log(chalk.red(`✗ Fallback also failed: ${error.message}`));
+      }
+    }
   }
 }
 
