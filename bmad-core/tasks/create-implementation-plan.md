@@ -137,23 +137,9 @@ If critical information is missing, ask the user targeted questions. Questions a
 - **Else**: Use monolithic `architectureFile` for similar sections
 - **Fallback**: If no `architecture/` folder exists, check for `Claude.md` in project root for architecture and project information
 
-#### 3.2 Read Architecture Documents Based on Task Type
+#### 3.2 Architecture Docs
 
-**For ALL Tasks:** tech-stack.md, project-structure.md, coding-standards.md
-
-**For Backend/API Tasks, additionally:** data-models.md, database-schema.md, backend-architecture.md, rest-api-spec.md, external-apis.md
-
-**For Frontend/UI Tasks, additionally:** frontend-architecture.md, components.md, core-workflows.md, data-models.md
-
-**For Full-Stack Tasks:** Read both Backend and Frontend sections above
-
-**For Bugs:** Focus on architecture relevant to the affected code path, error handling patterns, logging and debugging guidelines
-
-**For Migrations — Stack Version:** Read tech-stack.md thoroughly. If a migration guide or breaking changes document was provided by the user, read it and extract all breaking changes relevant to the planned work.
-
-**For Migrations — Architecture Pattern:** Read ALL architecture docs to map the full current pattern (not just "affected components"). Also read the target architecture document provided by user. Cross-reference both to understand the gap between current and target architecture.
-
-**For Migrations — Infrastructure/Data:** Read deployment and infrastructure docs, data models, database schema, and environment configuration docs.
+The 3 standard docs (`coding-standards.md`, `tech-stack.md`, `project-structure.md`) are already loaded at activation (STEP 8).
 
 #### 3.3 Extract Task-Specific Technical Details
 
