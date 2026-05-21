@@ -107,15 +107,7 @@ tasks:
 
 #### 0.7 — Developer Identity
 
-**JIRA plans:**
-
-- Read assignee from the plan's Task Information.
-- If missing, fetch via Atlassian MCP.
-- If MCP fails, ask the user.
-
-**Non-JIRA plans:**
-
-- Ask the user for the developer's name.
+Read Assignee from the plan's Task Information. If missing (rare — planner should have populated), ask the user.
 
 Store for use in modification history headers and change log entries.
 
