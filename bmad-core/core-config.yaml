@@ -15,9 +15,12 @@ architecture:
   architectureShardedLocation: bmad-docs/architecture
 domainKnowledge:
   location: bmad-docs/domain-knowledge
-  confluencePageName: Domain-Knowledge-QC
 customTechnicalDocuments: null
 devLoadAlwaysFiles:
+  - bmad-docs/architecture/coding-standards.md
+  - bmad-docs/architecture/tech-stack.md
+  - bmad-docs/architecture/project-structure.md
+plannerLoadAlwaysFiles:
   - bmad-docs/architecture/coding-standards.md
   - bmad-docs/architecture/tech-stack.md
   - bmad-docs/architecture/project-structure.md

@@ -23,7 +23,7 @@ Create a requirements traceability matrix that ensures every acceptance criterio
 Identify all testable requirements from:
 
 - Acceptance Criteria (primary source)
-- Ticket descriptions
+- Task descriptions
 - Tasks/subtasks with specific behaviors
 - Non-functional requirements mentioned
 - Edge cases documented
@@ -106,7 +106,7 @@ trace:
 
 ### Output 2: Traceability Report
 
-**Save to:** `qa.qaLocation/assessments/{plan_id}-{ticket_title_short}-trace-{YYYYMMDD}.md`
+**Save to:** `qa.qaLocation/assessments/{plan_id}-{task_title_short}-trace-{YYYYMMDD}.md`
 
 Create a traceability report with:
 
@@ -252,7 +252,7 @@ This traceability feeds into quality gates:
 **Print this line for review task to quote:**
 
 ```text
-Trace matrix: qa.qaLocation/assessments/{plan_id}-{ticket_title_short}-trace-{YYYYMMDD}.md
+Trace matrix: qa.qaLocation/assessments/{plan_id}-{task_title_short}-trace-{YYYYMMDD}.md
 ```
 
 - Full coverage → PASS contribution

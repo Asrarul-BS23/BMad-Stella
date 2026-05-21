@@ -25,14 +25,14 @@ data:
   - devLoadAlwaysFiles (from core-config: coding-standards.md, tech-stack.md, project-structure.md)
 checklists:
   - task-dod-checklist.md
-  - migration-checklist.md # Migration tickets only
+  - migration-checklist.md # Migration tasks only
 tasks:
   - execute-checklist.md
 ```
 
 ---
 
-## Critical Rules (ALL Ticket Types)
+## Critical Rules (ALL Task Types)
 
 ### Plan File Updates
 
@@ -70,8 +70,8 @@ tasks:
 #### 0.2 — Parse Plan
 
 - Read plan file fully. Extract:
-  - **Ticket type** (Bug/Feature/Migration) and **subtype** (Stack Version/Architecture Pattern/etc.)
-  - **Plan ID** from Ticket Information
+  - **Task type** (Bug/Feature/Migration) and **subtype** (Stack Version/Architecture Pattern/etc.)
+  - **Plan ID** from Task Information
   - **All file paths** from all plan sections (Technical Approach, Tasks/Subtasks, Bug Fix Details, Feature Details, Migration Details)
   - **Architecture citations** (`[Source: architecture/filename.md#section]`)
   - **Task list** with completion status (`[x]` vs `[ ]`)
@@ -101,7 +101,7 @@ tasks:
 
 **Features — Pattern Discovery:** Scan plan-referenced codebase areas for naming conventions, helpers, service patterns, error handling. Store as "Implementation Patterns." Grep for similar implementations before creating new components.
 
-**Bugs — Impact Analysis:** Read files from Affected Code Path. Verify paths match actual code — if not, HALT and report mismatch. Trace failing data flow. Ask user to confirm reproduction steps before any code change.
+**Bugs — Impact Analysis:** Read files from Affected Code Path. Verify paths match actual code — if not, HALT and report mismatch. Trace failing data flow.
 
 **Migrations** — see Step 1.
 
@@ -109,7 +109,7 @@ tasks:
 
 **JIRA plans:**
 
-- Read assignee from the plan's Ticket Information.
+- Read assignee from the plan's Task Information.
 - If missing, fetch via Atlassian MCP.
 - If MCP fails, ask the user.
 
@@ -123,7 +123,7 @@ Store for use in modification history headers and change log entries.
 
 ### Step 1: Migration Detection (ONLY if Migration)
 
-**Bug/Feature tickets → skip to Step 2.**
+**Bug/Feature tasks → skip to Step 2.**
 
 #### 1.1 — Classify Migration Type
 
@@ -157,13 +157,12 @@ Confirm sub-type from Migration Details: Stack Version / Architecture Pattern / 
 
 #### 2.0 — Type Profile
 
-Reuse check applies to all ticket types — use items listed in the plan's Reuse Opportunities section instead of creating new components.
+Reuse check applies to all task types — use items listed in the plan's Reuse Opportunities section instead of creating new components.
 
 | Behavior            | Bug | Feature | Migration |
 | ------------------- | --- | ------- | --------- |
 | Pattern enforcement | OFF | ON      | OFF       |
 | Minimal change      | ON  | OFF     | OFF       |
-| Reproduce-first     | ON  | OFF     | OFF       |
 | Mandatory builds    | OFF | OFF     | ON        |
 | Health tracking     | OFF | OFF     | ON        |
 | Rollback notes      | OFF | OFF     | ON        |
@@ -242,9 +241,9 @@ Write in Completion Notes: approach, deviations, key decisions, tech debt, follo
 
 ## Mid- and Post-Implementation Changes
 
-**Trigger:** ALWAYS run when applying any bug fix or enhancement at any lifecycle stage — during In Progress, after Ready for Review, after Ready for Done, or later. Applies to all ticket types — Bug, Feature, or Migration. Use minimal change with root-cause discipline for bugs and minimal scope for enhancements; write a temporary validation test, run targeted + full regression, then delete the temp test before HALTing.
+**Trigger:** ALWAYS run when applying any bug fix or enhancement at any lifecycle stage — during In Progress, after Ready for Review, after Ready for Done, or later. Applies to all task types — Bug, Feature, or Migration. Use minimal change with root-cause discipline for bugs and minimal scope for enhancements; run targeted + full regression; add a temporary validation test only for important, cheaply-testable business logic (skip UI/CSS/markup/DOM-wiring); manual-verify before HALTing.
 
-**Flow:** Identify root cause / scope → apply change → write temporary validation test → run targeted + full regression → delete temp test → update plan → HALT with report (what changed, sections updated, final file list).
+**Flow:** Identify root cause / scope → apply change → write temp test if change is important business logic → run targeted + full regression → delete temp test if written → manual verification → update plan → HALT with report.
 
 **Required updates:**
 

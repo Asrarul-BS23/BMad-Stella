@@ -10,8 +10,8 @@ Generate a comprehensive risk assessment matrix for a task implementation using 
 required:
   - plan_id: '{plan_id}' # e.g., "PROJ-123"
   - plan_path: 'bmad-docs/impl-plan/{plan_id}-*.md'
-  - ticket_title: '{title}' # If missing, derive from plan file H1
-  - ticket_slug: '{slug}' # If missing, derive from title (lowercase, hyphenated)
+  - task_title: '{title}' # If missing, derive from plan file H1
+  - task_slug: '{slug}' # If missing, derive from title (lowercase, hyphenated)
 ```
 
 ## Purpose

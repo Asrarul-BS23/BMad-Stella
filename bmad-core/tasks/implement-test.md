@@ -144,7 +144,7 @@ Print to console:
 ```text
 TEST IMPLEMENTATION COMPLETE
 ==============================
-Task: {plan_id}-{ticket_title_short}
+Task: {plan_id}-{task_title_short}
 Test Design: {filename}
 
 Tests Implemented:

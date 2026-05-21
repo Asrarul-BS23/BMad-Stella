@@ -2,7 +2,7 @@
 
 # Migration Validation Checklist
 
-This checklist is used by the dev agent during migration ticket implementation. It has three checkpoints: Pre-Migration (before implementation starts), Mid-Migration (at the halfway mark), and Post-Migration (at completion). Each checkpoint is run via `execute-checklist` at the appropriate phase.
+This checklist is used by the dev agent during migration task implementation. It has three checkpoints: Pre-Migration (before implementation starts), Mid-Migration (at the halfway mark), and Post-Migration (at completion). Each checkpoint is run via `execute-checklist` at the appropriate phase.
 
 [[LLM: INITIALIZATION INSTRUCTIONS - MIGRATION VALIDATION
 
@@ -13,6 +13,7 @@ Before proceeding, ensure you have access to:
 3. The migration sub-type classification (Stack Version / Architecture Pattern / Infrastructure / Data / Hybrid)
 
 IMPORTANT: This checklist is called at three points during migration implementation:
+
 - Pre-Migration: Called in implement-task Step 1.4 (before any code changes)
 - Mid-Migration: Called in implement-task Step 2.5 when completed tasks first reach halfway (migrations with 6+ tasks only)
 - Post-Migration: Called in implement-task Step 3.2 (after all tasks complete)
@@ -96,12 +97,12 @@ If FAIL: HALT and present failed items to user for resolution.
 If PASS WITH CONCERNS: present concerns but allow user to decide whether to continue.
 If PASS: proceed to next phase.]]
 
-| Metric | Baseline | Current | Delta |
-|---|---|---|---|
-| Tests Passing | _TBD_ | _TBD_ | _TBD_ |
-| Tests Failing | _TBD_ | _TBD_ | _TBD_ |
-| Build Warnings | _TBD_ | _TBD_ | _TBD_ |
-| Build Status | _TBD_ | _TBD_ | _TBD_ |
+| Metric         | Baseline | Current | Delta |
+| -------------- | -------- | ------- | ----- |
+| Tests Passing  | _TBD_    | _TBD_   | _TBD_ |
+| Tests Failing  | _TBD_    | _TBD_   | _TBD_ |
+| Build Warnings | _TBD_    | _TBD_   | _TBD_ |
+| Build Status   | _TBD_    | _TBD_   | _TBD_ |
 
 **Checkpoint Status:** PASS / FAIL / PASS WITH CONCERNS
 

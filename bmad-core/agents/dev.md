@@ -57,7 +57,7 @@ commands:
   - implement-task: run task implement-task.md
   - explain: teach me what and why you did whatever you just did in detail so I can learn. Explain to me as if you were training a junior engineer.
   - comment-plan {plan-file}:
-      - precondition: If Ticket Information has no Jira ticket key/URL, HALT and skip.
+      - precondition: If Task Information has no Jira ticket key/URL, HALT and skip.
       - flow: Extract Jira key → fetch ticket via Atlassian MCP → run acceptance-criteria-sync → build comment per comment-structure (Jira markdown) → show comment, request approval → post → display ticket URL.
       - acceptance-criteria-sync:
           - If the Jira description already has an Acceptance Criteria or Requirements section, skip.

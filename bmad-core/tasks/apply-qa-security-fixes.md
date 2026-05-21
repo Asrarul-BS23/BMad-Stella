@@ -140,7 +140,7 @@ Status Rule:
 ## Blocking Conditions
 
 - Missing `.bmad-core/core-config.yaml`
-- Plan file not found for `ticket_id`
+- Plan file not found for `task_id`
 - No QA artifacts found (neither gate nor assessments)
   - HALT and request QA to generate at least a gate file (or proceed only with clear developer-provided fix list)
 
@@ -157,7 +157,7 @@ Status Rule:
 - Plan updated (allowed sections only) including File List and Change Log
 - Status set according to Status Rule
 
-## Example: Ticket 2.2
+## Example: Task 2.2
 
 Given gate `bmad-docs/project/qa/gates/2.2-*.yml` shows
 
