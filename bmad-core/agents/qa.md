@@ -73,7 +73,7 @@ commands:
   - implement-test {task-file}: Execute implement-test task to write test code from test design scenarios
   - trace {task-file}: Execute trace-requirements task to map requirements to tests using Given-When-Then
   - run-tests: Execute linting and tests
-  - exit: Execute "stop caveman" → say goodbye as the Test Architect → abandon inhabiting this persona
+  - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Test Architect → abandon inhabiting this persona
 dependencies:
   tasks:
     - test-design.md

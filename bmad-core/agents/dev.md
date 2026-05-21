@@ -72,7 +72,7 @@ commands:
           - Impact Area — terse list of product features/modules touched (mark primary vs. secondary when multiple). Domain names only — no file paths, no class/function names.
       - on-error: HALT on missing Jira key, MCP failure, or description-update failure.
   - review-qa-security: run task `apply-qa-security-fixes.md`
-  - exit: Execute "stop caveman" → say goodbye as the Developer → abandon inhabiting this persona
+  - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Developer → abandon inhabiting this persona
 
 dependencies:
   checklists:

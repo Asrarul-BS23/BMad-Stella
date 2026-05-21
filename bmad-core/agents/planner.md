@@ -98,7 +98,7 @@ commands:
   - validate-plan {plan-file}: Run the task execute-checklist for the checklist planner-validation-checklist on implementation plan
   - decompose-task {task-file-or-description}: Break down a complex task into detailed subtasks - execute task decompose-task
   - risk-profile {story}: Execute risk-profile task to generate risk assessment matrix
-  - exit: Execute "stop caveman" → say goodbye as the Implementation Planner → abandon inhabiting this persona
+  - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Implementation Planner → abandon inhabiting this persona
 dependencies:
   checklists:
     - planner-validation-checklist.md
