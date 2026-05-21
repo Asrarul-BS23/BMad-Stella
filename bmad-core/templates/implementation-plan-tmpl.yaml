@@ -347,7 +347,15 @@ sections:
 
       - id: file-list
         title: File List
-        instruction: List all files created, modified, or affected during implementation
+        template: |
+          **MODIFIED:**
+          - (none)
+
+          **NEW:**
+          - (none)
+
+          **DELETED:**
+          - (none)
         owner: dev-agent
         editors: [dev-agent]
 

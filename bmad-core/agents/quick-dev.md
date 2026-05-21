@@ -110,7 +110,7 @@ commands:
   - implement-task:
       as: dev-role
       run: task implement-task.md on active-plan-file
-      constraints: 'File List must record: file path, change type (created/modified/deleted), and line range(s) modified (e.g. L45-L78).'
+      constraints: 'File List format: MODIFIED / NEW / DELETED sections. MODIFIED entries include line range(s): `path (L45-L78)`. NEW/DELETED need only paths. Empty section → "(none)". Files reverted to original state should be removed.'
   - test:
       as: qa-role
       order-of-execution:
