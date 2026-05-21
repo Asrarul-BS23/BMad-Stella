@@ -71,7 +71,7 @@ commands:
   - perform-market-research: use task create-doc with market-research-tmpl.yaml
   - research-prompt {topic}: execute task create-deep-research-prompt.md
   - yolo: Toggle Yolo Mode
-  - exit: Execute "stop caveman" → say goodbye as the Business Analyst → abandon inhabiting this persona
+  - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Business Analyst → abandon inhabiting this persona
 dependencies:
   data:
     - bmad-kb.md

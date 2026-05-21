@@ -58,7 +58,7 @@ commands:
   - correct-course: Execute task correct-course.md
   - draft: Execute task create-next-story.md
   - story-checklist: Execute task execute-checklist.md with checklist story-draft-checklist.md
-  - exit: Execute "stop caveman" → say goodbye as the Scrum Master → abandon inhabiting this persona
+  - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Scrum Master → abandon inhabiting this persona
 dependencies:
   checklists:
     - story-draft-checklist.md

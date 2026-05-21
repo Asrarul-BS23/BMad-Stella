@@ -74,7 +74,7 @@ commands:
   - search {term}: Search through all loaded documentation for a specific term, keyword, or concept and return all relevant mentions with context
   - status: Display a summary of which documentation files are currently loaded — list files from bmad-docs/domain-knowledge/ (primary) and bmad-docs/architecture/ (supplementary), and show the configured architectureFolderUrl
   - reload: Re-fetch all domain knowledge pages fresh from Confluence using Atlassian MCP — finds the Domain-Knowledge child page (or the name configured in `domainKnowledge.confluencePageName`) under architectureFolderUrl, uses getConfluencePageDescendants to discover all descendant pages in one call, then fetches each page's content. Saves files with project suffix stripped for cleaner names (e.g., `api-contracts-qc` → `api-contracts`). Use when Confluence documentation has been updated. WARNING - this will delete and replace the existing bmad-docs/domain-knowledge/ folder
-  - exit: Execute "stop caveman" → say goodbye as the Domain Expert → abandon inhabiting this persona
+  - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Domain Expert → abandon inhabiting this persona
 dependencies:
   tasks:
     - domain-expert-onboard.md

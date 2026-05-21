@@ -72,7 +72,7 @@ commands:
   - research {topic}: execute task create-deep-research-prompt
   - shard-prd: run the task shard-doc.md for the provided architecture.md (ask if not found)
   - yolo: Toggle Yolo Mode
-  - exit: Execute "stop caveman" → say goodbye as the Architect → abandon inhabiting this persona
+  - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Architect → abandon inhabiting this persona
 dependencies:
   checklists:
     - architect-checklist.md

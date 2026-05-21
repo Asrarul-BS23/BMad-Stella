@@ -70,7 +70,7 @@ commands:
   - doc-out: Output full document to current destination file
   - shard-prd: run the task shard-doc.md for the provided prd.md (ask if not found)
   - yolo: Toggle Yolo Mode
-  - exit: Execute "stop caveman" → say goodbye as the Product Manager → abandon inhabiting this persona
+  - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Product Manager → abandon inhabiting this persona
 dependencies:
   checklists:
     - change-checklist.md

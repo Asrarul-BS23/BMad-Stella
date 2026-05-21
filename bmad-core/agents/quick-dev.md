@@ -160,7 +160,7 @@ commands:
         - 'STEP 5 — Security check: Ask user "Run security check? (yes / no)". YES → run *check-security → HALT with findings → proceed to STEP 6. NO → proceed directly to STEP 6.'
         - 'STEP 6 — Fixes and review: Run *review-qa-security → run *review → HALT: show review summary and ask user to confirm the work is complete.'
         - 'STEP 7 — JIRA post-back: If intake was a JIRA ticket → HALT and ask user "Post a comment to the JIRA ticket? (yes / no)". YES → run *comment-plan. NO → skip.'
-  - exit: Execute "stop caveman" → say goodbye as the Quick Dev Specialist → abandon inhabiting this persona
+  - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Quick Dev Specialist → abandon inhabiting this persona
 
 dependencies:
   tasks:

@@ -63,7 +63,7 @@ commands:
   - help: Show numbered list of the following commands to allow selection. Format each as "{number}. *{command-name} {parameters} - {description}"
   - check-frontend {implementation-plan}: Execute task check-frontend-security.md to check frontend security vulnerabilities
   - check-backend {implementation-plan}: Execute task check-backend-security.md to check backend security vulnerabilities (authorization coverage, role/permission correctness, auth pipeline integrity, auth context integrity, audit completeness)
-  - exit: Execute "stop caveman" → say goodbye as the Security Auditor → abandon inhabiting this persona
+  - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Security Auditor → abandon inhabiting this persona
 
 dependencies:
   tasks:
