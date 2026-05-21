@@ -172,10 +172,6 @@ If project-structure.md doesn't cover the area, ask the user for a search hint.
 
 Capture findings for §6 (Technical Approach). Verification of paths and patterns happens at `*validate-plan` (see planner-validation-checklist §7).
 
-#### 3.5 Vendor Interaction Verification
-
-If the work touches a shared third-party contract (event channels, middleware, lifecycle hooks, plugin callbacks), grep the relevant library's source to verify bidirectional non-interference — does new code block the library, AND does the library block new code? Cite library source `file:line` for any claim about library behavior. Skip when the work is internal-only.
-
 ### 4. Handle Dependency Analysis (If Available)
 
 **Check and Load:**
