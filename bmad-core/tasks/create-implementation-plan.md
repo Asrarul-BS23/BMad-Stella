@@ -46,6 +46,7 @@ Extract the following (or derive if missing):
   - **Data** — database schema changes, data transformations, engine migrations
   - **Hybrid** — combination of the above
 - **Title:** The task summary
+- **Assignee:** JIRA → use the `assignee` field from the fetched ticket. If null/empty, derive name from JIRA_EMAIL (e.g., "ashik.mahmud.bs23@stellainternational.com" → "Ashik Mahmud"). For non-JIRA plans, ask the user.
 - **Description:** Full description if available
 - **Requirements:** Explicit requirements if provided; if not, derive from description and acceptance criteria. Each must be clear, specific, and testable.
 - **Acceptance Criteria:** Explicit ACs if provided (if not, you'll derive them later)
@@ -248,41 +249,23 @@ After deriving ACs (5.1–5.5), display them to the user and ask for confirmatio
 
 As a senior developer, document the complete technical decisions, references to existing files, data flows, and named patterns using the structured sub-sections from the template.
 
-#### 6.1 Current State
+#### 6.1 Transformation Strategy
 
-Document what exists now in the codebase relevant to this task:
-
-- Concise description of current code structure and file organization in the affected area
-- Current data flow or execution path (especially for bugs and migrations)
-- Existing patterns, utilities, and services that are relevant
-- Current test coverage of affected files
-- Cite source: `[Source: architecture/{filename}.md#{section}]`
-
-#### 6.2 Target State
-
-Describe concisely - what should exist after implementation is complete:
-
-- For Bugs: corrected behavior and the specific code path change
-- For Features: new components, endpoints, files, and how they integrate
-- For Migrations: target architecture, folder structure, and pattern
-
-#### 6.3 Transformation Strategy
-
-Describe how to get from current state to target state:
+Describe the implementation approach:
 
 - Implementation strategy and major components affected
 - Key design patterns and implementation patterns to follow
 - API/database design changes (if applicable)
 - Technology/framework choices
 
-#### 6.4 File Structure Planning
+#### 6.2 File Structure Planning
 
 - New files to create (with full paths)
 - Existing files to modify
 - Files to delete (for migrations)
 - Directory structure changes
 
-#### 6.5 Integration Points
+#### 6.3 Integration Points
 
 Document where new or changed code connects to existing code:
 
@@ -290,11 +273,11 @@ Document where new or changed code connects to existing code:
 - Callers and consumers of code being changed
 - Shared state, configuration, or infrastructure dependencies
 
-#### 6.6 Reuse Opportunities
+#### 6.4 Reuse Opportunities
 
 List existing utilities/helpers/services to reuse (from §3.4 scan). Format: file path + purpose. E.g., `Services/LoggerService.cs` for logging.
 
-#### 6.7 Type-Specific Sections
+#### 6.5 Type-Specific Sections
 
 Populate the section matching the task type. Skip the other two.
 
@@ -389,10 +372,10 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
 - Use `{root}/templates/implementation-plan-tmpl.yaml` structure
 - Fill all sections completely:
   - Status (set to "Draft - Awaiting Review")
-  - Task Information (Plan ID, type, **subtype**, title, input source, description)
+  - Task Information (Plan ID, type, **subtype**, title, assignee, input source, description)
   - Requirements (explicit or derived)
   - Acceptance Criteria (type-specific, derived or provided)
-  - Technical Approach (structured: Current State, Target State, Transformation Strategy, Integration Points)
+  - Technical Approach (structured: Transformation Strategy, Integration Points, Reuse Opportunities)
   - Type-specific section (one only, per §6.7)
   - Tasks / Subtasks (type-specific granularity, with checkboxes and 2 testing tasks)
   - Dependencies and Risks (if applicable)
@@ -408,8 +391,7 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
 - Verify all technical details include source citations
 - Ensure tasks align with requirements, acceptance criteria, and architecture constraints
 - **Verify type-specific sections are populated** (Bug Fix Details / Feature Details / Migration Details)
-- Create directory if not exists: `/bmad-docs/impl-plan/`
-- Update plan status to "Draft - Awaiting Review" and save as: `bmad-docs/impl-plan/{{plan_id}}-{{task_title_short}}.md`
+- Set status to "Draft - Awaiting Review" and `Write` to `bmad-docs/impl-plan/{{plan_id}}-{{task_title_short}}.md` (Write auto-creates the parent dir; do not pre-check with `ls`/`test`/`mkdir`).
 - Provide summary to user including:
   - **Plan created:** `bmad-docs/impl-plan/{{plan_id}}-{{task_title_short}}.md`
   - **Task Type:** Bug / Feature / Migration (subtype if applicable)

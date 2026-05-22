@@ -107,15 +107,7 @@ tasks:
 
 #### 0.7 — Developer Identity
 
-**JIRA plans:**
-
-- Read assignee from the plan's Task Information.
-- If missing, fetch via Atlassian MCP.
-- If MCP fails, ask the user.
-
-**Non-JIRA plans:**
-
-- Ask the user for the developer's name.
+Read Assignee from the plan's Task Information. If missing (rare — planner should have populated), ask the user.
 
 Store for use in modification history headers and change log entries.
 
@@ -248,7 +240,7 @@ Write in Completion Notes: approach, deviations, key decisions, tech debt, follo
 **Required updates:**
 
 - **Tasks/Subtasks:** Append the corrective or enhancement subtask under the original task most closely related to the change. Don't uncheck prior tasks.
-- **File List:** Update to final state (added, reverted, deleted files).
+- **File List:** Update to final state in this format — MODIFIED / NEW / DELETED sections. For MODIFIED, append line range(s) in parentheses: `path (L45-L78)` or `path (L45-L78, L120-L135)`. NEW/DELETED don't need line ranges. Empty section → "(none)". Files reverted to original state should be removed.
 - **Debug Log:** Change description (bug or enhancement), root cause or rationale, what was applied. Note WHEN the change was made.
 - **Change Log:** Date, version, change description, developer name.
 - **Deviation Record:** If the change diverged from the planned Technical Approach, add a Planned / Actual / Reason entry referencing the Debug Log entry.

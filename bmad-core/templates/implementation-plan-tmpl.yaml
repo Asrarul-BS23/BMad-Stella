@@ -83,6 +83,14 @@ sections:
         owner: planner
         editors: [planner]
 
+      - id: assignee
+        title: Assignee
+        type: text
+        template: "{{assignee}}"
+        elicit: true
+        owner: planner
+        editors: [planner]
+
       - id: input-source
         title: Input Source
         type: text
@@ -121,18 +129,6 @@ sections:
     owner: planner
     editors: [planner]
     sections:
-      - id: current-state
-        title: Current State
-        type: multiline-text
-        owner: planner
-        editors: [planner]
-
-      - id: target-state
-        title: Target State
-        type: multiline-text
-        owner: planner
-        editors: [planner]
-
       - id: transformation-strategy
         title: Transformation Strategy
         type: multiline-text
@@ -347,7 +343,15 @@ sections:
 
       - id: file-list
         title: File List
-        instruction: List all files created, modified, or affected during implementation
+        template: |
+          **MODIFIED:**
+          - (none)
+
+          **NEW:**
+          - (none)
+
+          **DELETED:**
+          - (none)
         owner: dev-agent
         editors: [dev-agent]
 

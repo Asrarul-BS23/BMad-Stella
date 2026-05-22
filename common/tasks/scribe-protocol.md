@@ -42,6 +42,14 @@ If eligible per Section 1, execute IN ORDER:
 
 Notification without verified-on-disk write = **CRITICAL FAILURE**.
 
+### 2.1 Tool selection — STRICT
+
+- **Append (step 1):** `Edit` (or `Write` for bootstrap, §7).
+- **Verify (step 2):** `Read` with `offset` near EOF.
+- **ID timestamp (§3.1):** `Bash: date -u +%Y-%m-%d-%H%M%S-%3N` (real UTC, millisecond precision).
+
+Forbidden for all three: `powershell -Command`, `Out-File`/`Add-Content`/`Get-Content`/`Set-Content`/`Get-Date`/`[DateTime]::UtcNow`, heredocs/here-strings, `cat`/`tail`/`echo` piped to file. Why: file tools on `bmad-docs/bmad-notes/**` and the `date` binary are pre-allowlisted; every forbidden form triggers a permission prompt, and `Bash(powershell *)` cannot be safely added to the allowlist (arbitrary code execution).
+
 ---
 
 ## 3. Entry format
