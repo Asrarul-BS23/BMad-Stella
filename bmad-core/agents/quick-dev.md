@@ -103,7 +103,6 @@ commands:
       order-of-execution:
         - 'Follow create-implementation-plan.md exactly, except apply the skips and caps listed below:'
         - 'Type-aware: treat Bug/Feature/Migration differently — each requires distinct planning questions, task granularity, and validation criteria.'
-        - 'Codebase reality check: verify all referenced file paths, codes and patterns exist in the codebase before finalizing — wrong paths cause dev-role failures.'
         - 'Instructions only — plan describes what to do and why; no code. Implementation is dev-role responsibility.'
         - 'SKIP these template sections: Risk Matrix, NFR Assessment, Dependency Mapping'
         - 'KEEP these sections: Ticket Information, Technical Approach, task checklist with [ ] checkbox items, Acceptance Criteria, Dev Agent Record, Deviation Record, Security Violations, Feedback'
