@@ -309,6 +309,8 @@ Populate the section matching the task type. Skip the other two.
 
 Break down implementation into sequential tasks with checkboxes. Reference acceptance criteria (AC: #).
 
+**Pre-task gate:** For each acceptance criterion whose execution path passes through a framework, library, or middleware layer, trace it end-to-end against the proposed fix from §6 and flag every boundary that could intercept, transform, or short-circuit the behavior. If the fix can't survive those layers, revise §6 before writing tasks.
+
 #### 7.1 Task Granularity by Task Type
 
 **For Bugs:**
