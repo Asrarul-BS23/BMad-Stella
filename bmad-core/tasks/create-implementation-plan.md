@@ -385,7 +385,7 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
   - Dev Agent Record (leave empty - dev agent will populate during implementation)
   - Deviation Record (leave empty - dev agent will populate if implementation diverges from plan)
   - Security Violations (leave empty - populated by security agent post-implementation)
-  - Feedback (leave empty - populated by QA agent post-testing; dev agent resolves)
+  - Feedback (leave both subsections empty — `QA Feedback` populated by QA agent post-testing, `PR Review Feedback` populated by reviewer agent post-review)
 
 ### 10. Implementation Plan Completion and Review
 
