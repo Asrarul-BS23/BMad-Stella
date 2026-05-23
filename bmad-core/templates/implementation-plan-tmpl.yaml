@@ -368,7 +368,19 @@ sections:
 
   - id: feedback
     title: Feedback
-    type: bullet-list
-    instruction: QA feedback as checkbox items, marked [x] when incorporated.
+    instruction: Findings from QA and PR review for dev to address.
     owner: qa-agent
-    editors: [qa-agent, dev-agent]
+    editors: [qa-agent, reviewer-agent, dev-agent]
+    sections:
+      - id: qa-feedback
+        title: QA Feedback
+        type: bullet-list
+        instruction: QA feedback as checkbox items, marked [x] when incorporated.
+        owner: qa-agent
+        editors: [qa-agent, dev-agent]
+      - id: pr-review-feedback
+        title: PR Review Feedback
+        type: bullet-list
+        instruction: Actionable items for the dev — one checkbox per fix, marked [x] when incorporated. No praise, no commentary, no verdicts.
+        owner: reviewer-agent
+        editors: [reviewer-agent, dev-agent]
