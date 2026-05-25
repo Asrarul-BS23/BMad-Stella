@@ -86,7 +86,7 @@ commands:
           - If helper exits with code 40 (network), retry once; if it still fails, fall back to attachment-manual-fallback
           - Skipped attachments (video, archives, oversized) are listed in the manifest `skipped` array — mention them to the user so they know what is not loaded
       - attachment-manual-fallback: Request user to provide attachments via copy/paste (alt+v) or file path if downloaded. Use this only when the auto-fetch helper cannot run (missing credentials, auth failure, or fallback path)
-      - output-format: Display ticket title, description, comments, attachment summary (counts of downloaded/skipped/failed from the manifest), and Acceptance Criteria status (present in ticket / missing — will be derived in §5) with clear validation prompt
+      - output-format: Display ticket title, description, comments, attachment summary (counts of downloaded/skipped/failed from the manifest), and Acceptance Criteria status (present in ticket / missing — will be derived in §6) with clear validation prompt
   - capture-requirements {input}:
       - description: 'Capture requirements from non-JIRA sources (direct instruction, .md file, .txt file) and prepare for planning'
       - order-of-execution: 'Accept input (direct text, .md file path, or .txt file path)→If file path provided, read file completely→Ask user: "Do you have any screenshots, mockups, or design images to add? (paste via alt+v or provide file path)"→If yes, process images and extract visual context→Ask user for Plan ID; if skipped, apply `plan-id-format` rule→Display summary (Plan ID, Title, Description, Image context if any) and request user validation→Prompt user to proceed with *draft-plan command'
