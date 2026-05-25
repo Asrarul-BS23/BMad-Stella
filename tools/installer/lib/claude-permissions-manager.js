@@ -130,6 +130,18 @@ class ClaudePermissionsManager {
       'Bash(ls)',
       'Bash(ls *)',
 
+      // Pipeline / text utilities (cross-platform, read-only)
+      'Bash(findstr)',
+      'Bash(findstr *)',
+      'Bash(head)',
+      'Bash(head *)',
+      'Bash(tail)',
+      'Bash(tail *)',
+      'Bash(wc)',
+      'Bash(wc *)',
+      'Bash(cut)',
+      'Bash(cut *)',
+
       // Claude Code built-in search tools
       'Grep(.bmad-core/**)',
       'Grep(bmad-docs/**)',
