@@ -75,13 +75,13 @@ commands:
   - retrieve-ticket-information {ticket-number-or-url}:
       - order-of-execution: 'If no ticket identifier provided, ask for one→Fetch ticket text (title, description, comments, attachment metadata) using ticket number/URL with `atlassian` MCP→On MCP failure → apply `mcp-failure` rule→Run the jira-attachments helper to download binary attachments (see attachment-auto-fetch rules)→For each downloaded image/PDF in the manifest, use the Read tool on its localPath so the image/document is loaded into context→Display ticket contents (note whether Requirements and Acceptance Criteria sections are present or missing)→Request user validation→Prompt user to proceed with draft-plan command'
       - attachment-auto-fetch:
-          - Execute via Bash: `node .bmad-core/utils/jira-attachments {TICKET-KEY} --quiet` (use project root of current working directory)
+          - 'Execute via Bash: `node .bmad-core/utils/jira-attachments {TICKET-KEY} --quiet` (use project root of current working directory)'
           - Parse the JSON object printed on stdout — it contains `manifestPath`, `ticketKey`, `attachmentCount`, `failedCount`, `skippedCount`, `cacheHit`
           - Read the manifest file at `manifestPath` to get per-attachment localPath, mimeType, referencedInline, and source metadata
           - For each attachment entry where mimeType starts with `image/`, invoke the Read tool on its `localPath` so the image enters context
-          - For each entry where mimeType is `application/pdf`, use Read with `pages: "1-5"` by default; expand range only if needed
-          - If helper exits with code 10 (config), notify user: "Jira API credentials missing. Re-run `npx bmad-stella install` or set JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN in .env" and fall back to attachment-manual-fallback
-          - If helper exits with code 20 (auth), notify user: "Jira authentication failed. Regenerate API token at https://id.atlassian.com/manage-profile/security/api-tokens and update .env" and fall back to attachment-manual-fallback
+          - For each entry where mimeType is `application/pdf`, use Read with `pages:"1-5"` by default; expand range only if needed
+          - 'If helper exits with code 10 (config), notify user: "Jira API credentials missing. Re-run `npx bmad-stella install` or set JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN in .env" and fall back to attachment-manual-fallback'
+          - 'If helper exits with code 20 (auth), notify user: "Jira authentication failed. Regenerate API token at https://id.atlassian.com/manage-profile/security/api-tokens and update .env" and fall back to attachment-manual-fallback'
           - If helper exits with code 30 (not-found), halt and ask the user to verify the ticket key
           - If helper exits with code 40 (network), retry once; if it still fails, fall back to attachment-manual-fallback
           - Skipped attachments (video, archives, oversized) are listed in the manifest `skipped` array — mention them to the user so they know what is not loaded
