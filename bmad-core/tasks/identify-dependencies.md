@@ -8,7 +8,7 @@ Find related past work, analyze code dependencies, and assess modification requi
 
 ```yaml
 required:
-  - ticket_id: 'Current Jira ticket ID' # e.g., "PROJ-123"
+  - plan_id: 'Current Jira ticket ID' # e.g., "PROJ-123"
   - jira_project: 'Jira project key from MCP config'
 
 optional:
@@ -24,7 +24,7 @@ Generate comprehensive dependency analysis including:
 1. Related past tickets (2-3 with semantic similarity)
 2. Code files modified in past work
 3. Code modification assessment for current ticket
-4. Temporary dependency file at `bmad-docs/temporary/{ticket_id}-dependency-tmp.md`
+4. Temporary dependency file at `bmad-docs/temporary/{plan_id}-dependency-tmp.md`
 
 ## Process
 
@@ -110,7 +110,7 @@ Check existence, last modified date/author, complexity metrics, and whether file
 Display minimal summary in terminal with single-line format per related ticket showing ticket ID, similarity percentage, and file count only.
 
 **Temporary Dependency File:**
-Create `bmad-docs/temporary/{ticket_id}-dependency-tmp.md` containing the following aspects:
+Create `bmad-docs/temporary/{plan_id}-dependency-tmp.md` containing the following aspects:
 
 ```
 
