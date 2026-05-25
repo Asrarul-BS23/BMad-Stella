@@ -10,6 +10,7 @@ const { extractYamlFromAgent } = require('../../lib/yaml-utils');
 const resourceLocator = require('./resource-locator');
 const dependencyManager = require('./dependency-manager');
 const scribeSetup = require('./scribe-setup');
+const hooksManager = require('./hooks-manager');
 
 class Installer {
   async getCoreVersion() {
@@ -433,10 +434,16 @@ class Installer {
       }
     }
 
+    // Set up user-level Claude notification hooks (~/.claude/settings.json)
+    if (config.installType !== 'expansion-only') {
+      await hooksManager.setupCustomHooks(spinner);
+    }
+
     // Check and configure required MCP servers (e.g., Atlassian MCP for JIRA integration)
+    let mcpResults = null;
     if (config.installType !== 'expansion-only') {
       spinner.text = 'Checking required MCP servers...';
-      const mcpResults = await dependencyManager.checkAndInstallMcpServers(installDir, spinner);
+      mcpResults = await dependencyManager.checkAndInstallMcpServers(installDir, spinner);
       await dependencyManager.showInstallationSummary(mcpResults, installDir);
     }
 
@@ -451,6 +458,24 @@ class Installer {
       await fileManager.modifyCoreConfig(installDir, config);
     }
 
+    // Pre-fetch Confluence domain knowledge so Sage is ready on first activation.
+    // Silent — runs only when URL + Atlassian credentials are both present.
+    if (
+      config.installType !== 'expansion-only' &&
+      config.architectureFolderUrl &&
+      mcpResults?.jiraCredentials?.ok
+    ) {
+      spinner.text = 'Fetching domain knowledge from Confluence...';
+      spinner.stop();
+      const domainKnowledgeFetcher = require('./domain-knowledge-fetcher');
+      const dkResult = await domainKnowledgeFetcher.fetchAndPersist({
+        installDir,
+        architectureFolderUrl: config.architectureFolderUrl,
+      });
+      domainKnowledgeFetcher.showSummary(dkResult);
+      spinner.start();
+    }
+
     // Update .gitignore with BMad directories
     if (config.installType !== 'expansion-only') {
       spinner.text = 'Updating .gitignore...';
@@ -459,12 +484,12 @@ class Installer {
       spinner.start();
     }
 
-    // Initialize scribe memory ledger (silent, idempotent)
+    // Initialize scribe notes (silent, idempotent)
     if (config.installType !== 'expansion-only') {
-      spinner.text = 'Initializing memory ledger...';
+      spinner.text = 'Initializing notes...';
       spinner.stop();
-      const ledgerResult = await scribeSetup.setup(installDir);
-      scribeSetup.showSummary(ledgerResult);
+      const notesResult = await scribeSetup.setup(installDir);
+      scribeSetup.showSummary(notesResult);
       spinner.start();
     }
 
@@ -1990,7 +2015,7 @@ class Installer {
   async updateGitignore(installDir) {
     try {
       const gitignorePath = path.join(installDir, '.gitignore');
-      const bmadIgnoreEntries = ['bmad-docs/', 'bmad-ledger/', '.claude/', '.bmad-core/', '.env'];
+      const bmadIgnoreEntries = ['bmad-docs/', '.claude/', '.bmad-core/', '.env'];
 
       // Check if .gitignore exists
       const exists = await fileManager.pathExists(gitignorePath);

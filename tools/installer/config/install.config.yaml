@@ -12,6 +12,7 @@ ide-configurations:
   cursor:
     name: Cursor
     rule-dir: .cursor/rules/bmad/
+    user-rule-dir: ~/.cursor/rules/bmad/
     format: multi-file
     command-suffix: .mdc
     instructions: |
@@ -22,6 +23,7 @@ ide-configurations:
   claude-code:
     name: Claude Code
     rule-dir: .claude/commands/BMad/
+    user-rule-dir: ~/.claude/commands/BMad/
     format: multi-file
     command-suffix: .md
     instructions: |
@@ -31,6 +33,7 @@ ide-configurations:
   iflow-cli:
     name: iFlow CLI
     rule-dir: .iflow/commands/BMad/
+    user-rule-dir: ~/.iflow/commands/Caveman/
     format: multi-file
     command-suffix: .md
     instructions: |
@@ -40,6 +43,7 @@ ide-configurations:
   crush:
     name: Crush
     rule-dir: .crush/commands/BMad/
+    user-rule-dir: ~/.crush/commands/Caveman/
     format: multi-file
     command-suffix: .md
     instructions: |
@@ -77,6 +81,7 @@ ide-configurations:
   cline:
     name: Cline
     rule-dir: .clinerules/
+    user-rule-dir: ~/.clinerules/
     format: multi-file
     command-suffix: .md
     instructions: |
@@ -88,6 +93,7 @@ ide-configurations:
   gemini:
     name: Gemini CLI
     rule-dir: .gemini/commands/BMad/
+    user-rule-dir: ~/.gemini/commands/Caveman/
     format: multi-file
     command-suffix: .toml
     instructions: |
