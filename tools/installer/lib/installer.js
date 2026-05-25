@@ -10,6 +10,7 @@ const { extractYamlFromAgent } = require('../../lib/yaml-utils');
 const resourceLocator = require('./resource-locator');
 const dependencyManager = require('./dependency-manager');
 const scribeSetup = require('./scribe-setup');
+const hooksManager = require('./hooks-manager');
 
 class Installer {
   async getCoreVersion() {
@@ -431,6 +432,11 @@ class Installer {
         }
         await ideSetup.setup(ide, installDir, config.agent, spinner, preConfiguredSettings);
       }
+    }
+
+    // Set up user-level Claude notification hooks (~/.claude/settings.json)
+    if (config.installType !== 'expansion-only') {
+      await hooksManager.setupCustomHooks(spinner);
     }
 
     // Check and configure required MCP servers (e.g., Atlassian MCP for JIRA integration)
