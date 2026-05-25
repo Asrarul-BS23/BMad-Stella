@@ -8,13 +8,7 @@ Transform requirements from any source (JIRA tickets, direct instructions, markd
 
 ## CRITICAL RULES
 
-**FILE LOCATION DISCOVERY:** When file locations are needed:
-
-- **If user provides paths:** use them directly.
-- **Otherwise, scan the codebase:**
-  - Read `bmad-docs/architecture/project-structure.md` (or `project-structure.md`) first to understand file locations and naming conventions.
-  - Ask user for search hints (e.g., "services folder", "authentication-related", "payment files").
-  - Perform targeted Glob/Grep searches; avoid broad scans.
+**FILE LOCATION DISCOVERY:** If the user provides paths, use them directly. Otherwise, follow §4 Codebase Scan (scoped Glob/Grep, never repo-wide).
 
 ## SEQUENTIAL Task Execution (Do not proceed until current Task is complete)
 
@@ -130,7 +124,7 @@ If critical information is missing, ask the user targeted questions. Questions a
     - **Ask the user to specify the fields to be added or the model structure** (field names, types, constraints, relationships)
   - Document the model/table changes needed in the Technical Approach section
 
-### 3. Gather Architecture Context
+### 3. Gather Architecture & Domain Context
 
 #### 3.1 Determine Architecture Reading Strategy
 
@@ -157,7 +151,11 @@ Extract:
 
 ALWAYS cite source documents: `[Source: architecture/{filename}.md#{section}]`
 
-### 3.4 Orientation Scan
+#### 3.4 Domain Knowledge Context
+
+Read `domainKnowledge.location` from core-config.yaml. Extract 3-5 key terms from the task title and Requirements (module name, entity, action, feature area). For each term, `Grep` over the domain-knowledge location with `output_mode=content, context=5`. Capture only relevant snippets that explain business rules, terminology, or constraints affecting the task. Skip if no entries match — don't bulk-read the folder.
+
+### 4. Codebase Scan
 
 Use project-structure.md to scope searches. No repo-wide globs.
 
@@ -168,11 +166,18 @@ Use project-structure.md to scope searches. No repo-wide globs.
 5. Identify callers — search usages of functions/components likely to change.
 6. Note test coverage for affected files.
 
+**Tooling:**
+
+- **Glob tool** — pattern matching within scope. Default choice.
+- **Directory tree** (one pass): `tree /f` (Windows) · `tree` (Linux) · `find . -type d -maxdepth 3` (macOS fallback).
+- **`Get-ChildItem` / `ls`** — non-recursive only.
+- **NEVER** `Get-ChildItem -Recurse` / `ls -R` / unbounded `find` — walks `bin/`, `obj/`, `node_modules/`, `.git/`.
+
 If project-structure.md doesn't cover the area, ask the user for a search hint.
 
-Capture findings for §6 (Technical Approach). Verification of paths and patterns happens at `*validate-plan` (see planner-validation-checklist §7).
+Capture findings for §7 (Technical Approach). Verification of paths and patterns happens at `*validate-plan` (see planner-validation-checklist §7).
 
-### 4. Handle Dependency Analysis (If Available)
+### 5. Handle Dependency Analysis (If Available)
 
 **Check and Load:**
 
@@ -186,7 +191,7 @@ Capture findings for §6 (Technical Approach). Verification of paths and pattern
 - If task will be decomposed into subtasks: Keep file with remaining dependencies for future subtasks
 - Document cleanup action in implementation plan
 
-### 5. Derive or Validate Acceptance Criteria
+### 6. Derive or Validate Acceptance Criteria
 
 Based on task type and information gathered:
 
@@ -196,7 +201,7 @@ Based on task type and information gathered:
 
 **If NOT provided, derive them per task type:**
 
-#### 5.1 For Bugs
+#### 6.1 For Bugs
 
 - Root cause is identified and documented
 - Fix addresses root cause, not just symptom
@@ -204,7 +209,7 @@ Based on task type and information gathered:
 - Adjacent functionality verified unbroken
 - No scope creep — only the minimal necessary changes are made
 
-#### 5.2 For Features
+#### 6.2 For Features
 
 - Functional requirements (what the feature does)
 - UI/UX requirements (how it looks/behaves)
@@ -213,7 +218,7 @@ Based on task type and information gathered:
 - Performance requirements (if applicable)
 - Security requirements (if applicable)
 
-#### 5.3 For Migrations — Stack Version
+#### 6.3 For Migrations — Stack Version
 
 - All dependencies updated to target version
 - No deprecated API usage remains
@@ -222,7 +227,7 @@ Based on task type and information gathered:
 - All tests pass (count >= pre-migration baseline count)
 - Build succeeds with no new warnings
 
-#### 5.4 For Migrations — Architecture Pattern
+#### 6.4 For Migrations — Architecture Pattern
 
 - Source folder structure matches target pattern
 - Dependency direction follows target rules (e.g., domain doesn't depend on infrastructure)
@@ -232,7 +237,7 @@ Based on task type and information gathered:
 - Build succeeds with no new warnings
 - Behavioral preservation — no business logic changes during migration
 
-#### 5.5 For Migrations — Infrastructure/Data
+#### 6.5 For Migrations — Infrastructure/Data
 
 - Successful migration of all affected components/data
 - No data loss or corruption
@@ -241,15 +246,15 @@ Based on task type and information gathered:
 - Performance maintained or improved
 - Environment-specific configurations correctly isolated
 
-#### 5.6 Validate Derived ACs with User
+#### 6.6 Validate Derived ACs with User
 
-After deriving ACs (5.1–5.5), display them to the user and ask for confirmation, edits, or additions before proceeding to §6. This makes the derive path symmetric with the "provided" path — both end with user-validated ACs.
+After deriving ACs (6.1–6.5), display them to the user and ask for confirmation, edits, or additions before proceeding to §7. This makes the derive path symmetric with the "provided" path — both end with user-validated ACs.
 
-### 6. Define Technical Approach and Decisions
+### 7. Define Technical Approach and Decisions
 
 As a senior developer, document the complete technical decisions, references to existing files, data flows, and named patterns using the structured sub-sections from the template.
 
-#### 6.1 Transformation Strategy
+#### 7.1 Transformation Strategy
 
 Describe the implementation approach:
 
@@ -258,14 +263,14 @@ Describe the implementation approach:
 - API/database design changes (if applicable)
 - Technology/framework choices
 
-#### 6.2 File Structure Planning
+#### 7.2 File Structure Planning
 
 - New files to create (with full paths)
 - Existing files to modify
 - Files to delete (for migrations)
 - Directory structure changes
 
-#### 6.3 Integration Points
+#### 7.3 Integration Points
 
 Document where new or changed code connects to existing code:
 
@@ -273,11 +278,11 @@ Document where new or changed code connects to existing code:
 - Callers and consumers of code being changed
 - Shared state, configuration, or infrastructure dependencies
 
-#### 6.4 Reuse Opportunities
+#### 7.4 Reuse Opportunities
 
-List existing utilities/helpers/services to reuse (from §3.4 scan). Format: file path + purpose. E.g., `Services/LoggerService.cs` for logging.
+List existing utilities/helpers/services to reuse (from §4 scan). Format: file path + purpose. E.g., `Services/LoggerService.cs` for logging.
 
-#### 6.5 Type-Specific Sections
+#### 7.5 Type-Specific Sections
 
 Populate the section matching the task type. Skip the other two.
 
@@ -285,8 +290,7 @@ Populate the section matching the task type. Skip the other two.
 
 - Root Cause Analysis — actual cause, not symptoms; code path + trigger conditions.
 - Reproduction Steps — self-contained in the plan.
-- Affected Code Path — entry point → data flow → failing function.
-- Fix Scope Boundary — what must NOT be touched.
+- Fix Scope — Affected code path (entry point → data flow → failing function); explicitly call out what must NOT be touched.
 
 **Feature Details:**
 
@@ -305,17 +309,17 @@ Populate the section matching the task type. Skip the other two.
 - Health Criteria — test count, build warnings, perf benchmarks to maintain.
 - Do Not Migrate — patterns to intentionally drop.
 
-### 7. Create Implementation Task List
+### 8. Create Implementation Task List
 
 Break down implementation into sequential tasks with checkboxes. Reference acceptance criteria (AC: #).
 
-**Pre-task gate:** For each acceptance criterion whose execution path passes through a framework, library, or middleware layer, trace it end-to-end against the proposed fix from §6 and flag every boundary that could intercept, transform, or short-circuit the behavior. If the fix can't survive those layers, revise §6 before writing tasks.
+**Pre-task gate:** For each acceptance criterion whose execution path passes through a framework, library, or middleware layer, trace it end-to-end against the proposed fix from §7 and flag every boundary that could intercept, transform, or short-circuit the behavior. If the fix can't survive those layers, revise §7 before writing tasks.
 
-#### 7.1 Task Granularity by Task Type
+#### 8.1 Task Granularity by Task Type
 
 **For Bugs:**
 
-- 2-4 tasks max. Bug-specific work: root-cause fix (minimal change). Testing per §7.3.
+- 2-4 tasks max. Bug-specific work: root-cause fix (minimal change). Testing per §8.3.
 
 **For Features:**
 
@@ -331,7 +335,7 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 - Order tasks following the target architecture's dependency direction (innermost/most-stable layers first).
 - For Architecture Pattern migrations: follow layer-by-layer ordering from the transformation map.
 
-#### 7.2 Task Guidelines (All Types)
+#### 8.2 Task Guidelines (All Types)
 
 - Tasks should be logical implementation steps, not overly granular
 - DO NOT include code snippets in tasks - you are senior giving instructions, not implementing
@@ -340,7 +344,7 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
 - Reference architecture docs where applicable [Source: {doc}]
 - Subtasks: only what's necessary. No code. Skip steps already in coding-standards.md, other plan sections, or obvious actions.
 
-#### 7.3 Task Categories to Include
+#### 8.3 Task Categories to Include
 
 1. Setup/preparation (if needed)
 2. Core implementation (main features/fix/migration steps)
@@ -350,7 +354,7 @@ Break down implementation into sequential tasks with checkboxes. Reference accep
    - Write and run temporary unit tests, then delete — only for important, cheaply-testable business logic (services, validators, transformations, parsers). Skip UI/CSS/markup/DOM-wiring.
    - Perform manual testing.
 
-### 8. Document Dependencies and Risks (Only if Applicable)
+### 9. Document Dependencies and Risks (Only if Applicable)
 
 Include this section ONLY if there are actual dependencies, blockers, or risks to document. It populates the `Dependencies and Risks` section of the template.
 
@@ -369,7 +373,7 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
 
 **If no dependencies or risks:** Skip this section entirely
 
-### 9. Populate Implementation Plan Template
+### 10. Populate Implementation Plan Template
 
 - Use `{root}/templates/implementation-plan-tmpl.yaml` structure
 - Fill all sections completely:
@@ -378,7 +382,7 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
   - Requirements (explicit or derived)
   - Acceptance Criteria (type-specific, derived or provided)
   - Technical Approach (structured: Transformation Strategy, Integration Points, Reuse Opportunities)
-  - Type-specific section (one only, per §6.7)
+  - Type-specific section (one only, per §7.5)
   - Tasks / Subtasks (type-specific granularity, with checkboxes and 2 testing tasks)
   - Dependencies and Risks (if applicable)
   - Change Log (initialize with creation entry)
@@ -387,7 +391,7 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
   - Security Violations (leave empty - populated by security agent post-implementation)
   - Feedback (leave both subsections empty — `QA Feedback` populated by QA agent post-testing, `PR Review Feedback` populated by reviewer agent post-review)
 
-### 10. Implementation Plan Completion and Review
+### 11. Implementation Plan Completion and Review
 
 - Review all sections for completeness and accuracy
 - Verify all technical details include source citations
@@ -407,7 +411,7 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
   - Request refinements (use \*refine-plan command)
   - Ask questions or provide additional context
 
-### 11. Post-Approval Cleanup
+### 12. Post-Approval Cleanup
 
 - On user approval, update plan status to "Approved"
 - If plan source is a JIRA ticket, run Bash: `node .bmad-core/utils/jira-attachments {TICKET-KEY} --purge --quiet`

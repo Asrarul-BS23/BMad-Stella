@@ -99,9 +99,9 @@ tasks:
 
 #### 0.6 — Type-Specific Bootstrap
 
-**Features — Pattern Discovery:** Scan plan-referenced codebase areas for naming conventions, helpers, service patterns, error handling. Store as "Implementation Patterns." Grep for similar implementations before creating new components.
+**Features — Pattern Discovery:** Scan plan-referenced codebase areas for naming conventions, helpers, service patterns, error handling. Store as "Implementation Patterns." Grep for similar implementations before creating new components. Apply create-implementation-plan.md §4 tooling rules (Glob/tree first; never `Get-ChildItem -Recurse`).
 
-**Bugs — Impact Analysis:** Read files from Affected Code Path. Verify paths match actual code — if not, HALT and report mismatch. Trace failing data flow.
+**Bugs — Impact Analysis:** Read files from Fix Scope. Verify paths match actual code — if not, HALT and report mismatch. Trace failing data flow.
 
 **Migrations** — see Step 1.
 

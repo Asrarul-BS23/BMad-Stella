@@ -8,25 +8,18 @@ CRITICAL — non-negotiable. Runs at end of every assistant turn. Captures cross
 
 ## 1. When to capture
 
-Capture a NOTE if the turn produced ANY of:
+Only key project findings and key decisions worth remembering across sessions:
 
-1. **Choice / approach** — picked X over Y, methodology, strategy, sequence
-2. **Adoption** — pattern, library, tool, framework, convention, standard
-3. **Rejection / deferral** — option dismissed, postponed, parked for later
-4. **Constraint / trade-off / risk** — limitation, balance, known risk accepted
-5. **Scope** — what's IN vs OUT of current work
-6. **Status change** — plan/task lifecycle (Draft → Approved → Complete, etc.)
-7. **Lesson / gotcha / finding** — non-obvious finding worth remembering
-8. **Acceptance criteria** — definition of "done" agreed upon
+- **Decisions** — chosen approach, adopted pattern/library/convention, rejected option, scope (in vs out), accepted trade-off/risk/constraint.
+- **Findings** — non-obvious lesson, gotcha, or discovery.
 
 ### SKIP
 
-- Mid-work edits without unit-boundary signal
-- Pure exploration / brainstorm without resolution
-- Reads, searches, tests, ephemeral ops
-- Acknowledgements, status reads, repeats, AI commentary
+- Status changes (Draft → Approved → Complete), plan approvals, user confirmations, "works now" verifications, task completions.
+- AC restatements or anything already in the plan file.
+- Mid-work edits, exploration without resolution, reads/searches/tests, acknowledgements, AI commentary.
 
-When uncertain → lean toward CAPTURE.
+When uncertain → SKIP.
 
 ---
 

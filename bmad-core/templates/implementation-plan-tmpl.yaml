@@ -118,7 +118,7 @@ sections:
   - id: acceptance-criteria
     title: Acceptance Criteria
     type: numbered-list
-    instruction: Numbered list of testable conditions. See create-implementation-plan.md §5 for derivation rules.
+    instruction: Numbered list of testable conditions. See create-implementation-plan.md §6 for derivation rules.
     elicit: true
     owner: planner
     editors: [planner]
@@ -166,14 +166,8 @@ sections:
         owner: planner
         editors: [planner]
 
-      - id: affected-code-path
-        title: Affected Code Path
-        type: multiline-text
-        owner: planner
-        editors: [planner]
-
-      - id: fix-scope-boundary
-        title: Fix Scope Boundary
+      - id: fix-scope
+        title: Fix Scope
         type: multiline-text
         owner: planner
         editors: [planner]
@@ -258,7 +252,7 @@ sections:
     title: Tasks / Subtasks
     type: bullet-list
     instruction: |
-      Sequential task breakdown with [ ] checkboxes. Reference acceptance criteria as (AC: #). See create-implementation-plan.md §7 for granularity and testing rules.
+      Sequential task breakdown with [ ] checkboxes. Reference acceptance criteria as (AC: #). See create-implementation-plan.md §8 for granularity and testing rules.
     template: |
       - [ ] Task 1 (AC: # if applicable)
         - [ ] Subtask 1.1...
