@@ -211,13 +211,15 @@ async function promptInstallation() {
 
   const answers = {};
 
+  const userCwd = process.env.INIT_CWD || process.cwd();
+
   // Ask for installation directory first
   const { directory } = await inquirer.prompt([
     {
       type: 'input',
       name: 'directory',
       message: 'Enter the full path to your project directory where BMad should be installed:',
-      default: path.resolve('.'),
+      default: userCwd,
       validate: (input) => {
         if (!input.trim()) {
           return 'Please enter a valid project path';
@@ -229,7 +231,7 @@ async function promptInstallation() {
   answers.directory = directory;
 
   // Detect existing installations
-  const installDir = path.resolve(directory);
+  const installDir = path.resolve(userCwd, directory);
   const state = await installer.detectInstallationState(installDir);
 
   // Check for existing expansion packs
@@ -409,14 +411,14 @@ async function promptInstallation() {
   let ideSelectionComplete = false;
 
   while (!ideSelectionComplete) {
-    console.log(chalk.cyan('\n🛠️  IDE Configuration'));
+    console.log(chalk.cyan('\n🛠️  AI Coding Assistant Configuration'));
     console.log(
       chalk.bold.yellow.bgRed(
-        ' ⚠️  IMPORTANT: This is a MULTISELECT! Use SPACEBAR to toggle each IDE! ',
+        ' ⚠️  IMPORTANT: This is a MULTISELECT! Use SPACEBAR to toggle each AI Coding Assistant! ',
       ),
     );
     console.log(chalk.bold.magenta('🔸 Use arrow keys to navigate'));
-    console.log(chalk.bold.magenta('🔸 Use SPACEBAR to select/deselect IDEs'));
+    console.log(chalk.bold.magenta('🔸 Use SPACEBAR to select/deselect AI Coding Assistants'));
     console.log(chalk.bold.magenta('🔸 Press ENTER when finished selecting\n'));
 
     const ideResponse = await inquirer.prompt([
@@ -424,7 +426,7 @@ async function promptInstallation() {
         type: 'checkbox',
         name: 'ides',
         message:
-          'Which IDE(s) do you want to configure? (Select with SPACEBAR, confirm with ENTER):',
+          'Which AI Coding Assistant(s) do you want to configure? (Select with SPACEBAR, confirm with ENTER):',
         choices: [
           { name: 'Claude Code', value: 'claude-code', checked: true },
           { name: 'Cursor', value: 'cursor' },
@@ -455,7 +457,7 @@ async function promptInstallation() {
           type: 'confirm',
           name: 'confirmNoIde',
           message: chalk.red(
-            '⚠️  You have NOT selected any IDEs. This means NO IDE integration will be set up. Is this correct?',
+            '⚠️  You have NOT selected any AI Coding Assistants. This means NO AI Coding Assistant integration will be set up. Is this correct?',
           ),
           default: false,
         },
@@ -464,7 +466,7 @@ async function promptInstallation() {
       if (!confirmNoIde) {
         console.log(
           chalk.bold.red(
-            '\n🔄 Returning to IDE selection. Remember to use SPACEBAR to select IDEs!\n',
+            '\n🔄 Returning to AI Coding Assistant selection. Remember to use SPACEBAR to select!\n',
           ),
         );
         continue; // Go back to IDE selection only

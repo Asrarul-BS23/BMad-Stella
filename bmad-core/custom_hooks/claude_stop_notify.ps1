@@ -6,5 +6,4 @@ $log  = "$env:USERPROFILE\.claude\custom_hooks\claude_hook_debug.log"
 $script = "$env:USERPROFILE\.claude\custom_hooks\claude_toast.ps1"
 $cwd    = ($json.cwd -replace '"', "'")
 
-# Same tag as idle_prompt — when idle_prompt fires ~60s later it replaces "Done" in notification center
 Start-Process powershell -WindowStyle Hidden -ArgumentList "-NoProfile -NonInteractive -File `"$script`" -Title `"Claude Code`" -Message `"Done`" -Cwd `"$cwd`" -Tag `"claude-status`""
