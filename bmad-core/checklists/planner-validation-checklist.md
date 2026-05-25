@@ -130,8 +130,7 @@ Verify that type-specific sections are populated with appropriate depth — not 
 - [ ] Root cause is identified in Bug Fix Details (not just symptoms described)
 - [ ] Root cause analysis distinguishes root cause from workaround
 - [ ] Reproduction steps are documented in the plan (self-contained, not just a reference to the original source)
-- [ ] Affected code path is traced (entry point → data flow → failure point)
-- [ ] Fix scope is bounded (what will NOT be changed is explicitly stated)
+- [ ] Fix Scope is defined — affected code path traced (entry point → data flow → failure point) AND boundary stated (what will NOT be changed)
 - [ ] Fix addresses root cause, not just symptom
 - [ ] Task count is 2-4 regardless of complexity (complex diagnosis ≠ complex task count)
 
@@ -188,7 +187,7 @@ If you have access to the codebase, perform these checks directly. If not, flag 
 - [ ] Integration points referenced actually exist in the codebase
 - [ ] Referenced utilities, services, or helpers exist and function as described
 - [ ] For migrations: current architecture description matches actual folder structure
-- [ ] For bugs: affected code path files exist and contain the referenced functions
+- [ ] For bugs: Fix Scope files exist and contain the referenced functions
 - [ ] Tasks are independent enough that work can pause and resume between any two tasks
 
 ## VALIDATION RESULT

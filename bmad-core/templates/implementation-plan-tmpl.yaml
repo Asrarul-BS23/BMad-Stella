@@ -166,14 +166,8 @@ sections:
         owner: planner
         editors: [planner]
 
-      - id: affected-code-path
-        title: Affected Code Path
-        type: multiline-text
-        owner: planner
-        editors: [planner]
-
-      - id: fix-scope-boundary
-        title: Fix Scope Boundary
+      - id: fix-scope
+        title: Fix Scope
         type: multiline-text
         owner: planner
         editors: [planner]

@@ -290,8 +290,7 @@ Populate the section matching the task type. Skip the other two.
 
 - Root Cause Analysis — actual cause, not symptoms; code path + trigger conditions.
 - Reproduction Steps — self-contained in the plan.
-- Affected Code Path — entry point → data flow → failing function.
-- Fix Scope Boundary — what must NOT be touched.
+- Fix Scope — Affected code path (entry point → data flow → failing function); explicitly call out what must NOT be touched.
 
 **Feature Details:**
 

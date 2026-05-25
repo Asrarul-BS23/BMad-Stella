@@ -122,6 +122,14 @@ class ClaudePermissionsManager {
       'Bash(find *)',
       'Bash(grep *)',
 
+      // Codebase structure inspection (cross-platform, read-only)
+      'Bash(tree)',
+      'Bash(tree *)',
+      'Bash(dir)',
+      'Bash(dir *)',
+      'Bash(ls)',
+      'Bash(ls *)',
+
       // Claude Code built-in search tools
       'Grep(.bmad-core/**)',
       'Grep(bmad-docs/**)',
