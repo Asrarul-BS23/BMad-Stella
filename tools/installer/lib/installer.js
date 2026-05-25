@@ -434,9 +434,10 @@ class Installer {
     }
 
     // Check and configure required MCP servers (e.g., Atlassian MCP for JIRA integration)
+    let mcpResults = null;
     if (config.installType !== 'expansion-only') {
       spinner.text = 'Checking required MCP servers...';
-      const mcpResults = await dependencyManager.checkAndInstallMcpServers(installDir, spinner);
+      mcpResults = await dependencyManager.checkAndInstallMcpServers(installDir, spinner);
       await dependencyManager.showInstallationSummary(mcpResults, installDir);
     }
 
@@ -449,6 +450,24 @@ class Installer {
     ) {
       spinner.text = 'Configuring document settings...';
       await fileManager.modifyCoreConfig(installDir, config);
+    }
+
+    // Pre-fetch Confluence domain knowledge so Sage is ready on first activation.
+    // Silent — runs only when URL + Atlassian credentials are both present.
+    if (
+      config.installType !== 'expansion-only' &&
+      config.architectureFolderUrl &&
+      mcpResults?.jiraCredentials?.ok
+    ) {
+      spinner.text = 'Fetching domain knowledge from Confluence...';
+      spinner.stop();
+      const domainKnowledgeFetcher = require('./domain-knowledge-fetcher');
+      const dkResult = await domainKnowledgeFetcher.fetchAndPersist({
+        installDir,
+        architectureFolderUrl: config.architectureFolderUrl,
+      });
+      domainKnowledgeFetcher.showSummary(dkResult);
+      spinner.start();
     }
 
     // Update .gitignore with BMad directories
