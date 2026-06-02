@@ -59,7 +59,6 @@ function sendNotification(title, message, withBeep) {
     // Toast first (detached — fast, exits before anything else runs)
     spawnDetached(snoretoast, args);
     if (withBeep) {
-      // permission_prompt only fires from terminal, never VS Code extension.
       // spawnSync blocks Node until PowerShell finishes — guarantees beep plays.
       // Play() + Start-Sleep avoids PlaySync()'s message-loop dependency.
       spawnSync(
@@ -116,15 +115,7 @@ process.stdin.on('end', () => {
   switch (eventName) {
     case 'Notification': {
       switch (data.notification_type) {
-        case 'permission_prompt': {
-          sendNotification(title, 'Waiting for Your Input', true);
-          break;
-        }
         case 'idle_prompt': {
-          break;
-        }
-        case 'push_notification': {
-          sendNotification(title, data.message || 'Notification', false);
           break;
         }
         default: {
