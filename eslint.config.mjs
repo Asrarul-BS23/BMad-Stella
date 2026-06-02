@@ -81,6 +81,7 @@ export default [
       // Additional relaxed rules for legacy/internal scripts
       'no-useless-catch': 'off',
       'unicorn/prefer-number-properties': 'off',
+      'unicorn/prefer-string-raw': 'off',
       'no-unreachable': 'off',
     },
   },
