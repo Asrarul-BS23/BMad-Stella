@@ -27,6 +27,7 @@ function sendNotification(title, message, withBeep) {
   const options = {
     title,
     message,
+    icon: path.join(__dirname, 'claude-icon.png'),
     sound: withBeep && PLATFORM !== 'linux',
   };
 
@@ -61,10 +62,10 @@ process.stdin.on('end', () => {
         sendNotification(title, 'Waiting for Your Input', true);
         break;
       }
-      case 'idle_prompt': {
-        sendNotification(title, 'Waiting for Answer', true);
-        break;
-      }
+      // case 'idle_prompt': {
+      //   sendNotification(title, 'Waiting for Answer', true);
+      //   break;
+      // }
       case 'push_notification': {
         sendNotification(title, data.message || 'Notification', false);
         break;
@@ -76,4 +77,10 @@ process.stdin.on('end', () => {
   } else {
     sendNotification(title, 'Done', false);
   }
+
+  // Exit immediately after spawning the notification so Claude isn't blocked
+  // waiting for the toast to disappear. snoretoast / osascript / notify-send
+  // are independent OS processes and keep running after the parent exits.
+  // setImmediate gives node-notifier one tick to spawn the child before we exit.
+  setImmediate(() => process.exit(0));
 });
