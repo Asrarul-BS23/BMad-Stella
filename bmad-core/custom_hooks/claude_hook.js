@@ -11,9 +11,16 @@ const ICON = path.join(__dirname, 'claude-icon.png');
 
 function log(eventType, data) {
   try {
+    const eventName = data.notification_type ? `${eventType}:${data.notification_type}` : eventType;
+    const slim = { cwd: data.cwd, message: data.message };
+    // Write UTF-8 BOM on first write so Windows auto-detection reads the file correctly
+    if (!fs.existsSync(LOG_FILE) || fs.statSync(LOG_FILE).size === 0) {
+      fs.writeFileSync(LOG_FILE, '﻿', { encoding: 'utf8' });
+    }
     fs.appendFileSync(
       LOG_FILE,
-      `${new Date().toISOString()} [${eventType}] ${JSON.stringify(data)}\n`,
+      `${new Date().toISOString()} [${eventName}] ${JSON.stringify(slim)}\n`,
+      { encoding: 'utf8' },
     );
   } catch {
     // ignore log failures — hook must not crash Claude
