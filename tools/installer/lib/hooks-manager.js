@@ -11,6 +11,7 @@ const HOOK_SCRIPTS = ['claude_hook.js', 'package.json', 'claude-icon.png'];
 
 const HOOK_EVENT_MAP = {
   Notification: 'claude_hook.js',
+  PermissionRequest: 'claude_hook.js',
   Stop: 'claude_hook.js',
 };
 

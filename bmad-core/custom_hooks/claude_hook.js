@@ -109,29 +109,42 @@ process.stdin.on('end', () => {
   }
 
   const title = (data.cwd ? path.basename(data.cwd) : '') || 'Claude Code';
-  const isNotification = Boolean(data.notification_type);
+  const eventName = data.hook_event_name;
 
-  log(isNotification ? 'Notification' : 'Stop', data);
+  log(eventName || 'Unknown', data);
 
-  if (isNotification) {
-    switch (data.notification_type) {
-      case 'permission_prompt': {
-        sendNotification(title, 'Waiting for Your Input', true);
-        break;
+  switch (eventName) {
+    case 'Notification': {
+      switch (data.notification_type) {
+        case 'permission_prompt': {
+          sendNotification(title, 'Waiting for Your Input', true);
+          break;
+        }
+        case 'idle_prompt': {
+          break;
+        }
+        case 'push_notification': {
+          sendNotification(title, data.message || 'Notification', false);
+          break;
+        }
+        default: {
+          sendNotification(title, data.message || 'Notification', false);
+        }
       }
-      case 'idle_prompt': {
-        break;
-      }
-      case 'push_notification': {
-        sendNotification(title, data.message || 'Notification', false);
-        break;
-      }
-      default: {
-        sendNotification(title, data.message || 'Notification', false);
-      }
+
+      break;
     }
-  } else {
-    sendNotification(title, 'Done', false);
+    case 'PermissionRequest': {
+      sendNotification(title, 'Waiting for Your Input', true);
+
+      break;
+    }
+    case 'Stop': {
+      sendNotification(title, 'Done', false);
+
+      break;
+    }
+    // No default
   }
   // Node exits naturally — all spawned processes are detached and unref'd
 });
