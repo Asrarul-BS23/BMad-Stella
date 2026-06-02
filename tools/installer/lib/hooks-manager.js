@@ -1,17 +1,21 @@
 const os = require('node:os');
 const path = require('node:path');
+const { spawn } = require('node:child_process');
 const fs = require('fs-extra');
 const chalk = require('chalk').default || require('chalk');
 const inquirer = require('inquirer').default || require('inquirer');
 const cjson = require('comment-json');
 const resourceLocator = require('./resource-locator');
 
-const HOOK_SCRIPTS = ['claude_notify.ps1', 'claude_stop_notify.ps1', 'claude_toast.ps1'];
+const HOOK_SCRIPTS = ['claude_hook.js', 'package.json'];
 
 const HOOK_EVENT_MAP = {
-  Notification: 'claude_notify.ps1',
-  Stop: 'claude_stop_notify.ps1',
+  Notification: 'claude_hook.js',
+  Stop: 'claude_hook.js',
 };
+
+// PS1 filenames written by the old Windows-only implementation — removed on re-install
+const STALE_PS1_NAMES = ['claude_notify.ps1', 'claude_stop_notify.ps1', 'claude_toast.ps1'];
 
 class HooksManager {
   isWindows() {
@@ -34,9 +38,28 @@ class HooksManager {
     return path.join(resourceLocator.getBmadCorePath(), 'custom_hooks');
   }
 
-  buildHookCommand(scriptName) {
-    const scriptPath = path.join(this.getHooksDestDir(), scriptName);
-    return `powershell -NoProfile -NonInteractive -File "${scriptPath}"`;
+  buildHookCommand() {
+    const scriptPath = path.join(this.getHooksDestDir(), 'claude_hook.js');
+    return `node "${scriptPath}"`;
+  }
+
+  async _runNpmInstall(destDir, spinner) {
+    spinner.text = 'Installing node-notifier...';
+    return new Promise((resolve, reject) => {
+      const proc = spawn('npm', ['install', '--omit=dev'], {
+        cwd: destDir,
+        stdio: 'ignore',
+        shell: true,
+      });
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`npm install exited with code ${code}`));
+        }
+      });
+      proc.on('error', reject);
+    });
   }
 
   async copyHookScripts(spinner) {
@@ -56,6 +79,15 @@ class HooksManager {
         console.warn(chalk.yellow(`  Warning: Hook script not found in source: ${script}`));
       }
     }
+
+    if (!this.isWindows()) {
+      const hookScript = path.join(destDir, 'claude_hook.js');
+      if (await fs.pathExists(hookScript)) {
+        await fs.chmod(hookScript, 0o755);
+      }
+    }
+
+    await this._runNpmInstall(destDir, spinner);
   }
 
   async readUserSettings() {
@@ -94,8 +126,25 @@ class HooksManager {
       settings.hooks = {};
     }
 
-    for (const [event, scriptName] of Object.entries(HOOK_EVENT_MAP)) {
-      const command = this.buildHookCommand(scriptName);
+    // Remove stale PS1 entries left by the old Windows-only implementation
+    for (const event of Object.keys(settings.hooks)) {
+      if (Array.isArray(settings.hooks[event])) {
+        settings.hooks[event] = settings.hooks[event].filter((entry) => {
+          if (!Array.isArray(entry.hooks) || entry.hooks.length === 0) return true;
+          const cmd = entry.hooks[0].command;
+          return typeof cmd !== 'string' || !STALE_PS1_NAMES.some((name) => cmd.includes(name));
+        });
+      }
+    }
+
+    const command = this.buildHookCommand();
+
+    for (const event of Object.keys(HOOK_EVENT_MAP)) {
+      if (!Array.isArray(settings.hooks[event])) {
+        settings.hooks[event] = [];
+      }
+
+      const eventArray = settings.hooks[event];
       const newEntry = {
         hooks: [
           {
@@ -105,19 +154,13 @@ class HooksManager {
         ],
       };
 
-      if (!Array.isArray(settings.hooks[event])) {
-        settings.hooks[event] = [];
-      }
-
-      const eventArray = settings.hooks[event];
-
-      // Find existing BMAD-managed entry by script filename in command string
+      // Find existing BMAD-managed entry by claude_hook.js in the command string
       const existingIndex = eventArray.findIndex(
         (entry) =>
           Array.isArray(entry.hooks) &&
           entry.hooks.length > 0 &&
           typeof entry.hooks[0].command === 'string' &&
-          entry.hooks[0].command.includes(scriptName),
+          entry.hooks[0].command.includes('claude_hook.js'),
       );
 
       if (existingIndex === -1) {
@@ -130,13 +173,6 @@ class HooksManager {
   }
 
   async setupCustomHooks(spinner) {
-    if (!this.isWindows()) {
-      if (spinner) spinner.stop();
-      console.log(chalk.dim('  Notification hooks are Windows-only — skipping.'));
-      if (spinner) spinner.start();
-      return;
-    }
-
     if (spinner) spinner.stop();
 
     const { setupHooks } = await inquirer.prompt([
