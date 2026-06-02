@@ -1,6 +1,6 @@
 'use strict';
 
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -54,24 +54,31 @@ function sendNotification(title, message, withBeep) {
       'Claude Code',
       '-id',
       'claude-code',
+      '-silent',
     ];
-    // Always silent — snoretoast audio access fails in VS Code extension host context
-    args.push('-silent');
-    if (withBeep) {
-      spawnDetached('powershell.exe', [
-        '-NoProfile',
-        '-NonInteractive',
-        '-WindowStyle',
-        'Hidden',
-        '-Command',
-        `(New-Object System.Media.SoundPlayer '${path.join(__dirname, 'beep.wav').replaceAll("'", "''")}').PlaySync()`,
-      ]);
-    }
+    // Toast first (detached — fast, exits before anything else runs)
     spawnDetached(snoretoast, args);
+    if (withBeep) {
+      // permission_prompt only fires from terminal, never VS Code extension.
+      // spawnSync blocks Node until PowerShell finishes — guarantees beep plays.
+      // Play() + Start-Sleep avoids PlaySync()'s message-loop dependency.
+      spawnSync(
+        'powershell.exe',
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-WindowStyle',
+          'Hidden',
+          '-Command',
+          '[System.Media.SystemSounds]::Beep.Play(); Start-Sleep -Milliseconds 400',
+        ],
+        { stdio: 'ignore', windowsHide: true, timeout: 5000 },
+      );
+    }
   } else if (PLATFORM === 'darwin') {
     const esc = (s) => s.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
     if (withBeep) {
-      spawnDetached('afplay', ['/System/Library/Sounds/Funk.aiff']);
+      spawnDetached('osascript', ['-e', 'beep']);
     }
     spawnDetached('osascript', [
       '-e',
@@ -79,10 +86,9 @@ function sendNotification(title, message, withBeep) {
     ]);
   } else {
     if (withBeep) {
-      const beepWav = path.join(__dirname, 'beep.wav');
       spawnDetached('sh', [
         '-c',
-        `paplay '${beepWav.replaceAll("'", "'\\''")}' 2>/dev/null || aplay '${beepWav.replaceAll("'", "'\\''")}' 2>/dev/null`,
+        'paplay /usr/share/sounds/freedesktop/stereo/bell.oga 2>/dev/null || aplay /usr/share/sounds/alsa/Front_Center.wav 2>/dev/null',
       ]);
     }
     spawnDetached('notify-send', ['-i', ICON, title, message]);
@@ -127,5 +133,5 @@ process.stdin.on('end', () => {
   } else {
     sendNotification(title, 'Done', false);
   }
-  // Node exits naturally here — all spawned processes are detached and unref'd
+  // Node exits naturally — all spawned processes are detached and unref'd
 });

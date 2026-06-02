@@ -7,7 +7,7 @@ const inquirer = require('inquirer').default || require('inquirer');
 const cjson = require('comment-json');
 const resourceLocator = require('./resource-locator');
 
-const HOOK_SCRIPTS = ['claude_hook.js', 'package.json', 'claude-icon.png', 'beep.wav'];
+const HOOK_SCRIPTS = ['claude_hook.js', 'package.json', 'claude-icon.png'];
 
 const HOOK_EVENT_MAP = {
   Notification: 'claude_hook.js',
