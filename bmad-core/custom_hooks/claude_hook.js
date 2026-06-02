@@ -55,7 +55,18 @@ function sendNotification(title, message, withBeep) {
       '-id',
       'claude-code',
     ];
-    if (!withBeep) args.push('-silent');
+    // Always silent — snoretoast audio access fails in VS Code extension host context
+    args.push('-silent');
+    if (withBeep) {
+      spawnDetached('powershell.exe', [
+        '-NoProfile',
+        '-NonInteractive',
+        '-WindowStyle',
+        'Hidden',
+        '-Command',
+        `(New-Object System.Media.SoundPlayer '${path.join(__dirname, 'beep.wav').replaceAll("'", "''")}').PlaySync()`,
+      ]);
+    }
     spawnDetached(snoretoast, args);
   } else if (PLATFORM === 'darwin') {
     const esc = (s) => s.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
@@ -67,7 +78,13 @@ function sendNotification(title, message, withBeep) {
       `display notification "${esc(message)}" with title "${esc(title)}"`,
     ]);
   } else {
-    if (withBeep) process.stdout.write('');
+    if (withBeep) {
+      const beepWav = path.join(__dirname, 'beep.wav');
+      spawnDetached('sh', [
+        '-c',
+        `paplay '${beepWav.replaceAll("'", "'\\''")}' 2>/dev/null || aplay '${beepWav.replaceAll("'", "'\\''")}' 2>/dev/null`,
+      ]);
+    }
     spawnDetached('notify-send', ['-i', ICON, title, message]);
   }
 }
