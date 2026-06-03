@@ -48,16 +48,16 @@ class HooksManager {
 
   buildPluginCommand(pluginName) {
     const scriptPath = path.join(this.getHooksDestDir(), pluginName, 'index.js');
-    return `node "${scriptPath}"`;
+    return `"${process.execPath}" "${scriptPath}"`;
   }
 
   async _runNpmInstall(pluginDestDir, spinner) {
     spinner.text = `Installing dependencies for ${path.basename(pluginDestDir)}...`;
     return new Promise((resolve, reject) => {
-      const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-      const proc = spawn(npmCmd, ['install', '--omit=dev'], {
+      const proc = spawn('npm install --omit=dev', {
         cwd: pluginDestDir,
         stdio: 'ignore',
+        shell: true,
       });
       proc.on('close', (code) => {
         if (code === 0) {
