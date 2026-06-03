@@ -1,9 +1,0 @@
-{
-  "name": "claude-hooks",
-  "version": "1.0.0",
-  "private": true,
-  "description": "node-notifier dependency for BMAD Claude notification hooks",
-  "dependencies": {
-    "node-notifier": "^10.0.0"
-  }
-}
