@@ -113,18 +113,6 @@ process.stdin.on('end', () => {
   log(eventName || 'Unknown', data);
 
   switch (eventName) {
-    case 'Notification': {
-      switch (data.notification_type) {
-        case 'idle_prompt': {
-          break;
-        }
-        default: {
-          sendNotification(title, data.message || 'Notification', false);
-        }
-      }
-
-      break;
-    }
     case 'PermissionRequest': {
       sendNotification(title, 'Waiting for Your Input', true);
 

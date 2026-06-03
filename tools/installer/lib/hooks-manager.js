@@ -9,11 +9,14 @@ const resourceLocator = require('./resource-locator');
 
 const HOOK_SCRIPTS = ['claude_hook.js', 'package.json', 'claude-icon.png'];
 
+// Values are extra fields merged into the hook entry object for that event
 const HOOK_EVENT_MAP = {
-  Notification: 'claude_hook.js',
-  PermissionRequest: 'claude_hook.js',
-  Stop: 'claude_hook.js',
+  PermissionRequest: { matcher: '' },
+  Stop: {},
 };
+
+// Hook event names no longer managed — claude_hook.js entries are removed on re-install
+const STALE_HOOK_EVENTS = ['Notification'];
 
 // PS1 filenames written by the old Windows-only implementation — removed on re-install
 const STALE_PS1_NAMES = ['claude_notify.ps1', 'claude_stop_notify.ps1', 'claude_toast.ps1'];
@@ -138,6 +141,18 @@ class HooksManager {
       }
     }
 
+    // Remove claude_hook.js entries from events we no longer manage
+    for (const event of STALE_HOOK_EVENTS) {
+      if (Array.isArray(settings.hooks[event])) {
+        settings.hooks[event] = settings.hooks[event].filter((entry) => {
+          if (!Array.isArray(entry.hooks) || entry.hooks.length === 0) return true;
+          const cmd = entry.hooks[0].command;
+          return typeof cmd !== 'string' || !cmd.includes('claude_hook.js');
+        });
+        if (settings.hooks[event].length === 0) delete settings.hooks[event];
+      }
+    }
+
     const command = this.buildHookCommand();
 
     for (const event of Object.keys(HOOK_EVENT_MAP)) {
@@ -147,6 +162,7 @@ class HooksManager {
 
       const eventArray = settings.hooks[event];
       const newEntry = {
+        ...HOOK_EVENT_MAP[event],
         hooks: [
           {
             type: 'command',
@@ -206,7 +222,7 @@ class HooksManager {
 
       console.log(chalk.green('✓ Claude notification hooks configured!'));
       console.log(chalk.green(`  Hook scripts → ${this.getHooksDestDir()}`));
-      console.log(chalk.green('  settings.json updated (Notification + Stop events)'));
+      console.log(chalk.green('  settings.json updated (PermissionRequest + Stop events)'));
     } catch (error) {
       if (spinner) spinner.stop();
       console.log(chalk.yellow(`⚠️  Could not configure notification hooks: ${error.message}`));
