@@ -1,17 +1,29 @@
 const os = require('node:os');
 const path = require('node:path');
+const { spawn } = require('node:child_process');
 const fs = require('fs-extra');
 const chalk = require('chalk').default || require('chalk');
 const inquirer = require('inquirer').default || require('inquirer');
 const cjson = require('comment-json');
 const resourceLocator = require('./resource-locator');
 
-const HOOK_SCRIPTS = ['claude_notify.ps1', 'claude_stop_notify.ps1', 'claude_toast.ps1'];
+// Each plugin is a subfolder of custom_hooks/ with its own index.js and optional package.json
+const PLUGINS = [
+  {
+    name: 'notification',
+    files: ['index.js', 'package.json', 'claude-icon.png'],
+    events: {
+      PermissionRequest: { matcher: '' },
+      Stop: {},
+    },
+  },
+];
 
-const HOOK_EVENT_MAP = {
-  Notification: 'claude_notify.ps1',
-  Stop: 'claude_stop_notify.ps1',
-};
+// Hook event names no longer managed — matching entries removed from settings.json on re-install
+const STALE_HOOK_EVENTS = ['Notification'];
+
+// PS1 filenames written by the old Windows-only implementation — removed on re-install
+const STALE_PS1_NAMES = ['claude_notify.ps1', 'claude_stop_notify.ps1', 'claude_toast.ps1'];
 
 class HooksManager {
   isWindows() {
@@ -34,9 +46,28 @@ class HooksManager {
     return path.join(resourceLocator.getBmadCorePath(), 'custom_hooks');
   }
 
-  buildHookCommand(scriptName) {
-    const scriptPath = path.join(this.getHooksDestDir(), scriptName);
-    return `powershell -NoProfile -NonInteractive -File "${scriptPath}"`;
+  buildPluginCommand(pluginName) {
+    const scriptPath = path.join(this.getHooksDestDir(), pluginName, 'index.js');
+    return `"${process.execPath}" "${scriptPath}"`;
+  }
+
+  async _runNpmInstall(pluginDestDir, spinner) {
+    spinner.text = `Installing dependencies for ${path.basename(pluginDestDir)}...`;
+    return new Promise((resolve, reject) => {
+      const proc = spawn('npm install --omit=dev', {
+        cwd: pluginDestDir,
+        stdio: 'ignore',
+        shell: true,
+      });
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`npm install exited with code ${code}`));
+        }
+      });
+      proc.on('error', reject);
+    });
   }
 
   async copyHookScripts(spinner) {
@@ -45,15 +76,33 @@ class HooksManager {
 
     await fs.ensureDir(destDir);
 
-    for (const script of HOOK_SCRIPTS) {
-      const src = path.join(sourceDir, script);
-      const dest = path.join(destDir, script);
+    for (const plugin of PLUGINS) {
+      const pluginSrcDir = path.join(sourceDir, plugin.name);
+      const pluginDestDir = path.join(destDir, plugin.name);
 
-      if (await fs.pathExists(src)) {
-        spinner.text = `Copying ${script} to ~/.claude/custom_hooks/...`;
-        await fs.copy(src, dest, { overwrite: true });
-      } else {
-        console.warn(chalk.yellow(`  Warning: Hook script not found in source: ${script}`));
+      await fs.ensureDir(pluginDestDir);
+
+      for (const file of plugin.files) {
+        const src = path.join(pluginSrcDir, file);
+        const dest = path.join(pluginDestDir, file);
+
+        if (await fs.pathExists(src)) {
+          spinner.text = `Copying ${plugin.name}/${file} to ~/.claude/custom_hooks/...`;
+          await fs.copy(src, dest, { overwrite: true });
+        } else {
+          console.warn(chalk.yellow(`  Warning: Hook file not found: ${plugin.name}/${file}`));
+        }
+      }
+
+      if (!this.isWindows()) {
+        const entry = path.join(pluginDestDir, 'index.js');
+        if (await fs.pathExists(entry)) {
+          await fs.chmod(entry, 0o755);
+        }
+      }
+
+      if (plugin.files.includes('package.json')) {
+        await this._runNpmInstall(pluginDestDir, spinner);
       }
     }
   }
@@ -94,49 +143,63 @@ class HooksManager {
       settings.hooks = {};
     }
 
-    for (const [event, scriptName] of Object.entries(HOOK_EVENT_MAP)) {
-      const command = this.buildHookCommand(scriptName);
-      const newEntry = {
-        hooks: [
-          {
-            type: 'command',
-            command,
-          },
-        ],
-      };
-
-      if (!Array.isArray(settings.hooks[event])) {
-        settings.hooks[event] = [];
+    // Remove stale PS1 entries left by the old Windows-only implementation
+    for (const event of Object.keys(settings.hooks)) {
+      if (Array.isArray(settings.hooks[event])) {
+        settings.hooks[event] = settings.hooks[event].filter((entry) => {
+          if (!Array.isArray(entry.hooks) || entry.hooks.length === 0) return true;
+          const cmd = entry.hooks[0].command;
+          return typeof cmd !== 'string' || !STALE_PS1_NAMES.some((name) => cmd.includes(name));
+        });
       }
+    }
 
-      const eventArray = settings.hooks[event];
+    // Remove claude_hook.js entries from events we no longer manage
+    for (const event of STALE_HOOK_EVENTS) {
+      if (Array.isArray(settings.hooks[event])) {
+        settings.hooks[event] = settings.hooks[event].filter((entry) => {
+          if (!Array.isArray(entry.hooks) || entry.hooks.length === 0) return true;
+          const cmd = entry.hooks[0].command;
+          return typeof cmd !== 'string' || !cmd.includes('claude_hook.js');
+        });
+        if (settings.hooks[event].length === 0) delete settings.hooks[event];
+      }
+    }
 
-      // Find existing BMAD-managed entry by script filename in command string
-      const existingIndex = eventArray.findIndex(
-        (entry) =>
-          Array.isArray(entry.hooks) &&
-          entry.hooks.length > 0 &&
-          typeof entry.hooks[0].command === 'string' &&
-          entry.hooks[0].command.includes(scriptName),
-      );
+    for (const plugin of PLUGINS) {
+      const command = this.buildPluginCommand(plugin.name);
 
-      if (existingIndex === -1) {
-        eventArray.push(newEntry);
-      } else {
-        // Replace in-place, preserving position; leave all other entries untouched
-        eventArray[existingIndex] = newEntry;
+      for (const [event, extra] of Object.entries(plugin.events)) {
+        if (!Array.isArray(settings.hooks[event])) {
+          settings.hooks[event] = [];
+        }
+
+        const eventArray = settings.hooks[event];
+        const newEntry = {
+          ...extra,
+          hooks: [{ type: 'command', command }],
+        };
+
+        // Match existing entry for this plugin by its index.js path
+        const existingIndex = eventArray.findIndex(
+          (entry) =>
+            (Array.isArray(entry.hooks) &&
+              entry.hooks.length > 0 &&
+              typeof entry.hooks[0].command === 'string' &&
+              entry.hooks[0].command.includes(`${plugin.name}/index.js`)) ||
+            entry.hooks[0].command.includes(`${plugin.name}\\index.js`),
+        );
+
+        if (existingIndex === -1) {
+          eventArray.push(newEntry);
+        } else {
+          eventArray[existingIndex] = newEntry;
+        }
       }
     }
   }
 
   async setupCustomHooks(spinner) {
-    if (!this.isWindows()) {
-      if (spinner) spinner.stop();
-      console.log(chalk.dim('  Notification hooks are Windows-only — skipping.'));
-      if (spinner) spinner.start();
-      return;
-    }
-
     if (spinner) spinner.stop();
 
     const { setupHooks } = await inquirer.prompt([
@@ -169,7 +232,7 @@ class HooksManager {
 
       console.log(chalk.green('✓ Claude notification hooks configured!'));
       console.log(chalk.green(`  Hook scripts → ${this.getHooksDestDir()}`));
-      console.log(chalk.green('  settings.json updated (Notification + Stop events)'));
+      console.log(chalk.green('  settings.json updated (PermissionRequest + Stop events)'));
     } catch (error) {
       if (spinner) spinner.stop();
       console.log(chalk.yellow(`⚠️  Could not configure notification hooks: ${error.message}`));

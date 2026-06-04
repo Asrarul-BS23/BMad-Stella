@@ -52,9 +52,9 @@ export default [
     },
   },
 
-  // CLI/CommonJS scripts under tools/** and bmad-core/utils/**
+  // CLI/CommonJS scripts under tools/** and bmad-core/utils/** and bmad-core/custom_hooks/**
   {
-    files: ['tools/**/*.js', 'bmad-core/utils/**/*.js'],
+    files: ['tools/**/*.js', 'bmad-core/utils/**/*.js', 'bmad-core/custom_hooks/**/*.js'],
     rules: {
       // Allow CommonJS patterns for Node CLI scripts
       'unicorn/prefer-module': 'off',
@@ -73,6 +73,7 @@ export default [
       'unicorn/consistent-function-scoping': 'off',
       'n/no-extraneous-require': 'off',
       'n/no-extraneous-import': 'off',
+      'n/no-missing-require': 'off',
       'n/no-unpublished-require': 'off',
       'n/no-unpublished-import': 'off',
       // Some scripts intentionally use globals provided at runtime
@@ -80,6 +81,7 @@ export default [
       // Additional relaxed rules for legacy/internal scripts
       'no-useless-catch': 'off',
       'unicorn/prefer-number-properties': 'off',
+      'unicorn/prefer-string-raw': 'off',
       'no-unreachable': 'off',
     },
   },
