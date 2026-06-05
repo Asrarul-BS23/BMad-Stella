@@ -91,7 +91,7 @@ commands:
   - help: Show numbered list of the following commands to allow selection. Format each as "{number}. *{command-name} {parameters} - {description}"
   - intake {ticket-or-text-or-file}:
       order-of-execution:
-        - 'JIRA ticket key or URL → fetch ticket via Atlassian MCP (title, description, comments, attachment metadata). On MCP failure → apply mcp-failure rule. Then run jira-attachments helper: Bash(`node .bmad-core/utils/jira-attachments {TICKET-KEY} --quiet`). Parse stdout JSON → read manifest at manifestPath → for each image attachment invoke Read tool on localPath; for each PDF use Read with pages:"1-5". Mention any skipped attachments (video, archives, oversized) to user.'
+        - 'JIRA ticket key or URL → fetch ticket via `atlassian` MCP with fields:["summary","description","comment","issuetype","reporter","assignee","creator","created","updated","parent"], responseContentFormat:"markdown", OMIT expand. Read markdown as-is — never jq/PowerShell/ADF-walk. On MCP failure → apply mcp-failure rule. Then run jira-attachments helper: Bash(`node .bmad-core/utils/jira-attachments {TICKET-KEY} --quiet`). Parse stdout JSON → read manifest at manifestPath → for each image attachment invoke Read tool on localPath; for each PDF use Read with pages:"1-5". Mention any skipped attachments (video, archives, oversized) to user.'
         - 'File path ending in .md or .txt → read file fully'
         - 'Plain text or quoted description → use directly as requirement'
         - 'Apply plan-id-format rule to assign Plan ID'
