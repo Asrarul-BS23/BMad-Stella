@@ -73,7 +73,11 @@ commands:
   - help: Show numbered list of the following commands to allow selection. Format each as "{number}. *{command-name} {parameters} - {description}"
   - identify-dependencies {ticket-number-or-url}: Execute identify-dependencies task to find related past work and assess code modification requirements
   - retrieve-ticket-information {ticket-number-or-url}:
-      - order-of-execution: 'If no ticket identifier provided, ask for one→Fetch ticket text (title, description, comments, attachment metadata) using ticket number/URL with `atlassian` MCP→On MCP failure → apply `mcp-failure` rule→Run the jira-attachments helper to download binary attachments (see attachment-auto-fetch rules)→For each downloaded image/PDF in the manifest, use the Read tool on its localPath so the image/document is loaded into context→Display ticket contents (note whether Requirements and Acceptance Criteria sections are present or missing)→Request user validation→Prompt user to proceed with draft-plan command'
+      - order-of-execution: 'If no ticket identifier provided, ask for one→Fetch ticket text via `atlassian` MCP using the `mcp-fetch` rule (narrow fields + markdown, no expand)→On MCP failure → apply `mcp-failure` rule→Run the jira-attachments helper for binary attachments (see attachment-auto-fetch rules)→For each downloaded image/PDF in the manifest, Read its localPath→Display ticket contents (note whether Requirements and Acceptance Criteria sections are present or missing)→Request user validation→Prompt user to proceed with draft-plan command'
+      - mcp-fetch:
+          - 'Fetch the issue via `atlassian` MCP with fields: ["summary","description","comment","issuetype","reporter","assignee","creator","created","updated","parent"], responseContentFormat: "markdown", and OMIT expand (no changelog / renderedFields / versionedRepresentations). Narrow fields + markdown keep the tool result small and render ADF to text — avoids oversized payloads.'
+          - 'For each attachment, take source and fileName; if source is a comment, also include the comment id.'
+          - 'Read the returned markdown as-is. NEVER pipe it through jq, PowerShell, Get-Content, or hand-walk ADF.'
       - attachment-auto-fetch:
           - 'Execute via Bash: `node .bmad-core/utils/jira-attachments {TICKET-KEY} --quiet` (use project root of current working directory)'
           - Parse the JSON object printed on stdout — it contains `manifestPath`, `ticketKey`, `attachmentCount`, `failedCount`, `skippedCount`, `cacheHit`
