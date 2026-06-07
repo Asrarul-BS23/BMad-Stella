@@ -84,10 +84,8 @@ commands:
           - Read the manifest file at `manifestPath` to get per-attachment localPath, mimeType, referencedInline, and source metadata
           - For each attachment entry where mimeType starts with `image/`, invoke the Read tool on its `localPath` so the image enters context
           - For each entry where mimeType is `application/pdf`, use Read with `pages:"1-5"` by default; expand range only if needed
-          - 'If helper exits with code 10 (config), notify user: "Jira API credentials missing. Re-run `npx bmad-stella install` or set JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN in .env" and fall back to attachment-manual-fallback'
-          - 'If helper exits with code 20 (auth), notify user: "Jira authentication failed. Regenerate API token at https://id.atlassian.com/manage-profile/security/api-tokens and update .env" and fall back to attachment-manual-fallback'
-          - If helper exits with code 30 (not-found), halt and ask the user to verify the ticket key
-          - If helper exits with code 40 (network), retry once; if it still fails, fall back to attachment-manual-fallback
+          - 'On failure (non-zero exit), the helper prints a clear error line on stderr — relay it in one concise line: "⚠️ Attachment retrieval failed — {that stderr message}." Then fall back to attachment-manual-fallback (never block the workflow).'
+          - 'If the error is credentials/auth ("Missing credentials" / "Authentication failed"), append: "Check JIRA_BASE_URL / JIRA_EMAIL / JIRA_API_TOKEN in .env; regenerate token: https://id.atlassian.com/manage-profile/security/api-tokens". If the ticket was not found, ask the user to verify the ticket key instead of pasting.'
           - Skipped attachments (video, archives, oversized) are listed in the manifest `skipped` array — mention them to the user so they know what is not loaded
       - attachment-manual-fallback: Request user to provide attachments via copy/paste (alt+v) or file path if downloaded. Use this only when the auto-fetch helper cannot run (missing credentials, auth failure, or fallback path)
       - output-format: Display ticket title, description, comments, attachment summary (counts of downloaded/skipped/failed from the manifest), and Acceptance Criteria status (present in ticket / missing — will be derived in §6) with clear validation prompt

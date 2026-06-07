@@ -6,6 +6,8 @@ const inquirer = require('inquirer').default || require('inquirer');
 const TRACKED_KEYS = Object.freeze(['JIRA_BASE_URL', 'JIRA_EMAIL', 'JIRA_API_TOKEN']);
 const DEFAULT_ATLASSIAN_BASE_URL = 'https://stellaint.atlassian.net/';
 const TOKEN_HELP_URL = 'https://id.atlassian.com/manage-profile/security/api-tokens';
+const VERIFY_TIMEOUT_MS = 10_000;
+const MAX_VERIFY_ATTEMPTS = 3;
 
 class JiraCredentialsManager {
   /**
@@ -61,6 +63,9 @@ class JiraCredentialsManager {
         result.skipped = true;
         return result;
       }
+      // Verify, but never block a non-interactive install — failures are warnings only.
+      const verification = await this._verifyCredentials(prefilled);
+      this._reportNonInteractiveVerification(verification);
       const envPath = path.join(installDir, '.env');
       try {
         await this._writeEnv(envPath, { ...existingEnv, ...prefilled });
@@ -84,6 +89,10 @@ class JiraCredentialsManager {
     console.log(chalk.dim(`Create an API token at: ${TOKEN_HELP_URL}`));
     console.log(chalk.dim('Credentials are stored in a local .env file (git-ignored).\n'));
 
+    // When the reuse check finds dead credentials we skip straight to fresh entry
+    // instead of re-asking "Enter fresh details?" — the user has already been told.
+    let forceFresh = false;
+
     if (haveAll) {
       console.log(
         chalk.green(
@@ -99,36 +108,60 @@ class JiraCredentialsManager {
         },
       ]);
       if (reuse) {
-        const envPath = path.join(installDir, '.env');
-        try {
-          await this._writeEnv(envPath, { ...existingEnv, ...prefilled });
-          result.ok = true;
-          result.written = true;
-          result.envPath = envPath;
-          result.source = processEnv.JIRA_API_TOKEN ? 'process-env' : 'existing-.env';
+        const verification = await this._verifyCredentials(prefilled);
+        if (verification.classification === 'auth' || verification.classification === 'notfound') {
           console.log(
-            chalk.green(`✓ Reused existing credentials → ${path.relative(installDir, envPath) || '.env'}`),
+            chalk.yellow(
+              `⚠️  Detected credentials no longer work (${this._verifyFailureReason(verification)}). Let's re-enter them.`,
+            ),
           );
-        } catch (error) {
-          result.error = error.message;
-          console.log(chalk.red(`✗ Failed to write .env: ${error.message}`));
+          forceFresh = true;
+        } else {
+          this._reportVerificationSuccessOrWarning(verification, 'Verified existing credentials');
+          const envPath = path.join(installDir, '.env');
+          try {
+            await this._writeEnv(envPath, { ...existingEnv, ...prefilled });
+            result.ok = true;
+            result.written = true;
+            result.envPath = envPath;
+            result.source = processEnv.JIRA_API_TOKEN ? 'process-env' : 'existing-.env';
+            console.log(
+              chalk.green(`✓ Reused existing credentials → ${path.relative(installDir, envPath) || '.env'}`),
+            );
+          } catch (error) {
+            result.error = error.message;
+            console.log(chalk.red(`✗ Failed to write .env: ${error.message}`));
+          }
+          return result;
         }
+      }
+    }
+
+    if (!forceFresh) {
+      const { wantsToConfigure } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'wantsToConfigure',
+          message: haveAll
+            ? 'Enter fresh Jira API access details instead?'
+            : 'Configure Jira API access to auto-fetch ticket attachments? (Recommended)',
+          default: true,
+        },
+      ]);
+
+      if (!wantsToConfigure) {
+        console.log(
+          chalk.yellow(
+            '⚠️  Skipping Jira credential setup — attachment fetching will require manual paste.',
+          ),
+        );
+        result.skipped = true;
         return result;
       }
     }
 
-    const { wantsToConfigure } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'wantsToConfigure',
-        message: haveAll
-          ? 'Enter fresh Jira API access details instead?'
-          : 'Configure Jira API access to auto-fetch ticket attachments? (Recommended)',
-        default: true,
-      },
-    ]);
-
-    if (!wantsToConfigure) {
+    const answers = await this._collectFreshCredentials(prefilled);
+    if (!answers) {
       console.log(
         chalk.yellow(
           '⚠️  Skipping Jira credential setup — attachment fetching will require manual paste.',
@@ -137,50 +170,6 @@ class JiraCredentialsManager {
       result.skipped = true;
       return result;
     }
-
-    const answers = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'JIRA_BASE_URL',
-        message: `Atlassian site URL (e.g., ${DEFAULT_ATLASSIAN_BASE_URL}):`,
-        default: prefilled.JIRA_BASE_URL || DEFAULT_ATLASSIAN_BASE_URL,
-        validate: (input) => {
-          if (!input || !input.trim()) return 'Required';
-          try {
-            const url = new URL(input.trim());
-            return url.protocol === 'https:' || url.protocol === 'http:'
-              ? true
-              : 'Must be an http(s) URL';
-          } catch {
-            return `Enter a valid URL, e.g. ${DEFAULT_ATLASSIAN_BASE_URL}`;
-          }
-        },
-        filter: (input) => (input ? input.trim().replace(/\/+$/, '') : input),
-      },
-      {
-        type: 'input',
-        name: 'JIRA_EMAIL',
-        message: 'Atlassian account email:',
-        default: prefilled.JIRA_EMAIL,
-        validate: (input) => {
-          if (!input || !input.trim()) return 'Required';
-          return /.+@.+\..+/.test(input.trim()) ? true : 'Enter a valid email address';
-        },
-        filter: (input) => (input ? input.trim() : input),
-      },
-      {
-        type: 'password',
-        name: 'JIRA_API_TOKEN',
-        mask: '*',
-        message: `Atlassian API token (create one at ${TOKEN_HELP_URL}):`,
-        validate: (input) => {
-          if (!input || !input.trim()) return 'Required';
-          if (input.trim().length < 16) return 'That token looks too short — please paste the full token';
-          return true;
-        },
-        filter: (input) => (input ? input.trim() : input),
-      },
-    ]);
 
     const merged = { ...existingEnv, ...answers };
     const envPath = path.join(installDir, '.env');
@@ -205,6 +194,232 @@ class JiraCredentialsManager {
     }
 
     return result;
+  }
+
+  /**
+   * Live-validate credentials against Jira's /myself endpoint before they are persisted.
+   * Never throws — returns a classification the caller decides how to act on.
+   *
+   * @param {{JIRA_BASE_URL:string, JIRA_EMAIL:string, JIRA_API_TOKEN:string}} creds
+   * @returns {Promise<{classification:'ok'|'auth'|'notfound'|'network'|'skipped', status:number|null, displayName:string|null, error:string|null}>}
+   */
+  async _verifyCredentials(creds) {
+    const out = { classification: 'network', status: null, displayName: null, error: null };
+    if (this._shouldSkipVerify()) {
+      out.classification = 'skipped';
+      return out;
+    }
+
+    const baseUrl = String(creds.JIRA_BASE_URL || '').trim().replace(/\/+$/, '');
+    const email = String(creds.JIRA_EMAIL || '').trim();
+    const token = String(creds.JIRA_API_TOKEN || '').trim();
+    if (!baseUrl || !email || !token) {
+      out.error = 'incomplete credentials';
+      return out;
+    }
+
+    // Never send credentials over a non-HTTPS or unparseable URL — base64 Basic auth is
+    // not encryption, so plaintext http (or an attacker-controlled host reached via a
+    // planted/typo'd .env on the reuse path) would leak the token. Mirrors the posture in
+    // bmad-core/utils/jira-attachments/lib/config.js (http allowed only for localhost tests).
+    let endpoint;
+    try {
+      endpoint = new URL(`${baseUrl}/rest/api/3/myself`);
+    } catch {
+      out.classification = 'notfound';
+      out.error = 'invalid site URL';
+      return out;
+    }
+    const isLocalhost = endpoint.hostname === 'localhost' || endpoint.hostname === '127.0.0.1';
+    if (endpoint.protocol !== 'https:' && !(endpoint.protocol === 'http:' && isLocalhost)) {
+      out.classification = 'notfound';
+      out.error = 'refusing to send credentials over a non-HTTPS URL — set JIRA_BASE_URL to https://…';
+      return out;
+    }
+
+    const url = endpoint.href;
+    const authHeader = `Basic ${Buffer.from(`${email}:${token}`, 'utf8').toString('base64')}`;
+    const signal =
+      typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+        ? AbortSignal.timeout(VERIFY_TIMEOUT_MS)
+        : undefined;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: authHeader,
+          Accept: 'application/json',
+          'User-Agent': 'bmad-stella-installer/1.0',
+        },
+        redirect: 'follow',
+        signal,
+      });
+      out.status = response.status;
+      if (response.ok) {
+        out.classification = 'ok';
+        try {
+          const me = await response.json();
+          out.displayName = me.displayName || me.emailAddress || null;
+        } catch {
+          // body parse is best-effort; a 2xx already proves the creds work
+        }
+        return out;
+      }
+      if (response.status === 401 || response.status === 403) {
+        out.classification = 'auth';
+        return out;
+      }
+      if (response.status === 404) {
+        out.classification = 'notfound';
+        return out;
+      }
+      // 5xx / rate-limit / anything else transient — treat as unverifiable, not invalid.
+      out.error = `HTTP ${response.status}`;
+      return out;
+    } catch (error) {
+      // Timeouts, DNS failures, offline/VPN — classify as network so we warn-and-proceed
+      // rather than trapping a user whose credentials may actually be fine.
+      out.error = error.message || String(error);
+      return out;
+    }
+  }
+
+  _shouldSkipVerify() {
+    const flag = String(process.env.BMAD_SKIP_JIRA_VERIFY || '').toLowerCase();
+    return flag === '1' || flag === 'true' || flag === 'yes';
+  }
+
+  _verifyFailureReason(verification) {
+    if (verification.classification === 'auth') {
+      return `authentication failed${verification.status ? ` (${verification.status})` : ''}`;
+    }
+    if (verification.classification === 'notfound') {
+      // A concrete error (e.g. the HTTPS refusal or an unparseable URL) is clearer than "site not found".
+      if (verification.error) return verification.error;
+      return `site not found${verification.status ? ` (${verification.status})` : ''}`;
+    }
+    return verification.error || 'unknown error';
+  }
+
+  /**
+   * Print a "✓ verified" line on success, or a soft warning when the credentials could
+   * not be reached (network/skipped). Callers handle auth/notfound separately.
+   */
+  _reportVerificationSuccessOrWarning(verification, successLabel) {
+    if (verification.classification === 'ok') {
+      const who = verification.displayName ? ` (authenticated as ${verification.displayName})` : '';
+      console.log(chalk.green(`✓ ${successLabel}${who}`));
+    } else if (verification.classification === 'skipped') {
+      console.log(chalk.dim('  Skipping live verification (BMAD_SKIP_JIRA_VERIFY set).'));
+    } else {
+      console.log(
+        chalk.yellow(
+          '⚠️  Could not reach Jira to verify (network/VPN) — proceeding. Verify later with `node .bmad-core/utils/jira-attachments --self-test`.',
+        ),
+      );
+    }
+  }
+
+  _reportNonInteractiveVerification(verification) {
+    if (verification.classification === 'ok') {
+      const who = verification.displayName ? ` (${verification.displayName})` : '';
+      console.log(chalk.green(`✓ Verified Jira credentials${who}`));
+    } else if (verification.classification === 'auth' || verification.classification === 'notfound') {
+      console.log(
+        chalk.yellow(
+          `⚠️  Jira credential verification failed (${this._verifyFailureReason(verification)}) — writing anyway (non-interactive).`,
+        ),
+      );
+    } else if (verification.classification !== 'skipped') {
+      console.log(chalk.dim('  Could not reach Jira to verify; writing credentials as provided.'));
+    }
+  }
+
+  /**
+   * Prompt for credentials and live-verify them, up to MAX_VERIFY_ATTEMPTS times.
+   * Returns the accepted credential object, or null if the user declines to save.
+   * URL/email defaults carry over between attempts; the token is always re-entered.
+   *
+   * @param {object} prefilled
+   * @returns {Promise<object|null>}
+   */
+  async _collectFreshCredentials(prefilled) {
+    let last = null;
+    for (let attempt = 1; attempt <= MAX_VERIFY_ATTEMPTS; attempt += 1) {
+      const defaults = last || prefilled;
+      const answers = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'JIRA_BASE_URL',
+          message: `Atlassian site URL (e.g., ${DEFAULT_ATLASSIAN_BASE_URL}):`,
+          default: defaults.JIRA_BASE_URL || DEFAULT_ATLASSIAN_BASE_URL,
+          validate: (input) => {
+            if (!input || !input.trim()) return 'Required';
+            try {
+              const url = new URL(input.trim());
+              return url.protocol === 'https:' || url.protocol === 'http:'
+                ? true
+                : 'Must be an http(s) URL';
+            } catch {
+              return `Enter a valid URL, e.g. ${DEFAULT_ATLASSIAN_BASE_URL}`;
+            }
+          },
+          filter: (input) => (input ? input.trim().replace(/\/+$/, '') : input),
+        },
+        {
+          type: 'input',
+          name: 'JIRA_EMAIL',
+          message: 'Atlassian account email:',
+          default: defaults.JIRA_EMAIL,
+          validate: (input) => {
+            if (!input || !input.trim()) return 'Required';
+            return /.+@.+\..+/.test(input.trim()) ? true : 'Enter a valid email address';
+          },
+          filter: (input) => (input ? input.trim() : input),
+        },
+        {
+          type: 'password',
+          name: 'JIRA_API_TOKEN',
+          mask: '*',
+          message: `Atlassian API token (create one at ${TOKEN_HELP_URL}):`,
+          validate: (input) => {
+            if (!input || !input.trim()) return 'Required';
+            if (input.trim().length < 16) return 'That token looks too short — please paste the full token';
+            return true;
+          },
+          filter: (input) => (input ? input.trim() : input),
+        },
+      ]);
+
+      const verification = await this._verifyCredentials(answers);
+
+      if (verification.classification === 'ok' || verification.classification === 'skipped') {
+        this._reportVerificationSuccessOrWarning(verification, 'Verified');
+        return answers;
+      }
+      if (verification.classification === 'network') {
+        this._reportVerificationSuccessOrWarning(verification, 'Verified');
+        return answers;
+      }
+
+      // auth / notfound — blocking failures, retry within the attempt budget.
+      last = answers;
+      console.log(chalk.red(`✗ ${this._verifyFailureReason(verification)}.`));
+      if (attempt < MAX_VERIFY_ATTEMPTS) {
+        console.log(chalk.dim(`  Attempt ${attempt}/${MAX_VERIFY_ATTEMPTS} failed — let's try again.`));
+      }
+    }
+
+    const { saveAnyway } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'saveAnyway',
+        message: `Could not verify after ${MAX_VERIFY_ATTEMPTS} attempts. Save these credentials anyway?`,
+        default: false,
+      },
+    ]);
+    return saveAnyway ? last : null;
   }
 
   _readProcessEnv() {
