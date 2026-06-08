@@ -7,7 +7,7 @@ const inquirer = require('inquirer').default || require('inquirer');
 const cjson = require('comment-json');
 const resourceLocator = require('./resource-locator');
 
-// Each plugin is a subfolder of custom_hooks/ with its own index.js and optional package.json
+// Each plugin is a subfolder of bmad-hooks/ with its own index.js and optional package.json
 const PLUGINS = [
   {
     name: 'notification',
@@ -15,6 +15,15 @@ const PLUGINS = [
     events: {
       PermissionRequest: { matcher: '' },
       Stop: {},
+    },
+  },
+  {
+    name: 'personalization',
+    files: ['index.js', 'package.json'],
+    events: {
+      SessionStart: {},
+      Stop: {},
+      PostToolUse: {},
     },
   },
 ];
@@ -35,7 +44,7 @@ class HooksManager {
   }
 
   getHooksDestDir() {
-    return path.join(this.getUserClaudeDir(), 'custom_hooks');
+    return path.join(this.getUserClaudeDir(), 'bmad-hooks');
   }
 
   getUserSettingsPath() {
@@ -43,7 +52,7 @@ class HooksManager {
   }
 
   getHooksSourceDir() {
-    return path.join(resourceLocator.getBmadCorePath(), 'custom_hooks');
+    return path.join(resourceLocator.getBmadCorePath(), 'bmad-hooks', 'user');
   }
 
   buildPluginCommand(pluginName) {
@@ -87,7 +96,7 @@ class HooksManager {
         const dest = path.join(pluginDestDir, file);
 
         if (await fs.pathExists(src)) {
-          spinner.text = `Copying ${plugin.name}/${file} to ~/.claude/custom_hooks/...`;
+          spinner.text = `Copying ${plugin.name}/${file} to ~/.claude/bmad-hooks/...`;
           await fs.copy(src, dest, { overwrite: true });
         } else {
           console.warn(chalk.yellow(`  Warning: Hook file not found: ${plugin.name}/${file}`));
@@ -237,7 +246,7 @@ class HooksManager {
       if (spinner) spinner.stop();
       console.log(chalk.yellow(`⚠️  Could not configure notification hooks: ${error.message}`));
       console.log(
-        chalk.dim('   You can set them up manually using the scripts in bmad-core/custom_hooks/'),
+        chalk.dim('   You can set them up manually using the scripts in bmad-core/bmad-hooks/'),
       );
     } finally {
       if (spinner) spinner.start();

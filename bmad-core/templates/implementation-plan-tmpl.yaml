@@ -378,3 +378,21 @@ sections:
         instruction: Actionable items for the dev — one checkbox per fix, marked [x] when incorporated. No praise, no commentary, no verdicts.
         owner: reviewer-agent
         editors: [reviewer-agent, dev-agent]
+
+  - id: memory-signals
+    title: Memory Signals
+    instruction: |
+      Add a YAML block for the BMad memory system. Planner fills this when creating the plan.
+      The module-tag routes this plan to the correct episodic memory file — use a slug matching
+      the feature area (e.g. payment, auth, user-profile). Leave module-tag empty only if truly
+      cross-cutting with no primary module.
+    owner: planner
+    editors: [planner]
+    example: |
+      ```yaml
+      name: plan-slug
+      description: one-line summary of what this plan implements
+      metadata:
+        type: project
+        module-tag: feature-area
+      ```

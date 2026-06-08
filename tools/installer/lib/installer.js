@@ -11,6 +11,8 @@ const resourceLocator = require('./resource-locator');
 const dependencyManager = require('./dependency-manager');
 const scribeSetup = require('./scribe-setup');
 const hooksManager = require('./hooks-manager');
+const memorySetup = require('./memory-setup');
+const cjson = require('comment-json');
 
 class Installer {
   async getCoreVersion() {
@@ -439,6 +441,11 @@ class Installer {
       await hooksManager.setupCustomHooks(spinner);
     }
 
+    // Copy project-level bmad-hooks and register them in .claude/settings.local.json
+    if (config.installType !== 'expansion-only') {
+      await this.installBmadHooks(installDir, spinner);
+    }
+
     // Check and configure required MCP servers (e.g., Atlassian MCP for JIRA integration)
     let mcpResults = null;
     if (config.installType !== 'expansion-only') {
@@ -474,6 +481,11 @@ class Installer {
       });
       domainKnowledgeFetcher.showSummary(dkResult);
       spinner.start();
+    }
+
+    // Initialize bmad-docs/memory/ and seed ~/.claude/personalization.md
+    if (config.installType !== 'expansion-only') {
+      await memorySetup.initialize(installDir, spinner);
     }
 
     // Update .gitignore with BMad directories
@@ -2009,6 +2021,88 @@ class Installer {
       }
     } catch (error) {
       console.warn(`Warning: Could not cleanup legacy .yml files: ${error.message}`);
+    }
+  }
+
+  async installBmadHooks(installDir, spinner) {
+    try {
+      if (spinner) spinner.text = 'Installing BMad project hooks...';
+
+      const bmadHooksSrc = path.join(resourceLocator.getBmadCorePath(), 'bmad-hooks', 'project');
+      const bmadHooksDest = path.join(installDir, '.claude', 'bmad-hooks');
+
+      if (!(await fileManager.pathExists(bmadHooksSrc))) {
+        console.log(chalk.yellow('⚠️  bmad-hooks/project source not found, skipping'));
+        return;
+      }
+
+      await fs.ensureDir(bmadHooksDest);
+      await fs.copy(bmadHooksSrc, bmadHooksDest, { overwrite: true });
+
+      // npm install for project hooks
+      if (spinner) spinner.text = 'Installing BMad hook dependencies...';
+      await new Promise((resolve) => {
+        const { spawn } = require('node:child_process');
+        const proc = spawn('npm install --omit=dev', {
+          cwd: bmadHooksDest,
+          stdio: 'ignore',
+          shell: true,
+        });
+        proc.on('close', resolve);
+        proc.on('error', resolve);
+      });
+
+      // Register hooks in .claude/settings.local.json
+      const settingsLocalPath = path.join(installDir, '.claude', 'settings.local.json');
+      let settings = {};
+      if (await fileManager.pathExists(settingsLocalPath)) {
+        try {
+          const raw = await fs.readFile(settingsLocalPath, 'utf8');
+          settings = cjson.parse(raw);
+        } catch {
+          settings = {};
+        }
+      }
+
+      if (!settings.hooks || typeof settings.hooks !== 'object') {
+        settings.hooks = {};
+      }
+
+      const submitScript = path.join(bmadHooksDest, 'user-prompt-submit.js');
+      const expansionScript = path.join(bmadHooksDest, 'user-prompt-expansion.js');
+      const nodeExec = `"${process.execPath}"`;
+
+      const projectHooks = [
+        { event: 'UserPromptSubmit', script: submitScript },
+        { event: 'UserPromptExpansion', script: expansionScript },
+      ];
+
+      for (const { event, script } of projectHooks) {
+        if (!Array.isArray(settings.hooks[event])) {
+          settings.hooks[event] = [];
+        }
+        const command = `${nodeExec} "${script}"`;
+        const exists = settings.hooks[event].some(
+          (e) => Array.isArray(e.hooks) && e.hooks[0]?.command === command,
+        );
+        if (!exists) {
+          settings.hooks[event].push({ hooks: [{ type: 'command', command }] });
+        }
+      }
+
+      await fs.ensureDir(path.dirname(settingsLocalPath));
+      await fs.writeFile(settingsLocalPath, cjson.stringify(settings, null, 2), 'utf8');
+
+      if (spinner) spinner.stop();
+      console.log(chalk.green('✓ BMad project hooks installed'));
+      console.log(chalk.green(`  Hook scripts → ${bmadHooksDest}`));
+      console.log(
+        chalk.green('  settings.local.json updated (UserPromptSubmit + UserPromptExpansion)'),
+      );
+      if (spinner) spinner.start();
+    } catch (error) {
+      console.log(chalk.yellow(`⚠️  Could not install BMad hooks: ${error.message}`));
+      if (spinner) spinner.start();
     }
   }
 
