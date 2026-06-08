@@ -21,6 +21,25 @@ class DependencyManager {
           },
         },
       },
+      github: {
+        name: 'GitHub MCP Server',
+        description:
+          'GitHub integration for repository, issue, and pull request operations (authenticates with a GitHub personal access token)',
+        transport: 'http',
+        url: 'https://api.githubcopilot.com/mcp/',
+        envVars: {},
+        // GitHub's remote MCP server authenticates via an Authorization header carrying a
+        // Personal Access Token (PAT) — not OAuth. See:
+        // https://code.claude.com/docs/en/mcp  and
+        // https://github.com/github/github-mcp-server/blob/main/docs/installation-guides/install-claude.md
+        headerAuth: {
+          prompt:
+            'GitHub Personal Access Token (fine-grained, create at https://github.com/settings/personal-access-tokens):',
+          headerName: 'Authorization',
+          valuePrefix: 'Bearer ',
+          helpUrl: 'https://github.com/settings/personal-access-tokens',
+        },
+      },
     };
   }
 
@@ -109,22 +128,32 @@ class DependencyManager {
    * @param {string} serverName - MCP server name
    * @param {object} serverConfig - Server configuration
    * @param {object} envValues - Environment variable values
+   * @param {string[]} headers - Raw HTTP header strings (e.g. 'Authorization: Bearer <token>')
    * @returns {Promise<boolean>}
    */
-  async addMcpServer(installDir, serverName, serverConfig, envValues = {}) {
+  async addMcpServer(installDir, serverName, serverConfig, envValues = {}, headers = []) {
     try {
-      // Build the command
+      // Build the command (and a sanitized copy safe to print — secrets in headers are masked)
       let command = `claude mcp add --transport ${serverConfig.transport} ${serverName} ${serverConfig.url}`;
+      let displayCommand = command;
 
       // Add environment variables
       for (const [envVar, value] of Object.entries(envValues)) {
         if (value) {
           command += ` --env ${envVar}=${value}`;
+          displayCommand += ` --env ${envVar}=${value}`;
         }
       }
 
+      // Add HTTP headers (used for token-based auth such as GitHub's PAT). Never log the secret.
+      for (const header of headers) {
+        if (!header) continue;
+        command += ` --header "${header}"`;
+        displayCommand += ` --header "${this._maskHeaderSecret(header)}"`;
+      }
+
       console.log(chalk.cyan(`\n📦 Adding ${serverConfig.name || serverName}...`));
-      console.log(chalk.dim(`   Command: ${command}`));
+      console.log(chalk.dim(`   Command: ${displayCommand}`));
 
       execSync(command, {
         cwd: installDir,
@@ -141,6 +170,47 @@ class DependencyManager {
       );
       return false;
     }
+  }
+
+  /**
+   * Mask the secret portion of an Authorization-style header for safe logging.
+   * 'Authorization: Bearer ghp_abc123' -> 'Authorization: Bearer ***'
+   * @param {string} header
+   * @returns {string}
+   */
+  _maskHeaderSecret(header) {
+    return String(header)
+      .replace(/(:\s*Bearer\s+)\S+/i, '$1***')
+      .replace(/(:\s*)(?!Bearer)\S{8,}$/i, '$1***');
+  }
+
+  /**
+   * Prompt (masked) for a token used in a header-auth MCP server, build the header strings.
+   * Returns null if the user provides no token (caller should skip that server).
+   * @param {object} headerAuth - serverConfig.headerAuth
+   * @returns {Promise<string[]|null>} array of raw header strings, or null to skip
+   */
+  async promptForHeaderAuth(headerAuth) {
+    const { token } = await inquirer.prompt([
+      {
+        type: 'password',
+        name: 'token',
+        mask: '*',
+        message: headerAuth.prompt || 'Enter access token:',
+        validate: (input) => {
+          if (!input || !input.trim()) return true; // allow blank → caller skips
+          if (input.trim().length < 8)
+            return 'That token looks too short — paste the full token, or leave blank to skip';
+          return true;
+        },
+        filter: (input) => (input ? input.trim() : input),
+      },
+    ]);
+
+    if (!token || !token.trim()) return null;
+    const headerName = headerAuth.headerName || 'Authorization';
+    const valuePrefix = headerAuth.valuePrefix || '';
+    return [`${headerName}: ${valuePrefix}${token.trim()}`];
   }
 
   /**
@@ -241,6 +311,11 @@ class DependencyManager {
             checked: true,
           },
           {
+            name: 'GitHub (for repository, issue, and PR integration)',
+            value: 'github',
+            checked: true,
+          },
+          {
             name: 'Other (custom MCP server)',
             value: 'other',
           },
@@ -295,18 +370,61 @@ class DependencyManager {
           results.failed.push(serverName);
         }
       }
+      // Jira attachment-helper credentials are collected after ALL MCP servers are
+      // configured (see below), so the credential prompts don't interrupt the
+      // server-by-server setup. atlassianBaseUrl captured above is reused there.
+    }
 
-      // Collect Jira API credentials for the attachment helper (complements MCP's text-only fetch)
-      try {
-        const jiraCredentialsManager = require('./jira-credentials-manager');
-        results.jiraCredentials = await jiraCredentialsManager.promptAndPersist(installDir, {
-          knownBaseUrl: atlassianBaseUrl,
-        });
-      } catch (error) {
+    // Process GitHub if selected. GitHub's remote MCP server authenticates with a
+    // Personal Access Token passed as an Authorization header (not OAuth), so we
+    // prompt for the token and add it via --header.
+    if (selectedMcpServers.includes('github')) {
+      const serverName = 'github';
+      const serverConfig = this.requiredMcpServers[serverName];
+      results.checked.push(serverName);
+
+      console.log(chalk.cyan(`\n📦 Configuring ${serverConfig.name}...`));
+      console.log(chalk.dim(`   ${serverConfig.description}\n`));
+
+      // Check if server is already configured
+      const isInstalled = await this.isMcpServerInstalled(installDir, serverName);
+
+      if (isInstalled) {
+        console.log(chalk.green(`✓ ${serverConfig.name} is already configured`));
+        results.alreadyConfigured.push(serverName);
+      } else {
         console.log(
-          chalk.yellow(`⚠️  Jira credential setup skipped due to error: ${error.message}`),
+          chalk.dim(
+            `   Create a fine-grained token at ${serverConfig.headerAuth.helpUrl} with access to the repositories you want Claude to work with.`,
+          ),
         );
-        results.jiraCredentials = { ok: false, skipped: true, error: error.message };
+        const headers = await this.promptForHeaderAuth(serverConfig.headerAuth);
+
+        if (headers) {
+          const installSuccess = await this.addMcpServer(
+            installDir,
+            serverName,
+            serverConfig,
+            {},
+            headers,
+          );
+
+          if (installSuccess) {
+            results.installed.push(serverName);
+          } else {
+            results.failed.push(serverName);
+          }
+        } else {
+          console.log(
+            chalk.yellow('⚠️  No token provided — skipping GitHub MCP setup. Add it later with:'),
+          );
+          console.log(
+            chalk.cyan(
+              `      claude mcp add --transport http github ${serverConfig.url} --header "Authorization: Bearer <YOUR_GITHUB_PAT>"`,
+            ),
+          );
+          results.skipped.push(serverName);
+        }
       }
     }
 
@@ -403,6 +521,23 @@ class DependencyManager {
       }
     }
 
+    // Collect Jira API credentials for the attachment helper (complements MCP's text-only fetch).
+    // Runs only when Atlassian was selected, and AFTER all MCP servers are configured so the
+    // credential prompts come at the end rather than interrupting server-by-server setup.
+    if (selectedMcpServers.includes('atlassian')) {
+      try {
+        const jiraCredentialsManager = require('./jira-credentials-manager');
+        results.jiraCredentials = await jiraCredentialsManager.promptAndPersist(installDir, {
+          knownBaseUrl: atlassianBaseUrl,
+        });
+      } catch (error) {
+        console.log(
+          chalk.yellow(`⚠️  Jira credential setup skipped due to error: ${error.message}`),
+        );
+        results.jiraCredentials = { ok: false, skipped: true, error: error.message };
+      }
+    }
+
     if (spinner) spinner.start();
     return results;
   }
@@ -483,6 +618,11 @@ class DependencyManager {
             for (const [envVar] of Object.entries(serverConfig.envVars)) {
               command += ` --env ${envVar}=<${envVar.toLowerCase()}>`;
             }
+          }
+          if (serverConfig.headerAuth) {
+            const headerName = serverConfig.headerAuth.headerName || 'Authorization';
+            const valuePrefix = serverConfig.headerAuth.valuePrefix || '';
+            command += ` --header "${headerName}: ${valuePrefix}<token>"`;
           }
           console.log(chalk.cyan(`      ${command}`));
         } else {
