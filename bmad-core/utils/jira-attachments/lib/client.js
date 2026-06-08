@@ -81,7 +81,7 @@ class JiraClient {
       Authorization: this.authHeader,
       Accept: acceptBinary ? '*/*' : 'application/json',
       'User-Agent': 'bmad-stella-jira-attachments/1.0',
-      ...(options.headers || {}),
+      ...options.headers,
     };
 
     let lastError = null;
@@ -92,6 +92,7 @@ class JiraClient {
           : undefined;
 
       try {
+        // eslint-disable-next-line n/no-unsupported-features/node-builtins
         const response = await fetch(url, {
           method: options.method || 'GET',
           headers,
@@ -202,7 +203,8 @@ class JiraClient {
       });
     }
 
-    const limit = Number.isFinite(maxBytes) && maxBytes > 0 ? maxBytes : this.config.maxAttachmentBytes;
+    const limit =
+      Number.isFinite(maxBytes) && maxBytes > 0 ? maxBytes : this.config.maxAttachmentBytes;
 
     const declaredLength = Number.parseInt(response.headers.get('content-length') || '', 10);
     if (Number.isFinite(declaredLength) && declaredLength > limit) {
@@ -213,18 +215,16 @@ class JiraClient {
     }
 
     const nodeStream =
-      typeof Readable.fromWeb === 'function' ? Readable.fromWeb(response.body) : response.body;
+      typeof Readable.fromWeb === 'function' ? Readable.fromWeb(response.body) : response.body; // eslint-disable-line n/no-unsupported-features/node-builtins
     const fileStream = fs.createWriteStream(destinationPath);
     const limiter = createByteLimiter(limit, attachment.filename);
 
     try {
       await pipeline(nodeStream, limiter, fileStream);
     } catch (error) {
-      fs.promises
-        .unlink(destinationPath)
-        .catch(() => {
-          /* best effort cleanup */
-        });
+      fs.promises.unlink(destinationPath).catch(() => {
+        /* best effort cleanup */
+      });
       if (error instanceof JiraError) throw error;
       throw new JiraError(`Failed to stream attachment ${attachment.filename}: ${error.message}`, {
         code: 'E_NETWORK',

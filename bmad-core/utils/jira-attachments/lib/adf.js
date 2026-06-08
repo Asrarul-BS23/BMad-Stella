@@ -52,15 +52,15 @@ function summarizeDescription(issue) {
 
 function stripHtml(html) {
   return String(html)
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, ' ')
+    .replaceAll(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replaceAll(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replaceAll(/<[^>]+>/g, ' ')
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll(/\s+/g, ' ')
     .trim();
 }
 

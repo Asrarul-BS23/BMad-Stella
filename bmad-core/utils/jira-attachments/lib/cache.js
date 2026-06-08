@@ -10,13 +10,18 @@ const MANIFEST_FILENAME = 'manifest.json';
 const ATTACHMENTS_DIRNAME = 'attachments';
 
 function sanitizeTicketKey(key) {
-  const cleaned = String(key).trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+  const cleaned = String(key)
+    .trim()
+    .toUpperCase()
+    .replaceAll(/[^A-Z0-9_-]/g, '');
   if (!cleaned) throw new Error(`Invalid ticket key: ${key}`);
   return cleaned;
 }
 
 function sanitizeAttachmentId(id) {
-  const cleaned = String(id || '').trim().replace(/[^A-Za-z0-9_-]/g, '');
+  const cleaned = String(id || '')
+    .trim()
+    .replaceAll(/[^A-Za-z0-9_-]/g, '');
   if (!cleaned) throw new Error(`Invalid attachment id: ${id}`);
   return cleaned.slice(0, 64);
 }
@@ -27,10 +32,11 @@ const UNICODE_FORMAT_CHARS = /[\u202A-\u202E\u2066-\u2069\u200B-\u200F\uFEFF]/g;
 
 function sanitizeFilename(name, fallbackId) {
   const base = String(name || `attachment-${fallbackId}`)
-    .replace(/\u0000/g, '')
-    .replace(UNICODE_FORMAT_CHARS, '')
-    .replace(/[/\\]+/g, '_')
-    .replace(/[\x00-\x1f<>:"|?*]+/g, '_')
+    .replaceAll('\u0000', '')
+    .replaceAll(UNICODE_FORMAT_CHARS, '')
+    .replaceAll(/[/\\]+/g, '_')
+    // eslint-disable-next-line no-control-regex
+    .replaceAll(/[\u0000-\u001F<>:"|?*]+/g, '_')
     .replace(/^\.+/, '_')
     .trim();
   const truncated = base.length > 180 ? base.slice(0, 180) : base;
@@ -127,9 +133,7 @@ function isCacheFresh(previousManifest, freshIssue) {
   if (!previousManifest?.ticket?.updated || !freshIssue?.fields?.updated) return false;
   if (previousManifest.ticket.updated !== freshIssue.fields.updated) return false;
   if (!Array.isArray(previousManifest.attachments)) return false;
-  const freshAttachmentIds = new Set(
-    (freshIssue.fields.attachment || []).map((a) => String(a.id)),
-  );
+  const freshAttachmentIds = new Set((freshIssue.fields.attachment || []).map((a) => String(a.id)));
   const cachedIds = new Set(previousManifest.attachments.map((a) => String(a.id)));
   if (freshAttachmentIds.size !== cachedIds.size) return false;
   for (const id of freshAttachmentIds) {
