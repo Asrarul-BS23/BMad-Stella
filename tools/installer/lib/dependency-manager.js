@@ -28,16 +28,19 @@ class DependencyManager {
         transport: 'http',
         url: 'https://api.githubcopilot.com/mcp/',
         envVars: {},
-        // GitHub's remote MCP server authenticates via an Authorization header carrying a
-        // Personal Access Token (PAT) — not OAuth. See:
+        // GitHub's remote MCP server authenticates with a Personal Access Token sent as
+        // 'Authorization: Bearer <token>' — not OAuth. To keep the token out of Claude's
+        // config, the installer stores it in the project's git-ignored .env and registers
+        // the server with a `headersHelper` that reads it at connection time. See:
         // https://code.claude.com/docs/en/mcp  and
         // https://github.com/github/github-mcp-server/blob/main/docs/installation-guides/install-claude.md
-        headerAuth: {
+        tokenAuth: {
           prompt:
             'GitHub Personal Access Token (fine-grained, create at https://github.com/settings/personal-access-tokens):',
-          headerName: 'Authorization',
-          valuePrefix: 'Bearer ',
+          envVar: 'GITHUB_PERSONAL_ACCESS_TOKEN',
           helpUrl: 'https://github.com/settings/personal-access-tokens',
+          // Relative to the installed project root; the helper is copied here from bmad-core/utils/.
+          helperRelPath: '.bmad-core/utils/github-mcp-auth.js',
         },
       },
     };
@@ -128,32 +131,22 @@ class DependencyManager {
    * @param {string} serverName - MCP server name
    * @param {object} serverConfig - Server configuration
    * @param {object} envValues - Environment variable values
-   * @param {string[]} headers - Raw HTTP header strings (e.g. 'Authorization: Bearer <token>')
    * @returns {Promise<boolean>}
    */
-  async addMcpServer(installDir, serverName, serverConfig, envValues = {}, headers = []) {
+  async addMcpServer(installDir, serverName, serverConfig, envValues = {}) {
     try {
-      // Build the command (and a sanitized copy safe to print — secrets in headers are masked)
+      // Build the command
       let command = `claude mcp add --transport ${serverConfig.transport} ${serverName} ${serverConfig.url}`;
-      let displayCommand = command;
 
       // Add environment variables
       for (const [envVar, value] of Object.entries(envValues)) {
         if (value) {
           command += ` --env ${envVar}=${value}`;
-          displayCommand += ` --env ${envVar}=${value}`;
         }
       }
 
-      // Add HTTP headers (used for token-based auth such as GitHub's PAT). Never log the secret.
-      for (const header of headers) {
-        if (!header) continue;
-        command += ` --header "${header}"`;
-        displayCommand += ` --header "${this._maskHeaderSecret(header)}"`;
-      }
-
       console.log(chalk.cyan(`\n📦 Adding ${serverConfig.name || serverName}...`));
-      console.log(chalk.dim(`   Command: ${displayCommand}`));
+      console.log(chalk.dim(`   Command: ${command}`));
 
       execSync(command, {
         cwd: installDir,
@@ -173,44 +166,158 @@ class DependencyManager {
   }
 
   /**
-   * Mask the secret portion of an Authorization-style header for safe logging.
-   * 'Authorization: Bearer ghp_abc123' -> 'Authorization: Bearer ***'
-   * @param {string} header
-   * @returns {string}
+   * Register an MCP server from a full JSON definition via `claude mcp add-json`.
+   * Used for servers that need fields the `--transport/--env/--header` flags can't
+   * express — e.g. GitHub's `headersHelper`. The JSON is passed as a single shell
+   * argument, platform-quoted so embedded quotes/backslashes survive intact.
+   * @param {string} installDir
+   * @param {string} serverName
+   * @param {object} serverDef - the server entry object (type, url, headersHelper, …)
+   * @returns {Promise<boolean>}
    */
-  _maskHeaderSecret(header) {
-    return String(header)
-      .replace(/(:\s*Bearer\s+)\S+/i, '$1***')
-      .replace(/(:\s*)(?!Bearer)\S{8,}$/i, '$1***');
+  async addMcpServerJson(installDir, serverName, serverDef) {
+    try {
+      const json = JSON.stringify(serverDef);
+      const command = `claude mcp add-json ${serverName} ${this._shellQuoteArg(json)}`;
+
+      console.log(chalk.cyan(`\n📦 Adding ${serverName} (JSON config)...`));
+      console.log(chalk.dim(`   Command: claude mcp add-json ${serverName} '${json}'`));
+
+      execSync(command, { cwd: installDir, stdio: 'inherit' });
+
+      console.log(chalk.green(`✓ Successfully added ${serverName}`));
+      return true;
+    } catch (error) {
+      console.error(chalk.red(`\n✗ Failed to add ${serverName}:`), error.message);
+      return false;
+    }
   }
 
   /**
-   * Prompt (masked) for a token used in a header-auth MCP server, build the header strings.
-   * Returns null if the user provides no token (caller should skip that server).
-   * @param {object} headerAuth - serverConfig.headerAuth
-   * @returns {Promise<string[]|null>} array of raw header strings, or null to skip
+   * Quote a single argument for the platform shell that execSync uses
+   * (cmd.exe on Windows, /bin/sh elsewhere) so JSON survives unmangled.
+   *
+   * On Windows the naive `"` → `\"` substitution breaks when the value contains
+   * backslashes (e.g. file paths), because the MSVCRT argv parser counts the
+   * backslash run that precedes a quote. We follow the documented rules: double a
+   * run of N backslashes to 2N (and 2N+1) only when it precedes a `"` or the
+   * closing quote. JSON has no cmd metacharacters (& | < > ^) so cmd-level escaping
+   * isn't needed here.
+   * @param {string} arg
+   * @returns {string}
    */
-  async promptForHeaderAuth(headerAuth) {
+  _shellQuoteArg(arg) {
+    const str = String(arg);
+    if (process.platform !== 'win32') {
+      // POSIX sh: single-quote (JSON contains no single quotes); handle any defensively.
+      return `'${str.replaceAll("'", `'\\''`)}'`;
+    }
+    let out = '"';
+    let backslashes = 0;
+    for (const ch of str) {
+      if (ch === '\\') {
+        backslashes += 1;
+      } else if (ch === '"') {
+        out += '\\'.repeat(backslashes * 2 + 1) + '"';
+        backslashes = 0;
+      } else {
+        out += '\\'.repeat(backslashes) + ch;
+        backslashes = 0;
+      }
+    }
+    // Trailing backslashes precede the closing quote, so they must be doubled.
+    out += '\\'.repeat(backslashes * 2) + '"';
+    return out;
+  }
+
+  /**
+   * Prompt (masked) for a token, returning the trimmed token or null if the user
+   * leaves it blank (caller should skip that server).
+   * @param {object} tokenAuth - serverConfig.tokenAuth ({prompt})
+   * @returns {Promise<string|null>}
+   */
+  async promptForToken(tokenAuth) {
     const { token } = await inquirer.prompt([
       {
         type: 'password',
         name: 'token',
         mask: '*',
-        message: headerAuth.prompt || 'Enter access token:',
+        message: tokenAuth.prompt || 'Enter access token:',
         validate: (input) => {
           if (!input || !input.trim()) return true; // allow blank → caller skips
           if (input.trim().length < 8)
             return 'That token looks too short — paste the full token, or leave blank to skip';
           return true;
         },
-        filter: (input) => (input ? input.trim() : input),
+        // Strip a pasted 'Bearer ' prefix and surrounding whitespace; we add the scheme ourselves.
+        filter: (input) => (input ? input.trim().replace(/^Bearer\s+/i, '') : input),
       },
     ]);
 
-    if (!token || !token.trim()) return null;
-    const headerName = headerAuth.headerName || 'Authorization';
-    const valuePrefix = headerAuth.valuePrefix || '';
-    return [`${headerName}: ${valuePrefix}${token.trim()}`];
+    return token && token.trim() ? token.trim() : null;
+  }
+
+  /**
+   * Upsert a single KEY=value into the project's git-ignored .env (mode 0600),
+   * preserving all other lines. Used to store the GitHub PAT that the
+   * github-mcp-auth headersHelper reads at connection time.
+   * @param {string} installDir
+   * @param {string} key
+   * @param {string} value
+   * @returns {Promise<{ok: boolean, envPath: string, error: string|null}>}
+   */
+  async persistEnvVar(installDir, key, value) {
+    const fsp = require('node:fs/promises');
+    const envPath = path.join(installDir, '.env');
+    const out = { ok: false, envPath, error: null };
+
+    try {
+      let existing = '';
+      try {
+        existing = await fsp.readFile(envPath, 'utf8');
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+
+      const quoted = /[\s#"'=]/.test(value) ? `"${value.replaceAll('"', '\\"')}"` : value;
+      const lines = existing.split(/\r?\n/);
+      let replaced = false;
+      const next = lines.map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return line;
+        const eq = trimmed.indexOf('=');
+        if (eq !== -1 && trimmed.slice(0, eq).trim() === key) {
+          replaced = true;
+          return `${key}=${quoted}`;
+        }
+        return line;
+      });
+      if (!replaced) {
+        while (next.length > 0 && next.at(-1).trim() === '') next.pop();
+        next.push(`${key}=${quoted}`);
+      }
+      const output = `${next.join('\n').replace(/\n*$/, '')}\n`;
+
+      // temp + rename so mode is enforced before the data lands at envPath
+      const tmpPath = `${envPath}.${process.pid}.${Date.now()}.tmp`;
+      await fsp.mkdir(path.dirname(envPath), { recursive: true });
+      await fsp.writeFile(tmpPath, output, { encoding: 'utf8', mode: 0o600 });
+      try {
+        await fsp.chmod(tmpPath, 0o600);
+      } catch {
+        // best-effort on Windows (ACLs apply)
+      }
+      await fsp.rename(tmpPath, envPath);
+      try {
+        await fsp.chmod(envPath, 0o600);
+      } catch {
+        // best-effort on Windows
+      }
+      out.ok = true;
+    } catch (error) {
+      out.error = error.message;
+    }
+    return out;
   }
 
   /**
@@ -376,11 +483,13 @@ class DependencyManager {
     }
 
     // Process GitHub if selected. GitHub's remote MCP server authenticates with a
-    // Personal Access Token passed as an Authorization header (not OAuth), so we
-    // prompt for the token and add it via --header.
+    // Personal Access Token. We keep the token out of Claude's config: it's written to
+    // the project's git-ignored .env, and the server is registered with a `headersHelper`
+    // that reads it at connection time (see .bmad-core/utils/github-mcp-auth.js).
     if (selectedMcpServers.includes('github')) {
       const serverName = 'github';
       const serverConfig = this.requiredMcpServers[serverName];
+      const { tokenAuth } = serverConfig;
       results.checked.push(serverName);
 
       console.log(chalk.cyan(`\n📦 Configuring ${serverConfig.name}...`));
@@ -395,32 +504,52 @@ class DependencyManager {
       } else {
         console.log(
           chalk.dim(
-            `   Create a fine-grained token at ${serverConfig.headerAuth.helpUrl} with access to the repositories you want Claude to work with.`,
+            `   Create a fine-grained token at ${tokenAuth.helpUrl} with access to the repositories you want Claude to work with.`,
           ),
         );
-        const headers = await this.promptForHeaderAuth(serverConfig.headerAuth);
+        const token = await this.promptForToken(tokenAuth);
 
-        if (headers) {
-          const installSuccess = await this.addMcpServer(
-            installDir,
-            serverName,
-            serverConfig,
-            {},
-            headers,
-          );
+        if (token) {
+          // 1. Persist the PAT to the git-ignored .env (the headersHelper reads it).
+          const envResult = await this.persistEnvVar(installDir, tokenAuth.envVar, token);
+          if (envResult.ok) {
+            console.log(
+              chalk.green(
+                `✓ Stored ${tokenAuth.envVar} in ${path.relative(installDir, envResult.envPath) || '.env'} (git-ignored)`,
+              ),
+            );
 
-          if (installSuccess) {
-            results.installed.push(serverName);
+            // 2. Register the server with a headersHelper that reads the token at connect time.
+            //    Absolute path → local scope in ~/.claude.json; no token is stored in config.
+            const helperPath = path.join(installDir, tokenAuth.helperRelPath);
+            const serverDef = {
+              type: 'http',
+              url: serverConfig.url,
+              headersHelper: `node "${helperPath}"`,
+            };
+            const installSuccess = await this.addMcpServerJson(installDir, serverName, serverDef);
+
+            if (installSuccess) {
+              results.installed.push(serverName);
+              console.log(
+                chalk.dim(
+                  '   Note: on first connect Claude Code will ask you to trust this workspace (the helper runs a local command). Accept it, then run /mcp.',
+                ),
+              );
+            } else {
+              results.failed.push(serverName);
+            }
           } else {
+            console.log(
+              chalk.red(`✗ Could not write ${tokenAuth.envVar} to .env: ${envResult.error}`),
+            );
             results.failed.push(serverName);
           }
         } else {
-          console.log(
-            chalk.yellow('⚠️  No token provided — skipping GitHub MCP setup. Add it later with:'),
-          );
+          console.log(chalk.yellow('⚠️  No token provided — skipping GitHub MCP setup.'));
           console.log(
             chalk.cyan(
-              `      claude mcp add --transport http github ${serverConfig.url} --header "Authorization: Bearer <YOUR_GITHUB_PAT>"`,
+              `      Add ${tokenAuth.envVar} to .env later, then re-run the installer to register the GitHub MCP server.`,
             ),
           );
           results.skipped.push(serverName);
@@ -612,17 +741,20 @@ class DependencyManager {
       console.log(chalk.yellow('   You can configure them manually later using:'));
       for (const server of results.failed) {
         const serverConfig = this.requiredMcpServers[server];
-        if (serverConfig) {
+        if (serverConfig && serverConfig.tokenAuth) {
+          // Token-auth servers (e.g. GitHub) are registered via .env + headersHelper,
+          // which is awkward to type by hand — point the user back at the installer.
+          console.log(
+            chalk.cyan(
+              `      Set ${serverConfig.tokenAuth.envVar} in .env, then re-run the installer to register ${server}.`,
+            ),
+          );
+        } else if (serverConfig) {
           let command = `claude mcp add --transport ${serverConfig.transport} ${server} ${serverConfig.url}`;
           if (serverConfig.envVars && Object.keys(serverConfig.envVars).length > 0) {
             for (const [envVar] of Object.entries(serverConfig.envVars)) {
               command += ` --env ${envVar}=<${envVar.toLowerCase()}>`;
             }
-          }
-          if (serverConfig.headerAuth) {
-            const headerName = serverConfig.headerAuth.headerName || 'Authorization';
-            const valuePrefix = serverConfig.headerAuth.valuePrefix || '';
-            command += ` --header "${headerName}: ${valuePrefix}<token>"`;
           }
           console.log(chalk.cyan(`      ${command}`));
         } else {
