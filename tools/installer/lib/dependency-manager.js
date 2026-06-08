@@ -4,6 +4,10 @@ const path = require('node:path');
 const chalk = require('chalk');
 const inquirer = require('inquirer');
 
+const GITHUB_API_USER_URL = 'https://api.github.com/user';
+const GITHUB_VERIFY_TIMEOUT_MS = 10_000;
+const MAX_GITHUB_VERIFY_ATTEMPTS = 3;
+
 class DependencyManager {
   constructor() {
     this.requiredMcpServers = {
@@ -257,19 +261,189 @@ class DependencyManager {
     return token && token.trim() ? token.trim() : null;
   }
 
+  /** Escape hatch to skip live GitHub verification, mirroring BMAD_SKIP_JIRA_VERIFY. */
+  _shouldSkipGithubVerify() {
+    const flag = String(process.env.BMAD_SKIP_GITHUB_VERIFY || '').toLowerCase();
+    return flag === '1' || flag === 'true' || flag === 'yes';
+  }
+
   /**
-   * Upsert a single KEY=value into the project's git-ignored .env (mode 0600),
-   * preserving all other lines. Used to store the GitHub PAT that the
-   * github-mcp-auth headersHelper reads at connection time.
+   * Live-validate a GitHub PAT against `GET /user`. Never throws — returns a
+   * classification the caller acts on. 401 → 'auth' (expired/revoked/invalid → re-enter);
+   * 403 (rate-limit or policy) → 'network' (proceed, don't trap over a transient limit);
+   * 2xx → 'ok' with the resolved login.
+   * @param {string} token
+   * @returns {Promise<{classification:'ok'|'auth'|'network'|'skipped', status:number|null, login:string|null, error:string|null}>}
+   */
+  async _verifyGithubToken(token) {
+    const out = { classification: 'network', status: null, login: null, error: null };
+    if (this._shouldSkipGithubVerify()) {
+      out.classification = 'skipped';
+      return out;
+    }
+    const tok = String(token || '').trim();
+    if (!tok) {
+      out.error = 'empty token';
+      return out;
+    }
+
+    const signal =
+      typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+        ? AbortSignal.timeout(GITHUB_VERIFY_TIMEOUT_MS)
+        : undefined;
+
+    try {
+      // global fetch is available on the project's supported runtime (Node >=20.10); the
+      // lint rule is conservative about the >=20.0.0 engines floor.
+      // eslint-disable-next-line n/no-unsupported-features/node-builtins
+      const response = await fetch(GITHUB_API_USER_URL, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${tok}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'bmad-stella-installer/1.0',
+        },
+        redirect: 'follow',
+        signal,
+      });
+      out.status = response.status;
+      if (response.ok) {
+        out.classification = 'ok';
+        try {
+          const body = await response.json();
+          out.login = body.login || null;
+        } catch {
+          // a 2xx already proves the token works; body parse is best-effort
+        }
+        return out;
+      }
+      if (response.status === 401) {
+        out.classification = 'auth'; // expired / revoked / invalid → re-enter
+        return out;
+      }
+      // 403 on GitHub is usually rate-limiting (or org/SSO policy) — not proof the token is
+      // bad — so treat it as unverifiable-but-proceed rather than forcing a re-enter.
+      if (response.status === 403) {
+        const remaining = response.headers.get('x-ratelimit-remaining');
+        out.error = remaining === '0' ? 'GitHub API rate limit reached' : 'HTTP 403';
+        return out; // classification stays 'network'
+      }
+      out.error = `HTTP ${response.status}`;
+      return out; // other non-2xx → unverifiable, proceed
+    } catch (error) {
+      out.error = error.message || String(error); // timeout / DNS / offline
+      return out;
+    }
+  }
+
+  /**
+   * Read an existing GitHub token from the environment or the project's .env (any line,
+   * inside the managed block or not). Returns the trimmed token or null.
+   * @param {string} installDir
+   * @returns {Promise<string|null>}
+   */
+  async _readGithubTokenFromEnv(installDir) {
+    const fromEnv = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+    if (fromEnv && fromEnv.trim()) return fromEnv.trim();
+
+    const fsp = require('node:fs/promises');
+    let contents;
+    try {
+      contents = await fsp.readFile(path.join(installDir, '.env'), 'utf8');
+    } catch {
+      return null;
+    }
+    for (const rawLine of contents.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith('#')) continue;
+      const eq = line.indexOf('=');
+      if (eq === -1 || line.slice(0, eq).trim() !== 'GITHUB_PERSONAL_ACCESS_TOKEN') continue;
+      let value = line.slice(eq + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      return value.trim() || null;
+    }
+    return null;
+  }
+
+  /** Print a friendly line for a GitHub verification result. */
+  _reportGithubVerification(verification, successLabel) {
+    if (verification.classification === 'ok') {
+      const who = verification.login ? ` (authenticated as ${verification.login})` : '';
+      console.log(chalk.green(`✓ ${successLabel}${who}`));
+    } else if (verification.classification === 'skipped') {
+      console.log(chalk.dim('  Skipping live verification (BMAD_SKIP_GITHUB_VERIFY set).'));
+    } else {
+      const why = verification.error ? ` (${verification.error})` : '';
+      console.log(
+        chalk.yellow(
+          `⚠️  Could not verify the GitHub token${why} — proceeding. It will be checked when you run /mcp.`,
+        ),
+      );
+    }
+  }
+
+  /**
+   * Prompt for a fresh GitHub token and verify it, retrying on a 401 rejection up to the
+   * attempt budget. Returns the accepted token, or null if the user leaves it blank (skip).
+   * @param {object} tokenAuth
+   * @returns {Promise<string|null>}
+   */
+  async _collectFreshGithubToken(tokenAuth) {
+    let last = null;
+    for (let attempt = 1; attempt <= MAX_GITHUB_VERIFY_ATTEMPTS; attempt += 1) {
+      const token = await this.promptForToken(tokenAuth);
+      if (!token) return null; // blank → skip
+      last = token;
+      const verification = await this._verifyGithubToken(token);
+      if (verification.classification !== 'auth') {
+        // ok / network / skipped → accept (don't trap the user on a transient/unreachable check)
+        this._reportGithubVerification(verification, 'Verified GitHub token');
+        return token;
+      }
+      console.log(chalk.red('✗ That token was rejected by GitHub (expired, revoked, or invalid).'));
+      if (attempt < MAX_GITHUB_VERIFY_ATTEMPTS) {
+        console.log(
+          chalk.dim(`  Attempt ${attempt}/${MAX_GITHUB_VERIFY_ATTEMPTS} failed — let's try again.`),
+        );
+      }
+    }
+    const { saveAnyway } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'saveAnyway',
+        message: `Could not verify after ${MAX_GITHUB_VERIFY_ATTEMPTS} attempts. Save the token anyway?`,
+        default: false,
+      },
+    ]);
+    return saveAnyway ? last : null;
+  }
+
+  /**
+   * Persist a single KEY=value into the project's git-ignored .env (mode 0600) inside
+   * its own clearly-marked managed block, preserving every other line (including the
+   * separate JIRA managed block written by jira-credentials-manager). Idempotent: an
+   * existing block with the same label — or a legacy bare `KEY=` line from an earlier
+   * format — is removed before the fresh block is appended, so re-runs don't duplicate.
+   * Used to store the GitHub PAT that the github-mcp-auth headersHelper reads at connect time.
    * @param {string} installDir
    * @param {string} key
    * @param {string} value
+   * @param {string} blockName - human label for the block header (e.g. 'GitHub')
    * @returns {Promise<{ok: boolean, envPath: string, error: string|null}>}
    */
-  async persistEnvVar(installDir, key, value) {
+  async persistEnvVar(installDir, key, value, blockName) {
     const fsp = require('node:fs/promises');
     const envPath = path.join(installDir, '.env');
     const out = { ok: false, envPath, error: null };
+
+    const startMarker = `# --- BMad-Stella ${blockName} managed (do not edit) ---`;
+    const endMarker = `# --- end BMad-Stella ${blockName} managed ---`;
 
     try {
       let existing = '';
@@ -279,24 +453,37 @@ class DependencyManager {
         if (error.code !== 'ENOENT') throw error;
       }
 
-      const quoted = /[\s#"'=]/.test(value) ? `"${value.replaceAll('"', '\\"')}"` : value;
-      const lines = existing.split(/\r?\n/);
-      let replaced = false;
-      const next = lines.map((line) => {
+      // Preserve all lines except (a) our own previous block and (b) any legacy bare
+      // KEY= line. The JIRA block uses different markers/keys, so it is left untouched.
+      const preserved = [];
+      let insideOurBlock = false;
+      for (const line of existing.split(/\r?\n/)) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) return line;
-        const eq = trimmed.indexOf('=');
-        if (eq !== -1 && trimmed.slice(0, eq).trim() === key) {
-          replaced = true;
-          return `${key}=${quoted}`;
+        if (trimmed === startMarker) {
+          insideOurBlock = true;
+          continue;
         }
-        return line;
-      });
-      if (!replaced) {
-        while (next.length > 0 && next.at(-1).trim() === '') next.pop();
-        next.push(`${key}=${quoted}`);
+        if (trimmed === endMarker) {
+          insideOurBlock = false;
+          continue;
+        }
+        if (insideOurBlock) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq !== -1 && !trimmed.startsWith('#') && trimmed.slice(0, eq).trim() === key) {
+          continue; // drop legacy bare line for this key
+        }
+        preserved.push(line);
       }
-      const output = `${next.join('\n').replace(/\n*$/, '')}\n`;
+      while (preserved.length > 0 && preserved[0].trim() === '') preserved.shift();
+      while (preserved.length > 0 && preserved.at(-1).trim() === '') preserved.pop();
+
+      const quoted = /[\s#"'=]/.test(value) ? `"${value.replaceAll('"', '\\"')}"` : value;
+      const block = [startMarker, `${key}=${quoted}`, endMarker];
+      // Prepend our block above any preserved content. This keeps the managed block at the
+      // top and, when the JIRA helper later rewrites its own block at the end of the file,
+      // leaves no stray leading blank line (the JIRA writer only trims trailing blanks).
+      const body = preserved.length > 0 ? [...block, '', ...preserved] : block;
+      const output = `${body.join('\n')}\n`;
 
       // temp + rename so mode is enforced before the data lands at envPath
       const tmpPath = `${envPath}.${process.pid}.${Date.now()}.tmp`;
@@ -495,32 +682,67 @@ class DependencyManager {
       console.log(chalk.cyan(`\n📦 Configuring ${serverConfig.name}...`));
       console.log(chalk.dim(`   ${serverConfig.description}\n`));
 
-      // Check if server is already configured
       const isInstalled = await this.isMcpServerInstalled(installDir, serverName);
+      const existingToken = await this._readGithubTokenFromEnv(installDir);
+      let token = null;
 
-      if (isInstalled) {
-        console.log(chalk.green(`✓ ${serverConfig.name} is already configured`));
-        results.alreadyConfigured.push(serverName);
-      } else {
+      // 1. If a token already exists, offer to reuse it — verifying it's still live first.
+      if (existingToken) {
+        console.log(chalk.green('✓ Detected an existing GitHub token.'));
+        const { reuse } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'reuse',
+            message: 'Use the detected GitHub token as-is?',
+            default: true,
+          },
+        ]);
+        if (reuse) {
+          const verification = await this._verifyGithubToken(existingToken);
+          if (verification.classification === 'auth') {
+            console.log(
+              chalk.yellow(
+                "⚠️  The detected token no longer works (expired, revoked, or invalid). Let's re-enter it.",
+              ),
+            );
+          } else {
+            // ok → verified; network/skipped → couldn't check but proceed (don't trap the user)
+            this._reportGithubVerification(verification, 'Verified existing GitHub token');
+            token = existingToken;
+          }
+        }
+      }
+
+      // 2. Otherwise (no token, declined reuse, or a dead token) prompt for a fresh one,
+      //    verifying it and retrying on a 401 rejection.
+      if (!token) {
         console.log(
           chalk.dim(
             `   Create a fine-grained token at ${tokenAuth.helpUrl} with access to the repositories you want Claude to work with.`,
           ),
         );
-        const token = await this.promptForToken(tokenAuth);
+        token = await this._collectFreshGithubToken(tokenAuth);
+      }
 
-        if (token) {
-          // 1. Persist the PAT to the git-ignored .env (the headersHelper reads it).
-          const envResult = await this.persistEnvVar(installDir, tokenAuth.envVar, token);
-          if (envResult.ok) {
+      // 3. Persist the token to .env, then register the server (or just refresh .env if the
+      //    server is already registered — its headersHelper re-reads .env, so no re-add).
+      if (token) {
+        const envResult = await this.persistEnvVar(installDir, tokenAuth.envVar, token, 'GitHub');
+        if (envResult.ok) {
+          console.log(
+            chalk.green(
+              `✓ Stored ${tokenAuth.envVar} in ${path.relative(installDir, envResult.envPath) || '.env'} (git-ignored)`,
+            ),
+          );
+
+          if (isInstalled) {
             console.log(
-              chalk.green(
-                `✓ Stored ${tokenAuth.envVar} in ${path.relative(installDir, envResult.envPath) || '.env'} (git-ignored)`,
-              ),
+              chalk.green('✓ GitHub MCP server already registered; token updated in .env'),
             );
-
-            // 2. Register the server with a headersHelper that reads the token at connect time.
-            //    Absolute path → local scope in ~/.claude.json; no token is stored in config.
+            results.alreadyConfigured.push(serverName);
+          } else {
+            // Register with a headersHelper that reads the token at connect time.
+            // Absolute path → local scope in ~/.claude.json; no token is stored in config.
             const helperPath = path.join(installDir, tokenAuth.helperRelPath);
             const serverDef = {
               type: 'http',
@@ -539,21 +761,21 @@ class DependencyManager {
             } else {
               results.failed.push(serverName);
             }
-          } else {
-            console.log(
-              chalk.red(`✗ Could not write ${tokenAuth.envVar} to .env: ${envResult.error}`),
-            );
-            results.failed.push(serverName);
           }
         } else {
-          console.log(chalk.yellow('⚠️  No token provided — skipping GitHub MCP setup.'));
           console.log(
-            chalk.cyan(
-              `      Add ${tokenAuth.envVar} to .env later, then re-run the installer to register the GitHub MCP server.`,
-            ),
+            chalk.red(`✗ Could not write ${tokenAuth.envVar} to .env: ${envResult.error}`),
           );
-          results.skipped.push(serverName);
+          results.failed.push(serverName);
         }
+      } else {
+        console.log(chalk.yellow('⚠️  No token provided — skipping GitHub MCP setup.'));
+        console.log(
+          chalk.cyan(
+            `      Add ${tokenAuth.envVar} to .env later, then re-run the installer to register the GitHub MCP server.`,
+          ),
+        );
+        results.skipped.push(serverName);
       }
     }
 
