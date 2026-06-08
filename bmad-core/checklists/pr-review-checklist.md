@@ -20,9 +20,10 @@ The goal is dev-actionable output ready to write — not just a finished review.
 
 ## Validation
 
-- [ ] Plan read in full.
+- [ ] Requirements resolved (JIRA ticket or raw) and acceptance criteria captured.
+- [ ] PR diff fetched and every changed file reviewed.
 - [ ] Domain knowledge accessed by targeted Grep only — no bulk-read of `bmad-docs/domain-knowledge/`.
-- [ ] All 7 criteria evaluated against the change set: business correctness, logical correctness, security & hidden bugs, observability, coding standards, project architecture, unit test coverage.
+- [ ] All 9 criteria evaluated against the change set: requirements coverage & business correctness, logical correctness, security & hidden bugs, performance & scalability, API & data contracts, observability, coding standards, project architecture, test adequacy.
 - [ ] Every finding is actionable: `file:line`, one-sentence finding, concrete fix. No nits, no open questions, no theoretical concerns.
 
 ## Final Confirmation
