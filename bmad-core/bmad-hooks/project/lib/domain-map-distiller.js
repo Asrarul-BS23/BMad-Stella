@@ -7,7 +7,8 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const { log } = require('./state');
-const { callHaiku } = require('./llm');
+const { callClaude } = require('./llm');
+const { buildDistillDomainMapPrompt } = require('../prompts/distill-domain-map');
 
 const SOURCE_DIR_NAME = 'domain-knowledge';
 const TARGET_FILE = path.join('bmad-docs', 'memory', 'domain-map.md');
@@ -101,34 +102,9 @@ async function distill(cwd) {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  const prompt = `You are distilling Confluence domain-knowledge documentation into a concise project domain map.
+  const prompt = buildDistillDomainMapPrompt({ sourceContent, today });
 
-SOURCE DOCUMENTS:
-${sourceContent}
-
-TASK: Produce a distilled domain-map.md with this exact structure:
-
----
-type: domain-map
-project: "[infer project name from content]"
-last-updated: "${today}"
-confluence-source: "[infer page title from content]"
----
-
-# Project Domain Map
-
-## Business Purpose
-[1-2 sentences: what the system does and why it exists]
-
-## Core Domain Entities
-[Bullet list of key business objects and their relationships — be specific]
-
-## Business Rules
-[Bullet list of non-negotiable invariants no code should ever violate]
-
-Keep it concise — this is a quick-reference card, not a full document. Output ONLY the file content.`;
-
-  const result = await callHaiku(prompt, 1500);
+  const result = await callClaude(prompt);
   if (!result) {
     log('domain-map-distiller: haiku returned null, skipping', { cwd });
     return false;

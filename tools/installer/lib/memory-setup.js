@@ -105,15 +105,6 @@ async function generateDomainMap(installDir, spinner) {
     return;
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.log(
-      chalk.yellow(
-        '  ⚠️  ANTHROPIC_API_KEY not set — skipping domain-map.md distillation. Set the key and re-run the installer.',
-      ),
-    );
-    return;
-  }
-
   if (spinner) spinner.text = 'Distilling domain-map.md from domain-knowledge/...';
   if (spinner) spinner.stop();
 
