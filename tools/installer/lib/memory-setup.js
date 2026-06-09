@@ -80,17 +80,6 @@ async function generateDomainMap(installDir, spinner) {
   const domainKnowledgeDir = path.join(installDir, 'bmad-docs', 'domain-knowledge');
   const domainMapPath = path.join(installDir, 'bmad-docs', 'memory', 'domain-map.md');
 
-  // Reinstall protection — if last-updated has a real date the file was already populated
-  // (by distiller or by the developer manually). Leave it unchanged.
-  if (await fs.pathExists(domainMapPath)) {
-    const content = await fs.readFile(domainMapPath, 'utf8');
-    const lastUpdated = content.match(/last-updated:\s*"([^"]+)"/)?.[1]?.trim();
-    if (lastUpdated) {
-      console.log(chalk.dim('  domain-map.md already populated, skipping'));
-      return;
-    }
-  }
-
   // No domain-knowledge/ source files — blank stub from template is the correct state.
   const hasDomainKnowledge =
     (await fs.pathExists(domainKnowledgeDir)) &&
@@ -127,7 +116,7 @@ async function generateDomainMap(installDir, spinner) {
     return;
   }
 
-  const result = spawnSync(process.execPath, [distillerPath, installDir], {
+  const result = spawnSync(process.execPath, [distillerPath, installDir, '--force'], {
     timeout: 60_000,
     env: { ...process.env },
     encoding: 'utf8',

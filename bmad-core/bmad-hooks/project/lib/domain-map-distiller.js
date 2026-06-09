@@ -6,13 +6,13 @@
 
 const path = require('node:path');
 const fs = require('node:fs');
+const yaml = require('js-yaml');
 const { log } = require('./state');
 const { callClaude } = require('./llm');
 const { buildDistillDomainMapPrompt } = require('../prompts/distill-domain-map');
 
 const SOURCE_DIR_NAME = 'domain-knowledge';
 const TARGET_FILE = path.join('bmad-docs', 'memory', 'domain-map.md');
-const MAX_SOURCE_CHARS = 8000;
 const PLACEHOLDER_MARKER = '{{domain_map_placeholder}}';
 
 function getSourceDir(cwd) {
@@ -23,19 +23,48 @@ function getTargetPath(cwd) {
   return path.join(cwd, TARGET_FILE);
 }
 
-function readSourceFiles(sourceDir) {
+function getConfiguredPatterns(cwd) {
+  try {
+    const configPath = path.join(cwd, '.bmad-core', 'core-config.yaml');
+    if (!fs.existsSync(configPath)) return null;
+    const config = yaml.load(fs.readFileSync(configPath, 'utf8'));
+    const patterns = config?.domainKnowledge?.domainMapSourceFiles;
+    if (Array.isArray(patterns) && patterns.length > 0) return patterns;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Converts a glob pattern (only * wildcard) to a case-insensitive RegExp.
+function patternToRegex(pattern) {
+  const escaped = pattern.replaceAll(/[.+^${}()|[\]\\]/g, '\\$&').replaceAll('*', '.*');
+  return new RegExp(`^${escaped}$`, 'i');
+}
+
+function matchesAnyPattern(filename, patterns) {
+  return patterns.some((p) => patternToRegex(p).test(filename));
+}
+
+function readSourceFiles(sourceDir, cwd) {
   try {
     if (!fs.existsSync(sourceDir)) return null;
-    const files = fs.readdirSync(sourceDir).filter((f) => f.endsWith('.md'));
-    if (files.length === 0) return null;
+
+    const allMd = fs.readdirSync(sourceDir).filter((f) => f.endsWith('.md'));
+    const patterns = getConfiguredPatterns(cwd);
+    const files = patterns ? allMd.filter((f) => matchesAnyPattern(f, patterns)) : allMd;
+
+    if (files.length === 0) {
+      log('domain-map-distiller: no source files matched patterns', { patterns });
+      return null;
+    }
 
     let combined = '';
     for (const file of files) {
       const content = fs.readFileSync(path.join(sourceDir, file), 'utf8');
       combined += `\n\n### ${file}\n${content}`;
-      if (combined.length > MAX_SOURCE_CHARS) break;
     }
-    return combined.slice(0, MAX_SOURCE_CHARS);
+    return combined || null;
   } catch (error) {
     log('domain-map-distiller: failed to read source files', { error: error.message });
     return null;
@@ -62,10 +91,14 @@ function getDomainMapLastUpdated(targetPath) {
   try {
     if (!fs.existsSync(targetPath)) return null;
     const content = fs.readFileSync(targetPath, 'utf8');
-    const match = content.match(/last-updated:\s*"?([^"\n]+)"?/);
+    const match = content.match(/last-updated:\s*(.*)/);
     if (!match) return null;
-    const val = match[1].trim();
-    if (val === PLACEHOLDER_MARKER || val === '') return null;
+    // Strip surrounding YAML quotes (single or double) before checking
+    const val = match[1]
+      .trim()
+      .replaceAll(/^['"]|['"]$/g, '')
+      .trim();
+    if (!val || val === PLACEHOLDER_MARKER) return null;
     return new Date(val);
   } catch {
     return null;
@@ -94,7 +127,7 @@ async function distill(cwd) {
   const sourceDir = getSourceDir(cwd);
   const targetPath = getTargetPath(cwd);
 
-  const sourceContent = readSourceFiles(sourceDir);
+  const sourceContent = readSourceFiles(sourceDir, cwd);
   if (!sourceContent) {
     log('domain-map-distiller: no source files in domain-knowledge/, skipping', { cwd });
     return false;
@@ -134,13 +167,17 @@ async function distillIfStale(cwd) {
 module.exports = { distill, distillIfStale, isDomainMapStale };
 
 // Standalone entry point
+// Usage: node domain-map-distiller.js <cwd> [--force]
 if (require.main === module) {
-  const cwd = process.argv[2];
+  const args = process.argv.slice(2);
+  const cwd = args.find((a) => !a.startsWith('-'));
+  const force = args.includes('--force');
   if (!cwd) {
-    process.stderr.write('Usage: node domain-map-distiller.js <cwd>\n');
+    process.stderr.write('Usage: node domain-map-distiller.js <cwd> [--force]\n');
     process.exit(1);
   }
-  distillIfStale(cwd)
+  const run = force ? distill(cwd) : distillIfStale(cwd);
+  run
     .then((updated) => {
       if (updated) process.stdout.write('domain-map.md updated\n');
       else process.stdout.write('domain-map.md unchanged\n');

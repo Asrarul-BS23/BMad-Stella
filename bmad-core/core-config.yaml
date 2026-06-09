@@ -15,6 +15,12 @@ architecture:
   architectureShardedLocation: bmad-docs/architecture
 domainKnowledge:
   location: bmad-docs/domain-knowledge
+  # Glob patterns for files used to generate domain-map.md. Matches against filenames in location/.
+  # Use * as wildcard. If empty or omitted, all .md files are used.
+  domainMapSourceFiles:
+    - "*business*"
+    - "*domain*"
+    - "*faqs*"
 customTechnicalDocuments: null
 devLoadAlwaysFiles:
   - bmad-docs/architecture/coding-standards.md

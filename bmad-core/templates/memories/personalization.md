@@ -48,88 +48,11 @@ _(Auto-maintained. Written by daily job from staged corrections. Do not edit man
 
 ## Layer 3 — Learned Action Defaults
 
-_(Auto-maintained. Frequency counters updated by PostToolUse hook. Do not edit manually.)_
+_(Auto-maintained by SessionEnd hook. Do not edit manually.)_
+_(Grace period active — defaults not applied until 30 days or 20 observations have passed.)_
 
-### Action Frequency Counters
-
-```json
-{
-  "build_compile": {
-    "bmad": 0,
-    "developer": 0,
-    "observations": 0,
-    "confidence": 0,
-    "default": "ask",
-    "last_reset": null
-  },
-  "run_tests": {
-    "bmad": 0,
-    "developer": 0,
-    "observations": 0,
-    "confidence": 0,
-    "default": "ask",
-    "last_reset": null
-  },
-  "install_deps": {
-    "bmad": 0,
-    "developer": 0,
-    "observations": 0,
-    "confidence": 0,
-    "default": "ask",
-    "last_reset": null
-  },
-  "db_migrations": {
-    "bmad": 0,
-    "developer": 0,
-    "observations": 0,
-    "confidence": 0,
-    "default": "ask",
-    "last_reset": null
-  },
-  "lint_format": {
-    "bmad": 0,
-    "developer": 0,
-    "observations": 0,
-    "confidence": 0,
-    "default": "ask",
-    "last_reset": null
-  },
-  "suggest_refactors": {
-    "bmad": 0,
-    "developer": 0,
-    "observations": 0,
-    "confidence": 0,
-    "default": "ask",
-    "last_reset": null
-  },
-  "auto_add_tests": {
-    "bmad": 0,
-    "developer": 0,
-    "observations": 0,
-    "confidence": 0,
-    "default": "ask",
-    "last_reset": null
-  },
-  "jira_comment": {
-    "bmad": 0,
-    "developer": 0,
-    "observations": 0,
-    "confidence": 0,
-    "default": "ask",
-    "last_reset": null
-  },
-  "grace_period_start": null
-}
-```
-
-### Behavioral Frequency Profile
-
-```json
-{
-  "context_quality_score": 5,
-  "scope_provided_pct": 0,
-  "plan_first_approval_pct": 0,
-  "corrections_per_cycle": 0,
-  "total_cycles": 0
-}
-```
+- Build / compile: still observing
+- Run tests: still observing
+- Install dependencies: still observing
+- DB migrations: still observing
+- Lint / format: still observing

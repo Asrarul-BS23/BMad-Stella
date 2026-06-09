@@ -48,10 +48,31 @@ function loadEpisode(memoryDir, moduleTag) {
   return readFile(filePath) || '';
 }
 
+function semanticCoversModule(content, moduleTag) {
+  // Direct filename match is handled by caller; this checks episode-sources frontmatter.
+  // Frontmatter is between the first two --- delimiters.
+  const fmEnd = content.indexOf('\n---', 3);
+  const frontmatter = fmEnd === -1 ? content.slice(0, 400) : content.slice(0, fmEnd);
+  // Match "- <moduleTag>" as a list entry under episode-sources
+  return new RegExp(`-\\s+${moduleTag}\\b`, 'i').test(frontmatter);
+}
+
 function loadSemantic(memoryDir, moduleTag) {
   if (!moduleTag) return '';
-  const filePath = path.join(memoryDir, 'semantic', `${moduleTag}.md`);
-  return readFile(filePath) || '';
+  const semanticDir = path.join(memoryDir, 'semantic');
+  if (!fs.existsSync(semanticDir)) return '';
+
+  const files = fs.readdirSync(semanticDir).filter((f) => f.endsWith('.md') && !f.startsWith('_'));
+  const parts = [];
+  for (const file of files) {
+    const content = readFile(path.join(semanticDir, file));
+    if (!content) continue;
+    // Include if filename matches OR episode-sources frontmatter lists this module-tag
+    if (file === `${moduleTag}.md` || semanticCoversModule(content, moduleTag)) {
+      parts.push(content);
+    }
+  }
+  return parts.join('\n\n---\n\n');
 }
 
 function loadMatchedLessons(memoryDir, moduleTag) {
@@ -71,6 +92,7 @@ function loadMatchedLessons(memoryDir, moduleTag) {
 }
 
 function assembleContext(memoryDir, moduleTag) {
+  const memoryIndex = readFile(path.join(memoryDir, 'MEMORY.md')) || '';
   const rawDomainMap = readFile(path.join(memoryDir, 'domain-map.md'));
   const domainMap = isDomainMapMeaningful(rawDomainMap) ? rawDomainMap : '';
   const constraints = loadActiveConstraints(memoryDir);
@@ -79,6 +101,7 @@ function assembleContext(memoryDir, moduleTag) {
   const lessons = loadMatchedLessons(memoryDir, moduleTag);
 
   const sections = [
+    { label: '## Memory Index\n', content: memoryIndex },
     { label: '## Domain Map\n', content: domainMap },
     { label: '## Active Constraints\n', content: constraints },
     { label: '## Episode Memory\n', content: episode },

@@ -5,12 +5,18 @@ const fs = require('node:fs');
 const os = require('node:os');
 const { spawn } = require('node:child_process');
 
-const { buildDetectCorrectionPrompt } = require('./prompts/detect-correction');
+const { buildDetectCorrectionsSessionPrompt } = require('./prompts/detect-corrections-session');
 
 const LOG_FILE = path.join(os.homedir(), '.claude', 'bmad-hooks', 'personalization_debug.log');
 const PERSONALIZATION_FILE = path.join(os.homedir(), '.claude', 'personalization.md');
+const COUNTERS_FILE = path.join(
+  os.homedir(),
+  '.claude',
+  'bmad-hooks',
+  'personalization',
+  'counters.json',
+);
 
-// Layer 2 correction keywords — cheap pre-filter before any LLM call
 const CORRECTION_KEYWORDS = [
   "don't",
   'dont',
@@ -27,7 +33,6 @@ const CORRECTION_KEYWORDS = [
   "that's wrong",
 ];
 
-// Actions tracked for Layer 3
 const ACTION_PATTERNS = [
   {
     key: 'build_compile',
@@ -93,6 +98,23 @@ const ACTION_PATTERNS = [
   },
 ];
 
+const ACTION_LABELS = {
+  build_compile: 'Build / compile',
+  run_tests: 'Run tests',
+  install_deps: 'Install dependencies',
+  db_migrations: 'DB migrations',
+  lint_format: 'Lint / format',
+};
+
+// Min observations before a default is promoted to just-do (all observations are BMad's — developer terminal is unobservable)
+const THRESHOLDS = {
+  db_migrations: 15,
+  run_tests: 10,
+  install_deps: 10,
+  build_compile: 7,
+  lint_format: 7,
+};
+
 function log(level, message, extra) {
   try {
     const entry = { ts: new Date().toISOString(), level, message, ...extra };
@@ -114,37 +136,30 @@ function readPersonalization() {
   }
 }
 
+function readCounters() {
+  try {
+    if (!fs.existsSync(COUNTERS_FILE)) return null;
+    return JSON.parse(fs.readFileSync(COUNTERS_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function writeCounters(counters) {
+  try {
+    const tmp = COUNTERS_FILE + '.tmp.' + process.pid;
+    fs.writeFileSync(tmp, JSON.stringify(counters, null, 2), 'utf8');
+    fs.renameSync(tmp, COUNTERS_FILE);
+  } catch (error) {
+    log('warn', 'writeCounters: failed', { error: error.message });
+  }
+}
+
 function findBmadMemoryStateDir(cwd) {
   if (!cwd) return null;
   const stateDir = path.join(cwd, 'bmad-docs', 'memory', '.state');
   if (fs.existsSync(stateDir)) return stateDir;
   return null;
-}
-
-function readLastUserMessage(transcriptPath) {
-  try {
-    if (!transcriptPath || !fs.existsSync(transcriptPath)) return '';
-    const content = fs.readFileSync(transcriptPath, 'utf8');
-    const lines = content.trim().split('\n').filter(Boolean);
-    // Walk backwards to find last user turn
-    for (let i = lines.length - 1; i >= 0; i--) {
-      try {
-        const entry = JSON.parse(lines[i]);
-        if (entry.role === 'user' || (entry.type === 'user' && entry.message)) {
-          const msg = entry.message || entry.content || '';
-          if (typeof msg === 'string') return msg;
-          if (Array.isArray(msg)) {
-            return msg.map((b) => (typeof b === 'string' ? b : b.text || '')).join(' ');
-          }
-        }
-      } catch {
-        // skip malformed line
-      }
-    }
-    return '';
-  } catch {
-    return '';
-  }
 }
 
 function hasKeywords(text) {
@@ -185,12 +200,7 @@ function callClaude(prompt) {
     proc.on('close', (code) => {
       clearTimeout(timer);
       if (timedOut) return;
-      if (code === 0) {
-        resolve(output.trim() || null);
-      } else {
-        log('warn', 'callClaude: non-zero exit', { code });
-        resolve(null);
-      }
+      resolve(code === 0 ? output.trim() || null : null);
     });
 
     proc.on('error', (error) => {
@@ -201,35 +211,122 @@ function callClaude(prompt) {
   });
 }
 
-function detectActionFromCommand(command) {
-  if (!command || typeof command !== 'string') return null;
-  const lower = command.toLowerCase();
-  for (const action of ACTION_PATTERNS) {
-    if (action.patterns.some((p) => lower.includes(p))) return action.key;
-  }
-  return null;
+function extractTextFromContent(content) {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .filter((b) => b.type === 'text')
+    .map((b) => b.text || '')
+    .join(' ')
+    .trim();
 }
 
-function patchLayer3Counter(content, actionKey, actor) {
-  // Find the JSON block under "### Action Frequency Counters"
-  const blockMatch = content.match(/(### Action Frequency Counters\s*```json\s*)([\s\S]*?)(```)/);
-  if (!blockMatch) return content;
+// Returns { exchanges: [{assistant, user}], bashCommands: [string] }
+function parseTranscript(transcriptPath) {
   try {
-    const counters = JSON.parse(blockMatch[2]);
-    if (!counters[actionKey]) return content;
-    counters[actionKey].observations = (counters[actionKey].observations || 0) + 1;
-    counters[actionKey][actor] = (counters[actionKey][actor] || 0) + 1;
-    if (!counters.grace_period_start) {
-      counters.grace_period_start = new Date().toISOString().slice(0, 10);
+    if (!transcriptPath || !fs.existsSync(transcriptPath)) {
+      return { exchanges: [], bashCommands: [] };
     }
-    const updated = content.replace(
-      blockMatch[0],
-      blockMatch[1] + JSON.stringify(counters, null, 2) + '\n' + blockMatch[3],
-    );
-    return updated;
-  } catch {
-    return content;
+
+    const lines = fs.readFileSync(transcriptPath, 'utf8').trim().split('\n').filter(Boolean);
+    const messages = [];
+    for (const line of lines) {
+      try {
+        messages.push(JSON.parse(line));
+      } catch {
+        // skip malformed lines
+      }
+    }
+
+    const exchanges = [];
+    const bashCommands = [];
+    let lastAssistantText = null;
+
+    for (const msg of messages) {
+      const role = msg.role || msg.type;
+      const content = msg.message || msg.content || '';
+      const blocks = Array.isArray(content) ? content : [];
+
+      if (role === 'assistant') {
+        for (const block of blocks) {
+          if (block.type === 'tool_use' && block.name === 'Bash') {
+            const cmd = block.input?.command || '';
+            if (cmd) bashCommands.push(cmd);
+          }
+        }
+        lastAssistantText = extractTextFromContent(content);
+      } else if (role === 'user') {
+        // Skip pure tool_result messages — not human input
+        const allToolResults = blocks.length > 0 && blocks.every((b) => b.type === 'tool_result');
+        if (allToolResults) continue;
+
+        const userText = extractTextFromContent(content);
+        if (userText && lastAssistantText !== null) {
+          exchanges.push({ assistant: lastAssistantText, user: userText });
+        }
+        lastAssistantText = null;
+      }
+    }
+
+    return { exchanges, bashCommands };
+  } catch (error) {
+    log('warn', 'parseTranscript: failed', { error: error.message });
+    return { exchanges: [], bashCommands: [] };
   }
+}
+
+function detectActionsFromCommands(commands) {
+  const counts = {};
+  for (const command of commands) {
+    const lower = command.toLowerCase();
+    for (const action of ACTION_PATTERNS) {
+      if (action.patterns.some((p) => lower.includes(p))) {
+        counts[action.key] = (counts[action.key] || 0) + 1;
+      }
+    }
+  }
+  return counts;
+}
+
+function isGracePeriodActive(counters) {
+  if (!counters.grace_period_start) return true;
+  const days =
+    (Date.now() - new Date(counters.grace_period_start).getTime()) / (1000 * 60 * 60 * 24);
+  const totalObs = Object.values(counters)
+    .filter((v) => v && typeof v === 'object' && 'observations' in v)
+    .reduce((sum, v) => sum + v.observations, 0);
+  return days < 30 || totalObs < 20;
+}
+
+function patchLayer3Defaults(content, counters, gracePeriodActive) {
+  const statusLines = Object.entries(ACTION_LABELS).map(([key, label]) => {
+    const c = counters[key];
+    const minObs = THRESHOLDS[key];
+    let status = 'still observing';
+    if (!gracePeriodActive && c && c.observations >= minObs) {
+      status = c.default === 'just-do' ? 'just-do' : 'ask';
+    }
+    return `- ${label}: ${status}`;
+  });
+
+  const graceNote = gracePeriodActive
+    ? '_(Grace period active — defaults not applied until 30 days or 20 observations have passed.)_'
+    : '_(Grace period complete — learned defaults are active.)_';
+
+  const newSection =
+    `## Layer 3 — Learned Action Defaults\n\n` +
+    `_(Auto-maintained by SessionEnd hook. Do not edit manually.)_\n` +
+    `${graceNote}\n\n` +
+    statusLines.join('\n');
+
+  const start = content.indexOf('## Layer 3 — Learned Action Defaults');
+  if (start === -1) {
+    return content.trimEnd() + '\n\n' + newSection + '\n';
+  }
+  const nextSection = content.indexOf('\n## ', start + 1);
+  const before = content.slice(0, start);
+  const after = nextSection === -1 ? '' : content.slice(nextSection);
+  return before + newSection + '\n' + after;
 }
 
 // ---- Event handlers ----
@@ -245,85 +342,117 @@ async function handleSessionStart(data) {
   log('info', 'SessionStart: personalization injected', { chars: content.length });
 }
 
-async function handleStop(data) {
-  const lastAssistant = data.last_assistant_message || '';
-  const lastUser = readLastUserMessage(data.transcript_path);
+async function handleSessionEnd(data) {
+  const { exchanges, bashCommands } = parseTranscript(data.transcript_path);
+  log('info', 'SessionEnd: parsed transcript', {
+    exchanges: exchanges.length,
+    bashCommands: bashCommands.length,
+  });
 
-  const combined = lastAssistant + ' ' + lastUser;
-  if (!hasKeywords(combined)) {
-    log('info', 'Stop: no correction keywords, skipping');
+  // --- Correction pass ---
+  const matchedExchanges = exchanges.filter((e) => hasKeywords(e.user));
+  if (matchedExchanges.length > 0) {
+    log('info', 'SessionEnd: correction keywords found, calling claude', {
+      count: matchedExchanges.length,
+    });
+
+    const prompt = buildDetectCorrectionsSessionPrompt({ exchanges: matchedExchanges });
+    const result = await callClaude(prompt);
+
+    if (result) {
+      try {
+        const parsed = JSON.parse(result.trim());
+        if (Array.isArray(parsed.corrections) && parsed.corrections.length > 0) {
+          const stateDir = findBmadMemoryStateDir(data.cwd);
+          if (stateDir) {
+            const stagingFile = path.join(stateDir, '.personalization-staging.json');
+            let staged = [];
+            try {
+              if (fs.existsSync(stagingFile)) {
+                staged = JSON.parse(fs.readFileSync(stagingFile, 'utf8'));
+              }
+            } catch {
+              staged = [];
+            }
+            for (const c of parsed.corrections) {
+              staged.push({
+                rule: c.rule,
+                agent_context: c.agent_context || 'general',
+                date: new Date().toISOString().slice(0, 10),
+              });
+            }
+            fs.writeFileSync(stagingFile, JSON.stringify(staged, null, 2), 'utf8');
+            log('info', 'SessionEnd: corrections staged', { count: parsed.corrections.length });
+          } else {
+            log('info', 'SessionEnd: not a BMad project, corrections not staged');
+          }
+        } else {
+          log('info', 'SessionEnd: no behavioral corrections detected');
+        }
+      } catch {
+        log('warn', 'SessionEnd: failed to parse correction response');
+      }
+    }
+  } else {
+    log('info', 'SessionEnd: no correction keywords in session');
+  }
+
+  // --- Action counting pass ---
+  if (bashCommands.length === 0) {
+    log('info', 'SessionEnd: no bash commands in session, skipping counter update');
     return;
   }
 
-  log('info', 'Stop: keywords matched, calling claude for correction detection');
+  const counters = readCounters();
+  if (!counters) {
+    log('warn', 'SessionEnd: counters.json not found, skipping action tracking');
+    return;
+  }
 
-  const prompt = buildDetectCorrectionPrompt({
-    lastAssistant: lastAssistant.slice(0, 2000),
-    lastUser: lastUser.slice(0, 1000),
-  });
+  if (!counters.grace_period_start) {
+    counters.grace_period_start = new Date().toISOString().slice(0, 10);
+  }
 
-  const result = await callClaude(prompt);
-  if (!result) return;
+  const sessionCounts = detectActionsFromCommands(bashCommands);
+  if (Object.keys(sessionCounts).length === 0) {
+    log('info', 'SessionEnd: no tracked actions found in bash commands');
+    return;
+  }
 
-  try {
-    const parsed = JSON.parse(result.trim());
-    if (!parsed.is_correction) {
-      log('info', 'Stop: haiku determined not a correction');
-      return;
-    }
+  for (const [key, count] of Object.entries(sessionCounts)) {
+    if (counters[key]) counters[key].observations += count;
+  }
 
-    const stateDir = findBmadMemoryStateDir(data.cwd);
-    if (!stateDir) {
-      log('info', 'Stop: not a BMad project (no bmad-docs/memory/.state/), skipping staging');
-      return;
-    }
-
-    const stagingFile = path.join(stateDir, '.personalization-staging.json');
-    let staged = [];
-    try {
-      if (fs.existsSync(stagingFile)) {
-        staged = JSON.parse(fs.readFileSync(stagingFile, 'utf8'));
+  const gracePeriodActive = isGracePeriodActive(counters);
+  if (!gracePeriodActive) {
+    for (const [key, minObs] of Object.entries(THRESHOLDS)) {
+      const c = counters[key];
+      if (c && c.observations >= minObs && c.default !== 'just-do') {
+        counters[key].default = 'just-do';
+        log('info', 'SessionEnd: threshold crossed, default promoted to just-do', {
+          key,
+          observations: c.observations,
+        });
       }
-    } catch {
-      staged = [];
     }
-
-    staged.push({
-      rule: parsed.rule,
-      agent_context: parsed.agent_context || 'general',
-      date: new Date().toISOString().slice(0, 10),
-    });
-
-    fs.writeFileSync(stagingFile, JSON.stringify(staged, null, 2), 'utf8');
-    log('info', 'Stop: correction staged', { rule: parsed.rule });
-  } catch {
-    log('warn', 'Stop: failed to parse haiku response');
   }
-}
 
-async function handlePostToolUse(data) {
-  const toolName = data.tool_name || '';
-  if (toolName !== 'Bash') return;
+  writeCounters(counters);
 
-  const command = (data.tool_input && data.tool_input.command) || '';
-  const actionKey = detectActionFromCommand(command);
-  if (!actionKey) return;
-
-  // Determine if BMad ran it (tool_response success = BMad ran it)
-  const actor = 'bmad';
-
-  const content = readPersonalization();
-  if (!content) return;
-
-  const updated = patchLayer3Counter(content, actionKey, actor);
-  if (updated === content) return;
-
-  try {
-    fs.writeFileSync(PERSONALIZATION_FILE, updated, 'utf8');
-    log('info', 'PostToolUse: layer3 counter updated', { actionKey, actor });
-  } catch (error) {
-    log('warn', 'PostToolUse: failed to write personalization', { error: error.message });
+  const personalization = readPersonalization();
+  if (personalization) {
+    const updated = patchLayer3Defaults(personalization, counters, gracePeriodActive);
+    if (updated !== personalization) {
+      try {
+        fs.writeFileSync(PERSONALIZATION_FILE, updated, 'utf8');
+        log('info', 'SessionEnd: personalization.md Layer 3 updated');
+      } catch (error) {
+        log('warn', 'SessionEnd: failed to write personalization.md', { error: error.message });
+      }
+    }
   }
+
+  log('info', 'SessionEnd: action counting complete', { sessionCounts, gracePeriodActive });
 }
 
 // ---- Main ----
@@ -350,12 +479,8 @@ process.stdin.on('end', () => {
         await handleSessionStart(data);
         break;
       }
-      case 'Stop': {
-        await handleStop(data);
-        break;
-      }
-      case 'PostToolUse': {
-        await handlePostToolUse(data);
+      case 'SessionEnd': {
+        await handleSessionEnd(data);
         break;
       }
       // no default — silently ignore other events

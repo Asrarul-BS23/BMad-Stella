@@ -22,8 +22,7 @@ const PLUGINS = [
     files: ['index.js', 'package.json'],
     events: {
       SessionStart: {},
-      Stop: {},
-      PostToolUse: {},
+      SessionEnd: {},
     },
   },
 ];
@@ -97,6 +96,15 @@ class HooksManager {
       spinner.text = `Copying ${plugin.name}/ to ~/.claude/bmad-hooks/...`;
       await fs.copy(pluginSrcDir, pluginDestDir, { overwrite: true });
 
+      // Seed counters.json from initial template if not present — never overwrite existing observations
+      if (plugin.name === 'personalization') {
+        const countersDest = path.join(pluginDestDir, 'counters.json');
+        const countersInitial = path.join(pluginDestDir, 'counters.initial.json');
+        if (!(await fs.pathExists(countersDest)) && (await fs.pathExists(countersInitial))) {
+          await fs.copy(countersInitial, countersDest);
+        }
+      }
+
       if (!this.isWindows()) {
         const entry = path.join(pluginDestDir, 'index.js');
         if (await fs.pathExists(entry)) {
@@ -164,6 +172,23 @@ class HooksManager {
           if (!Array.isArray(entry.hooks) || entry.hooks.length === 0) return true;
           const cmd = entry.hooks[0].command;
           return typeof cmd !== 'string' || !cmd.includes('claude_hook.js');
+        });
+        if (settings.hooks[event].length === 0) delete settings.hooks[event];
+      }
+    }
+
+    // Remove plugin entries from events the plugin is no longer registered for
+    for (const plugin of PLUGINS) {
+      const activeEvents = new Set(Object.keys(plugin.events));
+      for (const [event, entries] of Object.entries(settings.hooks)) {
+        if (activeEvents.has(event) || !Array.isArray(entries)) continue;
+        settings.hooks[event] = entries.filter((entry) => {
+          if (!Array.isArray(entry.hooks) || entry.hooks.length === 0) return true;
+          const cmd = entry.hooks[0].command;
+          return (
+            typeof cmd !== 'string' ||
+            (!cmd.includes(`${plugin.name}/index.js`) && !cmd.includes(`${plugin.name}\\index.js`))
+          );
         });
         if (settings.hooks[event].length === 0) delete settings.hooks[event];
       }
