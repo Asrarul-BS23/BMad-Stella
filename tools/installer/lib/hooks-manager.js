@@ -89,19 +89,13 @@ class HooksManager {
       const pluginSrcDir = path.join(sourceDir, plugin.name);
       const pluginDestDir = path.join(destDir, plugin.name);
 
-      await fs.ensureDir(pluginDestDir);
-
-      for (const file of plugin.files) {
-        const src = path.join(pluginSrcDir, file);
-        const dest = path.join(pluginDestDir, file);
-
-        if (await fs.pathExists(src)) {
-          spinner.text = `Copying ${plugin.name}/${file} to ~/.claude/bmad-hooks/...`;
-          await fs.copy(src, dest, { overwrite: true });
-        } else {
-          console.warn(chalk.yellow(`  Warning: Hook file not found: ${plugin.name}/${file}`));
-        }
+      if (!(await fs.pathExists(pluginSrcDir))) {
+        console.warn(chalk.yellow(`  Warning: Plugin source not found: ${plugin.name}`));
+        continue;
       }
+
+      spinner.text = `Copying ${plugin.name}/ to ~/.claude/bmad-hooks/...`;
+      await fs.copy(pluginSrcDir, pluginDestDir, { overwrite: true });
 
       if (!this.isWindows()) {
         const entry = path.join(pluginDestDir, 'index.js');
