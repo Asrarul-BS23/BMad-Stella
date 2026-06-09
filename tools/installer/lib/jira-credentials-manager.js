@@ -41,7 +41,9 @@ class JiraCredentialsManager {
       JIRA_API_TOKEN: processEnv.JIRA_API_TOKEN || existingEnv.JIRA_API_TOKEN || '',
     };
 
-    const haveAll = Boolean(prefilled.JIRA_BASE_URL && prefilled.JIRA_EMAIL && prefilled.JIRA_API_TOKEN);
+    const haveAll = Boolean(
+      prefilled.JIRA_BASE_URL && prefilled.JIRA_EMAIL && prefilled.JIRA_API_TOKEN,
+    );
     const nonInteractive = this._isNonInteractive();
 
     console.log(chalk.cyan('\n🔐 Jira Attachment Helper — API Access Setup'));
@@ -59,7 +61,9 @@ class JiraCredentialsManager {
             `⚠️  Non-interactive mode detected (CI / non-TTY / BMAD_NON_INTERACTIVE=1) but credentials are missing: ${missing.join(', ')}.`,
           ),
         );
-        console.log(chalk.dim('   Set them as env vars or in an existing .env file to enable automation.'));
+        console.log(
+          chalk.dim('   Set them as env vars or in an existing .env file to enable automation.'),
+        );
         result.skipped = true;
         return result;
       }
@@ -126,7 +130,9 @@ class JiraCredentialsManager {
             result.envPath = envPath;
             result.source = processEnv.JIRA_API_TOKEN ? 'process-env' : 'existing-.env';
             console.log(
-              chalk.green(`✓ Reused existing credentials → ${path.relative(installDir, envPath) || '.env'}`),
+              chalk.green(
+                `✓ Reused existing credentials → ${path.relative(installDir, envPath) || '.env'}`,
+              ),
             );
           } catch (error) {
             result.error = error.message;
@@ -180,13 +186,19 @@ class JiraCredentialsManager {
       result.ok = true;
       result.written = true;
       result.envPath = envPath;
-      console.log(chalk.green(`\n✓ Wrote Jira credentials to ${path.relative(installDir, envPath) || '.env'}`));
+      console.log(
+        chalk.green(
+          `\n✓ Wrote Jira credentials to ${path.relative(installDir, envPath) || '.env'}`,
+        ),
+      );
       console.log(chalk.dim(`  Tracked keys: ${TRACKED_KEYS.join(', ')}`));
     } catch (error) {
       result.error = error.message;
       console.log(chalk.red(`\n✗ Failed to write .env: ${error.message}`));
       console.log(
-        chalk.yellow('  You can configure credentials manually later by creating a .env file with:'),
+        chalk.yellow(
+          '  You can configure credentials manually later by creating a .env file with:',
+        ),
       );
       for (const key of TRACKED_KEYS) {
         console.log(chalk.dim(`    ${key}=...`));
@@ -210,7 +222,9 @@ class JiraCredentialsManager {
       return out;
     }
 
-    const baseUrl = String(creds.JIRA_BASE_URL || '').trim().replace(/\/+$/, '');
+    const baseUrl = String(creds.JIRA_BASE_URL || '')
+      .trim()
+      .replace(/\/+$/, '');
     const email = String(creds.JIRA_EMAIL || '').trim();
     const token = String(creds.JIRA_API_TOKEN || '').trim();
     if (!baseUrl || !email || !token) {
@@ -233,7 +247,8 @@ class JiraCredentialsManager {
     const isLocalhost = endpoint.hostname === 'localhost' || endpoint.hostname === '127.0.0.1';
     if (endpoint.protocol !== 'https:' && !(endpoint.protocol === 'http:' && isLocalhost)) {
       out.classification = 'notfound';
-      out.error = 'refusing to send credentials over a non-HTTPS URL — set JIRA_BASE_URL to https://…';
+      out.error =
+        'refusing to send credentials over a non-HTTPS URL — set JIRA_BASE_URL to https://…';
       return out;
     }
 
@@ -245,6 +260,9 @@ class JiraCredentialsManager {
         : undefined;
 
     try {
+      // global fetch is available on the project's supported runtime (Node >=20.10); the
+      // lint rule is conservative about the >=20.0.0 engines floor.
+      // eslint-disable-next-line n/no-unsupported-features/node-builtins
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -325,7 +343,10 @@ class JiraCredentialsManager {
     if (verification.classification === 'ok') {
       const who = verification.displayName ? ` (${verification.displayName})` : '';
       console.log(chalk.green(`✓ Verified Jira credentials${who}`));
-    } else if (verification.classification === 'auth' || verification.classification === 'notfound') {
+    } else if (
+      verification.classification === 'auth' ||
+      verification.classification === 'notfound'
+    ) {
       console.log(
         chalk.yellow(
           `⚠️  Jira credential verification failed (${this._verifyFailureReason(verification)}) — writing anyway (non-interactive).`,
@@ -385,7 +406,8 @@ class JiraCredentialsManager {
           message: `Atlassian API token (create one at ${TOKEN_HELP_URL}):`,
           validate: (input) => {
             if (!input || !input.trim()) return 'Required';
-            if (input.trim().length < 16) return 'That token looks too short — please paste the full token';
+            if (input.trim().length < 16)
+              return 'That token looks too short — please paste the full token';
             return true;
           },
           filter: (input) => (input ? input.trim() : input),
@@ -407,7 +429,9 @@ class JiraCredentialsManager {
       last = answers;
       console.log(chalk.red(`✗ ${this._verifyFailureReason(verification)}.`));
       if (attempt < MAX_VERIFY_ATTEMPTS) {
-        console.log(chalk.dim(`  Attempt ${attempt}/${MAX_VERIFY_ATTEMPTS} failed — let's try again.`));
+        console.log(
+          chalk.dim(`  Attempt ${attempt}/${MAX_VERIFY_ATTEMPTS} failed — let's try again.`),
+        );
       }
     }
 
@@ -483,16 +507,22 @@ class JiraCredentialsManager {
 
     const lines = existing.split(/\r?\n/);
     const managedKeys = new Set(TRACKED_KEYS);
+    const START_MARKER = '# --- BMad-Stella Jira managed (do not edit keys below manually) ---';
+    const END_MARKER = '# --- end BMad-Stella Jira managed ---';
+    // Legacy markers from before the block was renamed to "Jira"; treated as the same
+    // block so an existing .env migrates cleanly (no leftover comment lines on rewrite).
+    const LEGACY_START_MARKER = '# --- BMad-Stella managed (do not edit keys below manually) ---';
+    const LEGACY_END_MARKER = '# --- end BMad-Stella managed ---';
     const preservedLines = [];
     let insideManagedBlock = false;
 
     for (const line of lines) {
       const trimmed = line.trim();
-      if (trimmed === '# --- BMad-Stella managed (do not edit keys below manually) ---') {
+      if (trimmed === START_MARKER || trimmed === LEGACY_START_MARKER) {
         insideManagedBlock = true;
         continue;
       }
-      if (trimmed === '# --- end BMad-Stella managed ---') {
+      if (trimmed === END_MARKER || trimmed === LEGACY_END_MARKER) {
         insideManagedBlock = false;
         continue;
       }
@@ -516,9 +546,9 @@ class JiraCredentialsManager {
     }
 
     const managedBlock = [
-      '# --- BMad-Stella managed (do not edit keys below manually) ---',
+      START_MARKER,
       ...TRACKED_KEYS.map((key) => `${key}=${this._quoteIfNeeded(values[key])}`),
-      '# --- end BMad-Stella managed ---',
+      END_MARKER,
     ];
 
     const output = [...preservedLines, '', ...managedBlock, ''].join('\n');
@@ -545,11 +575,10 @@ class JiraCredentialsManager {
     const str = String(value ?? '');
     if (!str) return '';
     if (/[\s#"'=]/.test(str)) {
-      return `"${str.replace(/"/g, '\\"')}"`;
+      return `"${str.replaceAll('"', '\\"')}"`;
     }
     return str;
   }
-
 }
 
 module.exports = new JiraCredentialsManager();
