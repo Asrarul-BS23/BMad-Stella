@@ -82,7 +82,7 @@ tasks:
 
 - Count completed `[x]` vs total tasks
 - If resuming (completed > 0): read File List, Debug Log, Completion Notes. Show: "Resuming Task N. Tasks 1-M done. Files modified: [list or none]. Known issues: [list or none]. Proceed?" → HALT for confirmation
-- If fresh (completed = 0): set status to "In Progress"; proceed
+- If fresh (completed = 0): proceed
 
 #### 0.4 — Selective Context Loading
 
@@ -233,7 +233,7 @@ Write in Completion Notes: approach, deviations, key decisions, tech debt, follo
 
 ## Mid- and Post-Implementation Changes
 
-**Trigger:** ALWAYS run when applying any bug fix or enhancement at any lifecycle stage — during In Progress, after Ready for Review, after Ready for Done, or later. Applies to all task types — Bug, Feature, or Migration. Use minimal change with root-cause discipline for bugs and minimal scope for enhancements; run targeted + full regression; add a temporary validation test only for important, cheaply-testable business logic (skip UI/CSS/markup/DOM-wiring); manual-verify before HALTing.
+**Trigger:** ALWAYS run when applying any bug fix or enhancement at any lifecycle stage — during active implementation, after Ready for Review, after Ready for Done, or later. Applies to all task types — Bug, Feature, or Migration. Use minimal change with root-cause discipline for bugs and minimal scope for enhancements; run targeted + full regression; add a temporary validation test only for important, cheaply-testable business logic (skip UI/CSS/markup/DOM-wiring); manual-verify before HALTing.
 
 **Flow:** Identify root cause / scope → apply change → write temp test if change is important business logic → run targeted + full regression → delete temp test if written → manual verification → update plan → HALT with report.
 
