@@ -7,7 +7,7 @@ const inquirer = require('inquirer').default || require('inquirer');
 const cjson = require('comment-json');
 const resourceLocator = require('./resource-locator');
 
-// Each plugin is a subfolder of custom_hooks/ with its own index.js and optional package.json
+// Each plugin is a subfolder of bmad-hooks/ with its own index.js and optional package.json
 const PLUGINS = [
   {
     name: 'notification',
@@ -15,6 +15,14 @@ const PLUGINS = [
     events: {
       PermissionRequest: { matcher: '' },
       Stop: {},
+    },
+  },
+  {
+    name: 'personalization',
+    files: ['index.js', 'package.json'],
+    events: {
+      SessionStart: {},
+      SessionEnd: {},
     },
   },
 ];
@@ -35,7 +43,7 @@ class HooksManager {
   }
 
   getHooksDestDir() {
-    return path.join(this.getUserClaudeDir(), 'custom_hooks');
+    return path.join(this.getUserClaudeDir(), 'bmad-hooks');
   }
 
   getUserSettingsPath() {
@@ -43,7 +51,7 @@ class HooksManager {
   }
 
   getHooksSourceDir() {
-    return path.join(resourceLocator.getBmadCorePath(), 'custom_hooks');
+    return path.join(resourceLocator.getBmadCorePath(), 'bmad-hooks', 'user');
   }
 
   buildPluginCommand(pluginName) {
@@ -80,17 +88,20 @@ class HooksManager {
       const pluginSrcDir = path.join(sourceDir, plugin.name);
       const pluginDestDir = path.join(destDir, plugin.name);
 
-      await fs.ensureDir(pluginDestDir);
+      if (!(await fs.pathExists(pluginSrcDir))) {
+        console.warn(chalk.yellow(`  Warning: Plugin source not found: ${plugin.name}`));
+        continue;
+      }
 
-      for (const file of plugin.files) {
-        const src = path.join(pluginSrcDir, file);
-        const dest = path.join(pluginDestDir, file);
+      spinner.text = `Copying ${plugin.name}/ to ~/.claude/bmad-hooks/...`;
+      await fs.copy(pluginSrcDir, pluginDestDir, { overwrite: true });
 
-        if (await fs.pathExists(src)) {
-          spinner.text = `Copying ${plugin.name}/${file} to ~/.claude/custom_hooks/...`;
-          await fs.copy(src, dest, { overwrite: true });
-        } else {
-          console.warn(chalk.yellow(`  Warning: Hook file not found: ${plugin.name}/${file}`));
+      // Seed counters.json from initial template if not present — never overwrite existing observations
+      if (plugin.name === 'personalization') {
+        const countersDest = path.join(pluginDestDir, 'counters.json');
+        const countersInitial = path.join(pluginDestDir, 'counters.initial.json');
+        if (!(await fs.pathExists(countersDest)) && (await fs.pathExists(countersInitial))) {
+          await fs.copy(countersInitial, countersDest);
         }
       }
 
@@ -161,6 +172,23 @@ class HooksManager {
           if (!Array.isArray(entry.hooks) || entry.hooks.length === 0) return true;
           const cmd = entry.hooks[0].command;
           return typeof cmd !== 'string' || !cmd.includes('claude_hook.js');
+        });
+        if (settings.hooks[event].length === 0) delete settings.hooks[event];
+      }
+    }
+
+    // Remove plugin entries from events the plugin is no longer registered for
+    for (const plugin of PLUGINS) {
+      const activeEvents = new Set(Object.keys(plugin.events));
+      for (const [event, entries] of Object.entries(settings.hooks)) {
+        if (activeEvents.has(event) || !Array.isArray(entries)) continue;
+        settings.hooks[event] = entries.filter((entry) => {
+          if (!Array.isArray(entry.hooks) || entry.hooks.length === 0) return true;
+          const cmd = entry.hooks[0].command;
+          return (
+            typeof cmd !== 'string' ||
+            (!cmd.includes(`${plugin.name}/index.js`) && !cmd.includes(`${plugin.name}\\index.js`))
+          );
         });
         if (settings.hooks[event].length === 0) delete settings.hooks[event];
       }
@@ -237,7 +265,7 @@ class HooksManager {
       if (spinner) spinner.stop();
       console.log(chalk.yellow(`⚠️  Could not configure notification hooks: ${error.message}`));
       console.log(
-        chalk.dim('   You can set them up manually using the scripts in bmad-core/custom_hooks/'),
+        chalk.dim('   You can set them up manually using the scripts in bmad-core/bmad-hooks/'),
       );
     } finally {
       if (spinner) spinner.start();

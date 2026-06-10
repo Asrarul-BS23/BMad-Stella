@@ -5,7 +5,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
 
-const LOG_FILE = path.join(os.homedir(), '.claude', 'custom_hooks', 'claude_hook_debug.log');
+const LOG_FILE = path.join(os.homedir(), '.claude', 'bmad-hooks', 'claude_hook_debug.log');
 const PLATFORM = process.platform;
 const ICON = path.join(__dirname, 'claude-icon.png');
 

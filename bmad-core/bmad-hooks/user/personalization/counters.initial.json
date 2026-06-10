@@ -1,0 +1,8 @@
+{
+  "grace_period_start": null,
+  "build_compile": { "observations": 0, "consecutive_breaks": 0, "default": "ask" },
+  "run_tests": { "observations": 0, "consecutive_breaks": 0, "default": "ask" },
+  "install_deps": { "observations": 0, "consecutive_breaks": 0, "default": "ask" },
+  "db_migrations": { "observations": 0, "consecutive_breaks": 0, "default": "ask" },
+  "lint_format": { "observations": 0, "consecutive_breaks": 0, "default": "ask" }
+}
