@@ -172,8 +172,9 @@ function callClaude(prompt) {
     let proc;
     try {
       proc = spawn('claude', ['--print', '--output-format', 'text'], {
-        env: process.env,
+        env: { ...process.env, BMAD_HOOK_SUBPROCESS: '1' },
         stdio: ['pipe', 'pipe', 'pipe'],
+        windowsHide: true,
       });
     } catch (error) {
       log('warn', 'callClaude: spawn failed', { error: error.message });
@@ -194,6 +195,7 @@ function callClaude(prompt) {
     proc.stdout.on('data', (chunk) => {
       output += chunk;
     });
+    proc.stdin.on('error', () => {}); // suppress EPIPE if process exits before stdin is consumed
     proc.stdin.write(prompt, 'utf8');
     proc.stdin.end();
 
@@ -337,7 +339,9 @@ async function handleSessionStart(data) {
     log('info', 'SessionStart: personalization.md not found, skipping injection');
     return;
   }
-  const output = { hookSpecificOutput: { additionalContext: content } };
+  const output = {
+    hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: content },
+  };
   process.stdout.write(JSON.stringify(output));
   log('info', 'SessionStart: personalization injected', { chars: content.length });
 }

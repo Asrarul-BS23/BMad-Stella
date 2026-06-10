@@ -4,6 +4,10 @@
 // Sole purpose: check if a new calendar day has started and spawn daily-job.js if so.
 // Must exit quickly — does not block the session.
 
+// Guard: if we're running inside a claude --print subprocess spawned by a hook, bail immediately.
+// Without this, hook-spawned claude sessions trigger this hook again → infinite spawn loop.
+if (process.env.BMAD_HOOK_SUBPROCESS) process.exit(0);
+
 const path = require('node:path');
 const fs = require('node:fs');
 const { spawn } = require('node:child_process');

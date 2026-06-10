@@ -3,7 +3,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const { log } = require('./state');
-const { callHaiku } = require('./llm');
+const { callClaude } = require('./llm');
 
 const WORD_CAP = 800;
 const TEMPLATE_PATH = path.join(
@@ -47,7 +47,7 @@ Output the full compressed file.
 FILE CONTENT:
 ${content}`;
 
-    const compressed = await callHaiku(prompt, 2048);
+    const compressed = await callClaude(prompt);
     if (!compressed) {
       log('episodic-writer: compression LLM call returned null, skipping', { file: filePath });
       return false;

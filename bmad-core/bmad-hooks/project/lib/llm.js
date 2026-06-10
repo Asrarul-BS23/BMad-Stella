@@ -25,8 +25,9 @@ function _spawnClaude(prompt) {
     let proc;
     try {
       proc = spawn('claude', ['--print', '--output-format', 'text'], {
-        env: process.env,
+        env: { ...process.env, BMAD_HOOK_SUBPROCESS: '1' },
         stdio: ['pipe', 'pipe', 'pipe'],
+        windowsHide: true,
       });
     } catch (error) {
       log('llm: failed to spawn claude', { error: error.message });
@@ -48,6 +49,7 @@ function _spawnClaude(prompt) {
       output += chunk;
     });
 
+    proc.stdin.on('error', () => {}); // suppress EPIPE if process exits before stdin is consumed
     proc.stdin.write(prompt, 'utf8');
     proc.stdin.end();
 

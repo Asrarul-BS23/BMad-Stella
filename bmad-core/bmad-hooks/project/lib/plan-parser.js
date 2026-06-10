@@ -31,11 +31,26 @@ function parseMemorySignals(content) {
   }
 }
 
+function parseFrontmatter(content) {
+  if (!content.startsWith('---')) return null;
+  const end = content.indexOf('\n---', 3);
+  if (end === -1) return null;
+  const fm = content.slice(0, end + 4);
+  // Regex extraction — avoids yaml parse errors from unquoted colons in description values
+  const moduleTag = (fm.match(/module-tag:\s*([^\n]+)/) || [])[1]?.trim() || null;
+  const type = (fm.match(/\btype:\s*([^\n]+)/) || [])[1]?.trim() || 'project';
+  const name = (fm.match(/^name:\s*([^\n]+)/m) || [])[1]?.trim() || null;
+  const description = (fm.match(/^description:\s*([^\n]+)/m) || [])[1]?.trim() || null;
+  if (!moduleTag && !name) return null;
+  return { name, description, moduleTag, type };
+}
+
 function parsePlanFile(filePath) {
   try {
     if (!fs.existsSync(filePath)) return null;
     const content = fs.readFileSync(filePath, 'utf8');
-    const signals = parseMemorySignals(content);
+    // Memory Signals section takes precedence; frontmatter is fallback
+    const signals = parseMemorySignals(content) || parseFrontmatter(content);
 
     return {
       filePath,
