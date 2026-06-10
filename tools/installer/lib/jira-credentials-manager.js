@@ -260,6 +260,8 @@ class JiraCredentialsManager {
         : undefined;
 
     try {
+      // global fetch is available on the project's supported runtime (Node >=20.10); the
+      // lint rule is conservative about the >=20.0.0 engines floor.
       // eslint-disable-next-line n/no-unsupported-features/node-builtins
       const response = await fetch(url, {
         method: 'GET',
@@ -505,16 +507,22 @@ class JiraCredentialsManager {
 
     const lines = existing.split(/\r?\n/);
     const managedKeys = new Set(TRACKED_KEYS);
+    const START_MARKER = '# --- BMad-Stella Jira managed (do not edit keys below manually) ---';
+    const END_MARKER = '# --- end BMad-Stella Jira managed ---';
+    // Legacy markers from before the block was renamed to "Jira"; treated as the same
+    // block so an existing .env migrates cleanly (no leftover comment lines on rewrite).
+    const LEGACY_START_MARKER = '# --- BMad-Stella managed (do not edit keys below manually) ---';
+    const LEGACY_END_MARKER = '# --- end BMad-Stella managed ---';
     const preservedLines = [];
     let insideManagedBlock = false;
 
     for (const line of lines) {
       const trimmed = line.trim();
-      if (trimmed === '# --- BMad-Stella managed (do not edit keys below manually) ---') {
+      if (trimmed === START_MARKER || trimmed === LEGACY_START_MARKER) {
         insideManagedBlock = true;
         continue;
       }
-      if (trimmed === '# --- end BMad-Stella managed ---') {
+      if (trimmed === END_MARKER || trimmed === LEGACY_END_MARKER) {
         insideManagedBlock = false;
         continue;
       }
@@ -538,9 +546,9 @@ class JiraCredentialsManager {
     }
 
     const managedBlock = [
-      '# --- BMad-Stella managed (do not edit keys below manually) ---',
+      START_MARKER,
       ...TRACKED_KEYS.map((key) => `${key}=${this._quoteIfNeeded(values[key])}`),
-      '# --- end BMad-Stella managed ---',
+      END_MARKER,
     ];
 
     const output = [...preservedLines, '', ...managedBlock, ''].join('\n');
