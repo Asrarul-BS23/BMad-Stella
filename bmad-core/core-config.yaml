@@ -48,4 +48,10 @@ jira:
     concurrency: 5
 scribe:
   notesFile: bmad-docs/bmad-notes/notes.md
+logging:
+  localDir: bmad-docs/bmad-logs
+  triggerStatuses:
+    - Ready for Review
+    - Ready for Done
+  model: default
 slashPrefix: BMad

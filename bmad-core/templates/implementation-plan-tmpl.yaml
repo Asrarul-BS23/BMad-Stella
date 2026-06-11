@@ -50,14 +50,7 @@ sections:
     title: Status
     type: choice
     choices:
-      [
-        Draft - Awaiting Review,
-        Approved,
-        In Progress,
-        Ready for Review,
-        Ready for Done,
-        Blocked — Security,
-      ]
+      [Draft - Awaiting Review, Approved, Ready for Review, Ready for Done, Blocked — Security]
     instruction: Select the current status of the implementation plan
     owner: planner
     editors: [planner, dev-agent]
