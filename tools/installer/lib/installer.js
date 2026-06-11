@@ -2039,6 +2039,9 @@ class Installer {
       await fs.ensureDir(bmadHooksDest);
       await fs.copy(bmadHooksSrc, bmadHooksDest, { overwrite: true });
 
+      // Friction logger data home (runtime files appear here: plan-tracker.json, {plan_id}/friction.*)
+      await fs.ensureDir(path.join(installDir, 'bmad-docs', 'bmad-logs'));
+
       // npm install for project hooks
       if (spinner) spinner.text = 'Installing BMad hook dependencies...';
       await new Promise((resolve) => {
@@ -2070,11 +2073,16 @@ class Installer {
 
       const submitScript = path.join(bmadHooksDest, 'user-prompt-submit.js');
       const expansionScript = path.join(bmadHooksDest, 'user-prompt-expansion.js');
+      const frictionSessionEnd = path.join(bmadHooksDest, 'friction-logger', 'session-end.js');
+      const frictionSessionStart = path.join(bmadHooksDest, 'friction-logger', 'session-start.js');
       const nodeExec = `"${process.execPath}"`;
 
       const projectHooks = [
         { event: 'UserPromptSubmit', script: submitScript },
         { event: 'UserPromptExpansion', script: expansionScript },
+        // Friction logger hooks (self-contained under friction-logger/)
+        { event: 'SessionEnd', script: frictionSessionEnd },
+        { event: 'SessionStart', script: frictionSessionStart },
       ];
 
       for (const { event, script } of projectHooks) {
@@ -2097,7 +2105,9 @@ class Installer {
       console.log(chalk.green('✓ BMad project hooks installed'));
       console.log(chalk.green(`  Hook scripts → ${bmadHooksDest}`));
       console.log(
-        chalk.green('  settings.local.json updated (UserPromptSubmit + UserPromptExpansion)'),
+        chalk.green(
+          '  settings.local.json updated (UserPromptSubmit + UserPromptExpansion + SessionEnd/SessionStart friction logger)',
+        ),
       );
       if (spinner) spinner.start();
     } catch (error) {
