@@ -60,7 +60,6 @@ function extractPlanSections(content) {
   const SECTION_NAMES = [
     'Dev Agent Record',
     'QA Feedback',
-    'PR Review Feedback',
     'Security Review',
     'Security Violations',
     'Deviation Record',
