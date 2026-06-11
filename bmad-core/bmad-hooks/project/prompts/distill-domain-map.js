@@ -33,4 +33,35 @@ confluence-source: "[infer page title from content]"
 Keep it concise — this is a quick-reference card, not a full document. Output ONLY the file content.`;
 }
 
-module.exports = { buildDistillDomainMapPrompt };
+function buildDistillDomainMapFromCodePrompt({ projectTree, today }) {
+  return `You are inferring the business domain of a software project from its code structure.
+
+No Confluence documentation exists. Infer domain and business purpose from folder names, file names, and project structure.
+
+PROJECT STRUCTURE:
+${projectTree}
+
+TASK: Produce a distilled domain-map.md with this exact structure:
+
+---
+type: domain-map
+project: "[infer project name from structure]"
+last-updated: "${today}"
+confluence-source: "inferred from codebase"
+---
+
+# Project Domain Map
+
+## Business Purpose
+[4-5 sentences: what the system likely does and why it exists — infer from folder/file names]
+
+## Core Domain Entities
+[Bullet list of key business objects inferred from folder/file names — be specific]
+
+## Business Rules
+[Bullet list of likely invariants inferred from structure — prefix uncertain items with "(inferred)"]
+
+Keep concise. Output ONLY the file content.`;
+}
+
+module.exports = { buildDistillDomainMapPrompt, buildDistillDomainMapFromCodePrompt };

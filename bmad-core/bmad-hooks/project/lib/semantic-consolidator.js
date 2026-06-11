@@ -2,6 +2,7 @@
 
 const path = require('node:path');
 const fs = require('node:fs');
+const yaml = require('js-yaml');
 const { log } = require('./state');
 const { callClaude } = require('./llm');
 const { buildConsolidateSemanticPrompt } = require('../prompts/consolidate-semantic');
@@ -20,7 +21,6 @@ function parseFrontmatter(content) {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return {};
   try {
-    const yaml = require('js-yaml');
     return yaml.load(match[1]) || {};
   } catch {
     return {};
@@ -77,6 +77,7 @@ async function consolidateSemantic(memoryDir, semanticFilePath) {
     const prompt = buildConsolidateSemanticPrompt({
       currentContent: content,
       episodeContents: episodeContents.join('\n\n---\n\n').slice(0, 6000),
+      today: new Date().toISOString().slice(0, 10),
     });
 
     const newContent = await callClaude(prompt);

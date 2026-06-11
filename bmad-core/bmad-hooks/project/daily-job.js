@@ -12,9 +12,10 @@ const { readState, writeState, log } = require('./lib/state');
 const { parsePlanFile } = require('./lib/plan-parser');
 const { writeEpisodic } = require('./lib/episodic-writer');
 const { writeLesson } = require('./lib/lesson-writer');
-const { writePatternCandidate } = require('./lib/pattern-writer');
+const { refreshPatternTrees } = require('./lib/pattern-writer');
 const { consolidateAll } = require('./lib/semantic-consolidator');
 const { distillIfStale } = require('./lib/domain-map-distiller');
+const { updateMemoryIndex } = require('./lib/memory-index');
 const { callClaude } = require('./lib/llm');
 const { buildAnalyzePlanPrompt } = require('./prompts/analyze-plan');
 
@@ -78,7 +79,7 @@ function extractPlanSections(content) {
   return parts.join('\n\n').slice(0, 3000);
 }
 
-// Single batched call — returns { episodic, lessons, patterns } or null
+// Single batched call — returns { episodic, lessons } or null
 async function analyzePlan(planInfo) {
   const today = todayUTC();
   const planId = path.basename(planInfo.filePath, '.md');
@@ -110,7 +111,6 @@ async function analyzePlan(planInfo) {
     return {
       episodic: typeof parsed.episodic === 'string' ? parsed.episodic.trim() : null,
       lessons: Array.isArray(parsed.lessons) ? parsed.lessons.filter(Boolean) : [],
-      patterns: Array.isArray(parsed.patterns) ? parsed.patterns.filter(Boolean) : [],
     };
   } catch {
     log('daily-job: plan analysis JSON parse failed', { planId });
@@ -195,7 +195,6 @@ async function run() {
   const implPlanDir = path.join(cwd, 'bmad-docs', 'impl-plan');
   const episodesDir = path.join(memoryDir, 'episodes');
   const lessonsDir = path.join(memoryDir, 'lessons');
-  const patternsDir = path.join(memoryDir, 'patterns');
   const constraintsDir = path.join(memoryDir, 'constraints');
 
   if (!fs.existsSync(memoryDir)) {
@@ -239,13 +238,6 @@ async function run() {
       if (analysis.lessons.length > 0) {
         log('daily-job: lessons extracted', { planId, count: analysis.lessons.length });
       }
-
-      for (const pattern of analysis.patterns) {
-        writePatternCandidate(patternsDir, pattern, planId);
-      }
-      if (analysis.patterns.length > 0) {
-        log('daily-job: pattern candidates written', { planId, count: analysis.patterns.length });
-      }
     }
   }
 
@@ -266,10 +258,15 @@ async function run() {
   if (weeklyDue) {
     log('daily-job: running weekly jobs', {});
     const domainMapUpdated = await distillIfStale(cwd);
-    if (domainMapUpdated) log('daily-job: domain-map.md refreshed from domain-knowledge/', { cwd });
+    if (domainMapUpdated) log('daily-job: domain-map.md refreshed', { cwd });
+    refreshPatternTrees(memoryDir, cwd);
+    log('daily-job: pattern trees refreshed', {});
     await consolidateAll(memoryDir);
     dailyState.last_weekly_run = today;
   }
+
+  // Rebuild MEMORY.md index after all writes complete
+  updateMemoryIndex(memoryDir);
 
   dailyState.last_daily_run = today;
   writeState(dailyStateFile, dailyState);
