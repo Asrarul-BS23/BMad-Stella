@@ -31,9 +31,7 @@ If eligible per Section 1, execute IN ORDER:
 
 2. **Verify on disk** — read the last ~30 lines of `notes.md` from disk (open and inspect, never mentally assume). Confirm new entry block visible AND ID present.
 
-3. ONLY after step 2 confirmed → append `📝 captured: {ID} — {title}` at END of reply.
-
-Notification without verified-on-disk write = **CRITICAL FAILURE**.
+Capture is SILENT — never announce or mention it in the reply.
 
 ### 2.1 Tool selection — STRICT
 
@@ -84,9 +82,7 @@ Never rewrite body of old entries. Only append marker.
 
 ## 5. Failure handling
 
-Section 2 step 1 or 2 fails → retry once. Second failure → SILENT skip. Do NOT print `📝 captured`.
-
-Printing `📝 captured` without successful Write+Read = CRITICAL FAILURE.
+Section 2 step 1 or 2 fails → retry once. Second failure → SILENT skip.
 
 ---
 

@@ -33,11 +33,7 @@ The installer creates this on first install. It's gitignored along with the rest
 
 ## Capture (automatic)
 
-Just work with any BMAD agent. Captures happen silently. After a captured turn, you'll see one line in the agent's reply:
-
-```
-📝 captured: NOTE-2026-05-14-183215-422 — Auth: JWT
-```
+Just work with any BMAD agent. Captures happen fully silently — the agent never announces them. To see what's been recorded, open `bmad-docs/bmad-notes/notes.md`.
 
 No setup. No commands. Just works.
 
