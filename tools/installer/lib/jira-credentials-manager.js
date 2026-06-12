@@ -70,7 +70,7 @@ class JiraCredentialsManager {
       // Verify, but never block a non-interactive install — failures are warnings only.
       const verification = await this._verifyCredentials(prefilled);
       this._reportNonInteractiveVerification(verification);
-      const envPath = path.join(installDir, '.env');
+      const envPath = path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env');
       try {
         await this._writeEnv(envPath, { ...existingEnv, ...prefilled });
         result.ok = true;
@@ -122,7 +122,7 @@ class JiraCredentialsManager {
           forceFresh = true;
         } else {
           this._reportVerificationSuccessOrWarning(verification, 'Verified existing credentials');
-          const envPath = path.join(installDir, '.env');
+          const envPath = path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env');
           try {
             await this._writeEnv(envPath, { ...existingEnv, ...prefilled });
             result.ok = true;
@@ -178,7 +178,7 @@ class JiraCredentialsManager {
     }
 
     const merged = { ...existingEnv, ...answers };
-    const envPath = path.join(installDir, '.env');
+    const envPath = path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env');
     result.source = 'interactive';
 
     try {
@@ -466,7 +466,7 @@ class JiraCredentialsManager {
   }
 
   async _readExistingEnv(installDir) {
-    const envPath = path.join(installDir, '.env');
+    const envPath = path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env');
     try {
       const contents = await fsp.readFile(envPath, 'utf8');
       return this._parseDotenv(contents);

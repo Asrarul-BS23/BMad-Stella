@@ -405,7 +405,7 @@ async function main(argv) {
   const validation = validateConfig(config);
   if (!validation.ok) {
     logger.error(
-      `Missing credentials: ${validation.missing.join(', ')}. Set them as env vars or in .env at ${config.projectRoot}.`,
+      `Missing credentials: ${validation.missing.join(', ')}. Set them as env vars or in ${path.join(config.projectRoot, 'bmad-docs', '.bmad-tokens', '.env')}.`,
     );
     return EXIT_CODES.CONFIG;
   }

@@ -69,33 +69,45 @@ class DependencyManager {
    * @returns {Promise<Array<{name: string, connected: boolean}>>} - Array of MCP servers with status
    */
   async getInstalledMcpServers(installDir) {
+    let output;
     try {
-      const output = execSync('claude mcp list', {
+      output = execSync('claude mcp list', {
         cwd: installDir,
         encoding: 'utf8',
         stdio: 'pipe',
       });
-
-      // Parse the output to extract server names and status
-      const servers = [];
-      const lines = output.split('\n');
-      for (const line of lines) {
-        // Look for lines that contain server names
-        // Check if line indicates connected status (✓, connected, etc.)
-        const match = line.trim().match(/^(\w+)/);
-        if (match && match[1]) {
-          servers.push({
-            name: match[1].toLowerCase(),
-            connected: line.includes('connected') || line.includes('✓'),
-          });
-        }
-      }
-
-      return servers;
     } catch (error) {
-      console.warn(chalk.yellow('Warning: Could not list MCP servers'), error.message);
-      return [];
+      // `claude mcp list` exits non-zero when ANY configured server is unhealthy — e.g. a
+      // GitHub server whose headersHelper hasn't been trusted yet at install time. It still
+      // prints per-server status to stdout, so parse that rather than discarding every
+      // server's status (otherwise one pending server would mask a healthy one like Atlassian).
+      output = error.stdout ? String(error.stdout) : '';
+      if (!output) {
+        console.warn(chalk.yellow('Warning: Could not list MCP servers'), error.message);
+        return [];
+      }
     }
+
+    // Parse the output to extract server names and status. Example line:
+    //   atlassian: https://mcp.atlassian.com/v1/sse (SSE) - ✔ Connected
+    // Detection must be robust to Claude Code's formatting: it uses ✔ (U+2714, heavy
+    // check) — not ✓ (U+2713) — and capitalized "Connected". Match either check glyph,
+    // or the word "connected" case-insensitively while excluding failure/disconnected text.
+    const servers = [];
+    const lines = output.split('\n');
+    for (const line of lines) {
+      const match = line.trim().match(/^(\w+)/);
+      if (match && match[1]) {
+        const lower = line.toLowerCase();
+        const connected =
+          line.includes('✔') || // ✔ heavy check mark (current Claude Code)
+          line.includes('✓') || // ✓ check mark (older versions)
+          (/\bconnected\b/.test(lower) && !/disconnected|not connected|fail/.test(lower));
+        servers.push({ name: match[1].toLowerCase(), connected });
+      }
+    }
+
+    return servers;
   }
 
   /**
@@ -350,7 +362,10 @@ class DependencyManager {
     const fsp = require('node:fs/promises');
     let contents;
     try {
-      contents = await fsp.readFile(path.join(installDir, '.env'), 'utf8');
+      contents = await fsp.readFile(
+        path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env'),
+        'utf8',
+      );
     } catch {
       return null;
     }
@@ -439,7 +454,8 @@ class DependencyManager {
    */
   async persistEnvVar(installDir, key, value, blockName) {
     const fsp = require('node:fs/promises');
-    const envPath = path.join(installDir, '.env');
+    // Tokens live in <project>/bmad-docs/.bmad-tokens/.env (git-ignored via bmad-docs/).
+    const envPath = path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env');
     const out = { ok: false, envPath, error: null };
 
     const startMarker = `# --- BMad-Stella ${blockName} managed (do not edit) ---`;

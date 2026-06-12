@@ -43,7 +43,8 @@ function parseDotenv(contents) {
 }
 
 function loadDotenvIfPresent(projectRoot) {
-  const envPath = path.join(projectRoot, '.env');
+  // Tokens live in <projectRoot>/bmad-docs/.bmad-tokens/.env (kept in sync with the installer).
+  const envPath = path.join(projectRoot, 'bmad-docs', '.bmad-tokens', '.env');
   try {
     const stat = fs.statSync(envPath);
     if (!stat.isFile()) return {};
