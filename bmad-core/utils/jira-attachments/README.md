@@ -15,14 +15,14 @@ No npm dependencies — the helper uses Node built-ins only, so it runs from any
 
 ## Configuration
 
-Credentials are loaded from environment variables, with fallback to a project-root `.env`. Precedence: process env > `.env`.
+Credentials are loaded from environment variables, with fallback to `bmad-docs/.bmad-tokens/.env` (git-ignored). Precedence: process env > `.env` file.
 
-| Variable          | Required | Description                                           |
-| ----------------- | -------- | ----------------------------------------------------- |
-| `JIRA_BASE_URL`   | yes      | e.g. `https://yourtenant.atlassian.net`               |
-| `JIRA_EMAIL`      | yes      | Atlassian account email                               |
-| `JIRA_API_TOKEN`  | yes      | API token (not a password)                            |
-| `BMAD_JIRA_CACHE_DIR` | no   | Override cache root (default `bmad-docs/cache/jira`)      |
+| Variable              | Required | Description                                          |
+| --------------------- | -------- | ---------------------------------------------------- |
+| `JIRA_BASE_URL`       | yes      | e.g. `https://yourtenant.atlassian.net`              |
+| `JIRA_EMAIL`          | yes      | Atlassian account email                              |
+| `JIRA_API_TOKEN`      | yes      | API token (not a password)                           |
+| `BMAD_JIRA_CACHE_DIR` | no       | Override cache root (default `bmad-docs/cache/jira`) |
 
 The BMad-Stella installer prompts for and writes these during setup. Keep `.env` out of git — the repo template already ignores it.
 
@@ -80,9 +80,7 @@ node .bmad-core/utils/jira-attachments PROJ-123 --purge
     "updated": "2026-04-20T14:22:00.000Z"
   },
   "description": "Plain-text rendering of the ticket description...",
-  "comments": [
-    { "id": "10001", "author": "...", "created": "...", "text": "..." }
-  ],
+  "comments": [{ "id": "10001", "author": "...", "created": "...", "text": "..." }],
   "attachments": [
     {
       "id": "12345",
@@ -105,15 +103,15 @@ node .bmad-core/utils/jira-attachments PROJ-123 --purge
 
 ## Exit codes
 
-| Code | Meaning                                     |
-| ---- | ------------------------------------------- |
-| 0    | Success                                     |
-| 10   | Configuration / missing credentials         |
-| 20   | Authentication failure (401/403)            |
-| 30   | Ticket not found (404)                      |
-| 40   | Network / retryable failure exhausted       |
-| 50   | Parse failure (malformed Jira response)     |
-| 1    | Unknown error                               |
+| Code | Meaning                                 |
+| ---- | --------------------------------------- |
+| 0    | Success                                 |
+| 10   | Configuration / missing credentials     |
+| 20   | Authentication failure (401/403)        |
+| 30   | Ticket not found (404)                  |
+| 40   | Network / retryable failure exhausted   |
+| 50   | Parse failure (malformed Jira response) |
+| 1    | Unknown error                           |
 
 ## Production characteristics
 

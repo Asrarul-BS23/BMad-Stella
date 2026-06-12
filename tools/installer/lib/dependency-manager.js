@@ -350,7 +350,10 @@ class DependencyManager {
     const fsp = require('node:fs/promises');
     let contents;
     try {
-      contents = await fsp.readFile(path.join(installDir, '.env'), 'utf8');
+      contents = await fsp.readFile(
+        path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env'),
+        'utf8',
+      );
     } catch {
       return null;
     }
@@ -439,7 +442,8 @@ class DependencyManager {
    */
   async persistEnvVar(installDir, key, value, blockName) {
     const fsp = require('node:fs/promises');
-    const envPath = path.join(installDir, '.env');
+    // Tokens live in <project>/bmad-docs/.bmad-tokens/.env (git-ignored via bmad-docs/).
+    const envPath = path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env');
     const out = { ok: false, envPath, error: null };
 
     const startMarker = `# --- BMad-Stella ${blockName} managed (do not edit) ---`;

@@ -57,7 +57,8 @@ function resolveToken() {
 
   // <root>/.bmad-core/utils/github-mcp-auth.js → <root>
   const projectRoot = path.resolve(__dirname, '..', '..');
-  const envPath = path.join(projectRoot, '.env');
+  // Tokens live in <root>/bmad-docs/.bmad-tokens/.env (kept in sync with the installer).
+  const envPath = path.join(projectRoot, 'bmad-docs', '.bmad-tokens', '.env');
   const fromFile = readEnvFileValue(envPath, TOKEN_KEY);
   if (fromFile && fromFile.trim()) return { token: fromFile.trim(), source: envPath };
 

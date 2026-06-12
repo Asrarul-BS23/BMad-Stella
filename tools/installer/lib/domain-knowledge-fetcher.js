@@ -151,7 +151,8 @@ class DomainKnowledgeFetcher {
   }
 
   async _readCreds(installDir) {
-    const envPath = path.join(installDir, '.env');
+    // Tokens live in <project>/bmad-docs/.bmad-tokens/.env (git-ignored via bmad-docs/).
+    const envPath = path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env');
     let contents;
     try {
       contents = await fsp.readFile(envPath, 'utf8');
