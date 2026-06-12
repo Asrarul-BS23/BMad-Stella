@@ -8,7 +8,6 @@
   - Capture protocol embedded in all 14 BMAD agents — auto-records decisions and findings per turn at zero extra API cost.
   - Tag taxonomy retained in `bmad-core/data/scribe-rules.yaml`.
   - Silent installer setup; notes path auto-allowlisted via Claude Code permissions manager.
-  - Docs: [docs/scribe-user-guide.md](docs/scribe-user-guide.md).
 
 ### Removed
 
