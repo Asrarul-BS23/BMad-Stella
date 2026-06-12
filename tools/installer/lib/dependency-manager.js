@@ -88,18 +88,22 @@ class DependencyManager {
       }
     }
 
-    // Parse the output to extract server names and status
+    // Parse the output to extract server names and status. Example line:
+    //   atlassian: https://mcp.atlassian.com/v1/sse (SSE) - ✔ Connected
+    // Detection must be robust to Claude Code's formatting: it uses ✔ (U+2714, heavy
+    // check) — not ✓ (U+2713) — and capitalized "Connected". Match either check glyph,
+    // or the word "connected" case-insensitively while excluding failure/disconnected text.
     const servers = [];
     const lines = output.split('\n');
     for (const line of lines) {
-      // Look for lines that contain server names
-      // Check if line indicates connected status (✓, connected, etc.)
       const match = line.trim().match(/^(\w+)/);
       if (match && match[1]) {
-        servers.push({
-          name: match[1].toLowerCase(),
-          connected: line.includes('connected') || line.includes('✓'),
-        });
+        const lower = line.toLowerCase();
+        const connected =
+          line.includes('✔') || // ✔ heavy check mark (current Claude Code)
+          line.includes('✓') || // ✓ check mark (older versions)
+          (/\bconnected\b/.test(lower) && !/disconnected|not connected|fail/.test(lower));
+        servers.push({ name: match[1].toLowerCase(), connected });
       }
     }
 
