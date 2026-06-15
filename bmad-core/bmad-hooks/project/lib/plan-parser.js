@@ -54,7 +54,7 @@ function parsePlanFile(filePath) {
 
     return {
       filePath,
-      content, // full text — passed to haiku for lesson/pattern extraction
+      content, // full text — passed to claude for lesson/pattern extraction
       status: parseStatus(content),
       name: signals?.name || null,
       description: signals?.description || null,

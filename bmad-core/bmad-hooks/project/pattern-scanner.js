@@ -69,6 +69,16 @@ async function run() {
     process.exit(1);
   }
 
+  // Self-terminating guard for detached background runs — prevents zombie on any hang
+  const killTimer = setTimeout(
+    () => {
+      log('pattern-scanner: exceeded max runtime (10 min), exiting', {});
+      process.exit(1);
+    },
+    10 * 60 * 1000,
+  );
+  killTimer.unref();
+
   log('pattern-scanner: starting', { cwd });
 
   const projectTree = buildShallowTree(cwd);
