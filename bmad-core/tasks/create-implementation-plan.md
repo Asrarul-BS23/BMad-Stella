@@ -41,6 +41,7 @@ Extract the following (or derive if missing):
   - **Hybrid** — combination of the above
 - **Title:** The task summary
 - **Assignee:** JIRA → use the `assignee` field from the fetched ticket. If null/empty, derive name from JIRA_EMAIL (e.g., "ashik.mahmud.bs23@stellainternational.com" → "Ashik Mahmud"). For non-JIRA plans, ask the user.
+- **Module Tag:** Short kebab-case slug for the feature area (e.g., `auth`, `payment`, `user-profile`). Used in §3.5 memory lookup and the plan's Memory Signals block.
 - **Description:** Full description if available
 - **Requirements:** Explicit requirements if provided; if not, derive from description and acceptance criteria. Each must be clear, specific, and testable.
 - **Acceptance Criteria:** Explicit ACs if provided (if not, you'll derive them later)
@@ -154,6 +155,17 @@ ALWAYS cite source documents: `[Source: architecture/{filename}.md#{section}]`
 #### 3.4 Domain Knowledge Context
 
 Read `domainKnowledge.location` from core-config.yaml. Extract 3-5 key terms from the task title and Requirements (module name, entity, action, feature area). For each term, `Grep` over the domain-knowledge location with `output_mode=content, context=5`. Capture only relevant snippets that explain business rules, terminology, or constraints affecting the task. Skip if no entries match — don't bulk-read the folder.
+
+#### 3.5 Project Memory Context
+
+`MEMORY.md`, `domain-map.md`, and `patterns.md` are already in your session context.
+
+Use determined **module tag** for this task (short kebab-case area slug, e.g. `auth`, `payment`). From the MEMORY.md index in context, read:
+
+- Any **Episodes** and **Semantic** files matching the module tag
+- Any relevant **Lessons** or **Active Constraints** files that seems may help in not making repeated mistakes — treat as hard constraints
+
+Skip categories with no matching files. Do not read memory for unrelated modules.
 
 ### 4. Codebase Scan
 
@@ -377,6 +389,7 @@ Include this section ONLY if there are actual dependencies, blockers, or risks t
 
 - Use `{root}/templates/implementation-plan-tmpl.yaml` structure
 - Fill all sections completely:
+  - Memory Signals (plan name slug, one-line description, module tag from §1.2)
   - Status (set to "Draft - Awaiting Review")
   - Task Information (Plan ID, type, **subtype**, title, assignee, input source, description)
   - Requirements (explicit or derived)

@@ -115,7 +115,7 @@ async function run() {
 
     const memoryDir = path.join(cwd, 'bmad-docs', 'memory');
     writeInitialPatterns(memoryDir, validFolders, cwd);
-    updateMemoryIndex(memoryDir);
+    updateMemoryIndex(memoryDir, cwd);
     process.stdout.write(`patterns.md written with ${validFolders.length} folders\n`);
   } catch (error) {
     log('pattern-scanner: JSON parse failed', { error: error.message });

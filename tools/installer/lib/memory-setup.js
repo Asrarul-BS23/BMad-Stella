@@ -39,7 +39,29 @@ async function initMemoryFolder(installDir, spinner) {
   if (spinner) spinner.text = 'Initializing bmad-docs/memory/...';
 
   await fs.ensureDir(memoryDest);
-  await fs.copy(MEMORIES_TEMPLATE_DIR, memoryDest, { overwrite: false });
+
+  // Copy only the two placeholder files — domain-map and MEMORY index
+  for (const file of ['domain-map.md', 'MEMORY.md']) {
+    const src = path.join(MEMORIES_TEMPLATE_DIR, file);
+    if (await fs.pathExists(src)) {
+      await fs.copy(src, path.join(memoryDest, file), { overwrite: false });
+    }
+  }
+
+  // Copy state seed files
+  const stateDestDir = path.join(memoryDest, '.state');
+  await fs.ensureDir(stateDestDir);
+  for (const file of ['.daily-state.json', '.injection-state.json']) {
+    const src = path.join(MEMORIES_TEMPLATE_DIR, '.state', file);
+    if (await fs.pathExists(src)) {
+      await fs.copy(src, path.join(stateDestDir, file), { overwrite: false });
+    }
+  }
+
+  // Create empty subdirectories — content written later by hooks and background jobs
+  for (const dir of ['episodes', 'lessons', 'semantic', 'constraints']) {
+    await fs.ensureDir(path.join(memoryDest, dir));
+  }
 
   console.log(chalk.green('✓ bmad-docs/memory/ initialized'));
 }

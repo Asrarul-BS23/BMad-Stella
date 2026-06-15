@@ -11,6 +11,8 @@ const TEMPLATE_PATH = path.join(
   __dirname,
   '..',
   '..',
+  '..',
+  '.bmad-core',
   'templates',
   'memories',
   'semantic',
@@ -106,8 +108,59 @@ async function consolidateSemantic(memoryDir, semanticFilePath) {
   }
 }
 
+function ensureSemanticFiles(memoryDir) {
+  const episodesDir = path.join(memoryDir, 'episodes');
+  const semanticDir = path.join(memoryDir, 'semantic');
+
+  if (!fs.existsSync(episodesDir)) return;
+  fs.mkdirSync(semanticDir, { recursive: true });
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const episodeFiles = fs
+    .readdirSync(episodesDir)
+    .filter((f) => f.endsWith('.md') && !f.startsWith('_'));
+
+  for (const file of episodeFiles) {
+    const semanticPath = path.join(semanticDir, file);
+    if (fs.existsSync(semanticPath)) continue;
+
+    const area = path.basename(file, '.md');
+    let template = '';
+
+    try {
+      if (fs.existsSync(TEMPLATE_PATH)) {
+        template = fs
+          .readFileSync(TEMPLATE_PATH, 'utf8')
+          .replace('domain-area-slug', area)
+          .replace('YYYY-MM-DD', today)
+          .replace(
+            'episode-sources:\n  - episodes/area1.md\n  - episodes/area2.md',
+            `episode-sources:\n  - episodes/${file}`,
+          );
+      }
+    } catch {
+      // fall through to inline
+    }
+
+    if (!template) {
+      template = `---\ntype: semantic\ndomain: '${area}'\nlast-updated: ${today}\nepisode-sources:\n  - episodes/${file}\nsuperseded-by: ''\n---\n\n# ${area} — Current State\n\n## Current State\n\n## Established Patterns\n\n## Known Gotchas\n\n## Invariants\n\n## Reference Implementation\n`;
+    }
+
+    try {
+      fs.writeFileSync(semanticPath, template, 'utf8');
+      log('semantic-consolidator: seeded new semantic file', { area });
+    } catch (error) {
+      log('semantic-consolidator: failed to seed semantic file', { area, error: error.message });
+    }
+  }
+}
+
 async function consolidateAll(memoryDir) {
   const semanticDir = path.join(memoryDir, 'semantic');
+
+  ensureSemanticFiles(memoryDir);
+
   if (!fs.existsSync(semanticDir)) return;
 
   const files = fs

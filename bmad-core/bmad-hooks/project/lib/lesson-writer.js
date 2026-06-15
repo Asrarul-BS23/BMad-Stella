@@ -51,7 +51,7 @@ function writeLesson(lessonsDir, lesson, planId, stateDir) {
     const fileContent = `---
 type: lesson
 source-plan: "${planId}"
-source-agent: claude-extracted
+source-agent: dev-agent
 date: "${today}"
 frequency: 1
 tags: []
