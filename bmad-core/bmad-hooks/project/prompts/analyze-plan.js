@@ -1,11 +1,12 @@
 'use strict';
 
 /**
- * Prompt for batched plan analysis — episodic entry + lessons + patterns in one call.
+ * Prompt for batched plan analysis — episodic entry + lessons in one call.
+ * Patterns are handled separately via codebase scan (pattern-scanner.js), not plan analysis.
  * Edit this file to tune prompt behavior without touching daily-job.js logic.
  */
 function buildAnalyzePlanPrompt({ planId, today, status, moduleTag, description, sectionsBlock }) {
-  return `You are analyzing a completed software development plan to extract structured memory entries.
+  return `You are memory extraction agent. Output injected into future AI agent sessions — prevent repeated mistakes. Precision mandatory. Vague entries waste context and mislead agents.
 
 PLAN ID: ${planId}
 DATE: ${today}
@@ -15,34 +16,27 @@ DESCRIPTION: ${description}
 
 ${sectionsBlock}
 
-Return a single JSON object with exactly these three keys:
+Return single JSON object with exactly two keys:
 
 {
-  "episodic": "<30-60 word memory entry. Format: Plan-ID | date | what-was-built | key outcome. Dense and factual.>",
+  "episodic": "30-60 words. No filler. No 'the agent'. Format: Plan-ID | what-was-built | key outcome. Omit implementation details.",
   "lessons": [
     {
       "title": "short-slug-what-went-wrong",
-      "whatWentWrong": "one sentence — what the agent did wrong",
-      "rootCause": "why — wrong assumption, missing context, or wrong pattern applied",
-      "rule": "don't X / do Y instead — concise actionable rule",
-      "howToApply": "the situation to recognize that triggers this rule"
-    }
-  ],
-  "patterns": [
-    {
-      "name": "short-slug-pattern-name",
-      "whenToUse": "situation where this pattern applies",
-      "referenceFile": "path/to/file if mentioned in the plan, else empty string",
-      "whatNotToDo": "the common mistake or anti-pattern this replaces"
+      "whatWentWrong": "specific decision/action agent took that was wrong — not the symptom, the choice",
+      "rootCause": "wrong assumption made, or known constraint ignored — not external factors",
+      "rule": "cross-module actionable rule: 'always X when Y' or 'never X, use Z instead'",
+      "howToApply": "code pattern, error symptom, or architectural condition that triggers this rule"
     }
   ]
 }
 
-Rules:
-- "lessons" = agent failures only: agent had sufficient info but chose wrong approach, violated a known constraint, or missed something QA/Security caught. NOT failures = ambiguous requirements, external dependency failures, constraints introduced after work started.
-- "patterns" = reusable implementation approaches specific to this module that future work should inherit. NOT general best practices or framework conventions.
-- Return empty arrays [] for lessons or patterns if none found.
-- Return ONLY valid JSON, no other text.`;
+LESSONS — stop repeated agent mistakes across modules. Test: "Would future agent on completely unrelated feature make same wrong choice?" No — skip.
+- Include: had sufficient info but chose wrong approach / violated known constraint / missed what QA-Security caught / applied wrong pattern
+- Exclude: ambiguous requirements / external failures / constraints introduced after work started / one-off edges that cannot recur
+
+Empty array [] if no lessons found. Prefer empty over entries that are module-specific, not actionable without reading original plan, or too narrow to recur elsewhere.
+Return ONLY valid JSON, no other text.`;
 }
 
 module.exports = { buildAnalyzePlanPrompt };

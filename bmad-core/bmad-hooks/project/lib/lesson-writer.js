@@ -25,6 +25,10 @@ function flagForConstraintPromotion(stateDir, slug, filePath) {
 }
 
 function writeLesson(lessonsDir, lesson, planId, stateDir) {
+  if (!lesson?.title || !lesson?.rule) {
+    log('lesson-writer: skipping lesson with missing required fields', { lesson });
+    return;
+  }
   try {
     fs.mkdirSync(lessonsDir, { recursive: true });
     const slug = slugify(lesson.title);

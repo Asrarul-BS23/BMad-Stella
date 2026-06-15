@@ -300,6 +300,72 @@ function isGracePeriodActive(counters) {
   return days < 30 || totalObs < 20;
 }
 
+function updateBehavioralCounters(observations, counters) {
+  if (!counters.behavioral) {
+    counters.behavioral = {
+      plan_presented: 0,
+      plan_first_approval: 0,
+      context_precise: 0,
+      context_vague: 0,
+      context_mixed: 0,
+      context_total: 0,
+    };
+  }
+  const b = counters.behavioral;
+  if (observations.plan_presented === true) {
+    b.plan_presented += 1;
+    if (observations.plan_first_approval === true) b.plan_first_approval += 1;
+  }
+  switch (observations.context_quality) {
+    case 'precise': {
+      b.context_precise += 1;
+      b.context_total += 1;
+      break;
+    }
+    case 'vague': {
+      b.context_vague += 1;
+      b.context_total += 1;
+      break;
+    }
+    case 'mixed': {
+      b.context_mixed += 1;
+      b.context_total += 1;
+      break;
+    }
+    // No default — "unclear" and null are intentionally ignored
+  }
+}
+
+function patchBehavioralProfile(content, counters) {
+  const b = counters.behavioral;
+  if (!b) return content;
+
+  const approvalRate =
+    b.plan_presented > 0
+      ? `${Math.round((b.plan_first_approval / b.plan_presented) * 100)}% (${b.plan_presented} plans observed)`
+      : 'no plans observed yet';
+
+  const contextRate =
+    b.context_total > 0
+      ? `precise: ${b.context_precise}, vague: ${b.context_vague}, mixed: ${b.context_mixed} (${b.context_total} sessions observed)`
+      : 'no sessions observed yet';
+
+  const newSection =
+    `## Behavioral Profile\n\n` +
+    `_(Auto-maintained by SessionEnd hook. Do not edit manually.)_\n\n` +
+    `- Plan first-approval rate: ${approvalRate}\n` +
+    `- Context quality: ${contextRate}\n`;
+
+  const start = content.indexOf('## Behavioral Profile');
+  if (start === -1) {
+    return content.trimEnd() + '\n\n' + newSection;
+  }
+  const nextSection = content.indexOf('\n## ', start + 1);
+  const before = content.slice(0, start);
+  const after = nextSection === -1 ? '' : content.slice(nextSection);
+  return before + newSection + after;
+}
+
 function patchLayer3Defaults(content, counters, gracePeriodActive) {
   const statusLines = Object.entries(ACTION_LABELS).map(([key, label]) => {
     const c = counters[key];
@@ -333,19 +399,6 @@ function patchLayer3Defaults(content, counters, gracePeriodActive) {
 
 // ---- Event handlers ----
 
-async function handleSessionStart(data) {
-  const content = readPersonalization();
-  if (!content) {
-    log('info', 'SessionStart: personalization.md not found, skipping injection');
-    return;
-  }
-  const output = {
-    hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: content },
-  };
-  process.stdout.write(JSON.stringify(output));
-  log('info', 'SessionStart: personalization injected', { chars: content.length });
-}
-
 async function handleSessionEnd(data) {
   const { exchanges, bashCommands } = parseTranscript(data.transcript_path);
   log('info', 'SessionEnd: parsed transcript', {
@@ -353,19 +406,27 @@ async function handleSessionEnd(data) {
     bashCommands: bashCommands.length,
   });
 
-  // --- Correction pass ---
+  // --- Correction + observation pass ---
   const matchedExchanges = exchanges.filter((e) => hasKeywords(e.user));
-  if (matchedExchanges.length > 0) {
-    log('info', 'SessionEnd: correction keywords found, calling claude', {
-      count: matchedExchanges.length,
+  const shouldCallLLM = matchedExchanges.length > 0 || exchanges.length >= 3;
+
+  if (shouldCallLLM) {
+    log('info', 'SessionEnd: calling claude for corrections + observations', {
+      matched: matchedExchanges.length,
+      total: exchanges.length,
     });
 
-    const prompt = buildDetectCorrectionsSessionPrompt({ exchanges: matchedExchanges });
+    const prompt = buildDetectCorrectionsSessionPrompt({
+      exchanges: matchedExchanges,
+      allExchanges: exchanges,
+    });
     const result = await callClaude(prompt);
 
     if (result) {
       try {
         const parsed = JSON.parse(result.trim());
+
+        // Handle corrections
         if (Array.isArray(parsed.corrections) && parsed.corrections.length > 0) {
           const stateDir = findBmadMemoryStateDir(data.cwd);
           if (stateDir) {
@@ -385,7 +446,9 @@ async function handleSessionEnd(data) {
                 date: new Date().toISOString().slice(0, 10),
               });
             }
-            fs.writeFileSync(stagingFile, JSON.stringify(staged, null, 2), 'utf8');
+            const stagingTmp = stagingFile + '.tmp.' + process.pid;
+            fs.writeFileSync(stagingTmp, JSON.stringify(staged, null, 2), 'utf8');
+            fs.renameSync(stagingTmp, stagingFile);
             log('info', 'SessionEnd: corrections staged', { count: parsed.corrections.length });
           } else {
             log('info', 'SessionEnd: not a BMad project, corrections not staged');
@@ -393,12 +456,37 @@ async function handleSessionEnd(data) {
         } else {
           log('info', 'SessionEnd: no behavioral corrections detected');
         }
+
+        // Handle observations — update behavioral counters
+        if (parsed.observations && typeof parsed.observations === 'object') {
+          const counters = readCounters();
+          if (counters) {
+            updateBehavioralCounters(parsed.observations, counters);
+            writeCounters(counters);
+            log('info', 'SessionEnd: behavioral observations recorded', parsed.observations);
+
+            const personalization = readPersonalization();
+            if (personalization) {
+              const updated = patchBehavioralProfile(personalization, counters);
+              if (updated !== personalization) {
+                try {
+                  fs.writeFileSync(PERSONALIZATION_FILE, updated, 'utf8');
+                  log('info', 'SessionEnd: personalization.md Behavioral Profile updated');
+                } catch (error) {
+                  log('warn', 'SessionEnd: failed to write behavioral profile', {
+                    error: error.message,
+                  });
+                }
+              }
+            }
+          }
+        }
       } catch {
-        log('warn', 'SessionEnd: failed to parse correction response');
+        log('warn', 'SessionEnd: failed to parse correction/observation response');
       }
     }
   } else {
-    log('info', 'SessionEnd: no correction keywords in session');
+    log('info', 'SessionEnd: too few exchanges for analysis, skipping');
   }
 
   // --- Action counting pass ---
@@ -479,10 +567,6 @@ process.stdin.on('end', () => {
 
   const run = async () => {
     switch (event) {
-      case 'SessionStart': {
-        await handleSessionStart(data);
-        break;
-      }
       case 'SessionEnd': {
         await handleSessionEnd(data);
         break;

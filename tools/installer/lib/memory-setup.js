@@ -86,11 +86,34 @@ async function generateDomainMap(installDir, spinner) {
     (await fs.readdir(domainKnowledgeDir)).some((f) => f.endsWith('.md'));
 
   if (!hasDomainKnowledge) {
-    console.log(
-      chalk.yellow(
-        '  ⚠️  No domain knowledge found — domain-map.md left blank. Re-run installer with a Confluence URL to populate it automatically.',
-      ),
+    console.log(chalk.dim('  No domain-knowledge/ found — inferring domain map from codebase...'));
+    const distillerPath = path.join(
+      installDir,
+      '.claude',
+      'bmad-hooks',
+      'lib',
+      'domain-map-distiller.js',
     );
+    if (!(await fs.pathExists(distillerPath))) {
+      console.log(chalk.yellow('  ⚠️  Distiller not found. domain-map.md left blank.'));
+      return;
+    }
+    if (spinner) spinner.stop();
+    const result = spawnSync(process.execPath, [distillerPath, installDir, '--from-code'], {
+      timeout: 60_000,
+      env: { ...process.env },
+      encoding: 'utf8',
+    });
+    if (result.status === 0 && (result.stdout || '').includes('updated')) {
+      console.log(chalk.green('✓ domain-map.md inferred from codebase structure'));
+    } else {
+      console.log(
+        chalk.yellow(
+          '  ⚠️  domain-map.md inference failed — left blank. Add Confluence URL and re-run installer.',
+        ),
+      );
+    }
+    if (spinner) spinner.start();
     return;
   }
 
@@ -141,6 +164,39 @@ async function generateDomainMap(installDir, spinner) {
   if (spinner) spinner.start();
 }
 
+async function scanPatterns(installDir, spinner) {
+  const scannerPath = path.join(installDir, '.claude', 'bmad-hooks', 'pattern-scanner.js');
+  if (!(await fs.pathExists(scannerPath))) {
+    console.log(chalk.dim('  pattern-scanner.js not found, skipping patterns scan'));
+    return;
+  }
+
+  const patternsFile = path.join(installDir, 'bmad-docs', 'memory', 'patterns.md');
+  if (await fs.pathExists(patternsFile)) {
+    console.log(chalk.dim('  patterns.md already exists, skipping scan'));
+    return;
+  }
+
+  if (spinner) spinner.text = 'Scanning codebase for reusable folders...';
+  if (spinner) spinner.stop();
+
+  const result = spawnSync(process.execPath, [scannerPath, installDir], {
+    timeout: 60_000,
+    env: { ...process.env },
+    encoding: 'utf8',
+  });
+
+  if (result.status === 0 && (result.stdout || '').includes('patterns.md written')) {
+    console.log(chalk.green('✓ patterns.md generated from codebase scan'));
+  } else if ((result.stdout || '').includes('no folders identified')) {
+    console.log(chalk.dim('  No reusable folders identified — patterns.md left empty'));
+  } else {
+    console.log(chalk.yellow('  ⚠️  Pattern scan failed — patterns.md left empty'));
+  }
+
+  if (spinner) spinner.start();
+}
+
 async function initialize(installDir, spinner) {
   try {
     if (spinner) spinner.stop();
@@ -148,6 +204,7 @@ async function initialize(installDir, spinner) {
     await initMemoryFolder(installDir, spinner);
     await seedPersonalization(spinner);
     await generateDomainMap(installDir, spinner);
+    await scanPatterns(installDir, spinner);
 
     if (spinner) spinner.start();
   } catch (error) {

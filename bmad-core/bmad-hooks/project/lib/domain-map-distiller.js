@@ -9,7 +9,10 @@ const fs = require('node:fs');
 const yaml = require('js-yaml');
 const { log } = require('./state');
 const { callClaude } = require('./llm');
-const { buildDistillDomainMapPrompt } = require('../prompts/distill-domain-map');
+const {
+  buildDistillDomainMapPrompt,
+  buildDistillDomainMapFromCodePrompt,
+} = require('../prompts/distill-domain-map');
 
 const SOURCE_DIR_NAME = 'domain-knowledge';
 const TARGET_FILE = path.join('bmad-docs', 'memory', 'domain-map.md');
@@ -164,7 +167,89 @@ async function distillIfStale(cwd) {
   return distill(cwd);
 }
 
-module.exports = { distill, distillIfStale, isDomainMapStale };
+const CODE_SCAN_IGNORE = new Set([
+  '.git',
+  'node_modules',
+  'dist',
+  'build',
+  '.next',
+  'coverage',
+  'out',
+  'bin',
+  'obj',
+  '.vs',
+  '__pycache__',
+  '.cache',
+  '.bmad-core',
+  'bmad-docs',
+  '.claude',
+]);
+
+function buildShallowTree(dir, prefix = '', depth = 0) {
+  if (depth > 2) return '';
+  try {
+    const entries = fs
+      .readdirSync(dir, { withFileTypes: true })
+      .filter((e) => !e.name.startsWith('.') && !CODE_SCAN_IGNORE.has(e.name))
+      .sort((a, b) => {
+        if (a.isDirectory() && !b.isDirectory()) return -1;
+        if (!a.isDirectory() && b.isDirectory()) return 1;
+        return a.name.localeCompare(b.name);
+      });
+    const lines = [];
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i];
+      const isLast = i === entries.length - 1;
+      lines.push(`${prefix}${isLast ? '└── ' : '├── '}${e.name}`);
+      if (e.isDirectory()) {
+        const sub = buildShallowTree(
+          path.join(dir, e.name),
+          prefix + (isLast ? '    ' : '│   '),
+          depth + 1,
+        );
+        if (sub) lines.push(sub);
+      }
+    }
+    return lines.join('\n');
+  } catch {
+    return '';
+  }
+}
+
+async function distillFromCode(cwd) {
+  const targetPath = getTargetPath(cwd);
+  const today = new Date().toISOString().slice(0, 10);
+  const projectTree = buildShallowTree(cwd);
+
+  if (!projectTree) {
+    log('domain-map-distiller: empty project tree, skipping from-code distill', { cwd });
+    return false;
+  }
+
+  const prompt = buildDistillDomainMapFromCodePrompt({ projectTree, today });
+  const result = await callClaude(prompt);
+  if (!result) {
+    log('domain-map-distiller: haiku returned null for from-code distill', { cwd });
+    return false;
+  }
+
+  try {
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    const tmp = targetPath + '.tmp.' + process.pid;
+    fs.writeFileSync(tmp, result.trim() + '\n', 'utf8');
+    fs.renameSync(tmp, targetPath);
+    log('domain-map-distiller: domain-map.md written from codebase scan', {
+      cwd,
+      chars: result.length,
+    });
+    return true;
+  } catch (error) {
+    log('domain-map-distiller: failed to write domain-map.md from code', { error: error.message });
+    return false;
+  }
+}
+
+module.exports = { distill, distillIfStale, isDomainMapStale, distillFromCode };
 
 // Standalone entry point
 // Usage: node domain-map-distiller.js <cwd> [--force]
@@ -172,11 +257,12 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const cwd = args.find((a) => !a.startsWith('-'));
   const force = args.includes('--force');
+  const fromCode = args.includes('--from-code');
   if (!cwd) {
-    process.stderr.write('Usage: node domain-map-distiller.js <cwd> [--force]\n');
+    process.stderr.write('Usage: node domain-map-distiller.js <cwd> [--force] [--from-code]\n');
     process.exit(1);
   }
-  const run = force ? distill(cwd) : distillIfStale(cwd);
+  const run = fromCode ? distillFromCode(cwd) : force ? distill(cwd) : distillIfStale(cwd);
   run
     .then((updated) => {
       if (updated) process.stdout.write('domain-map.md updated\n');

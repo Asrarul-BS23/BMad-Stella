@@ -21,7 +21,6 @@ const PLUGINS = [
     name: 'personalization',
     files: ['index.js', 'package.json'],
     events: {
-      SessionStart: {},
       SessionEnd: {},
     },
   },
