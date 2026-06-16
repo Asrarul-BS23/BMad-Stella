@@ -15,6 +15,7 @@ const { writeLesson } = require('./lib/lesson-writer');
 const { refreshPatternTrees } = require('./lib/pattern-writer');
 const { consolidateAll } = require('./lib/semantic-consolidator');
 const { distillIfStale } = require('./lib/domain-map-distiller');
+const { promoteConstraintCandidates } = require('./lib/constraint-promoter');
 const { updateMemoryIndex } = require('./lib/memory-index');
 const { callClaude } = require('./lib/llm');
 const { buildAnalyzePlanPrompt } = require('./prompts/analyze-plan');
@@ -260,12 +261,14 @@ async function run() {
     if (domainMapUpdated) log('daily-job: domain-map.md refreshed', { cwd });
     refreshPatternTrees(memoryDir, cwd);
     log('daily-job: pattern trees refreshed', {});
+    await promoteConstraintCandidates(memoryDir);
+    log('daily-job: constraint promotion check complete', {});
     await consolidateAll(memoryDir);
     dailyState.last_weekly_run = today;
   }
 
   // Rebuild MEMORY.md index after all writes complete
-  updateMemoryIndex(memoryDir);
+  updateMemoryIndex(memoryDir, cwd);
 
   dailyState.last_daily_run = today;
   writeState(dailyStateFile, dailyState);

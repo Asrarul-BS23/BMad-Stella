@@ -23,11 +23,11 @@ function listFiles(dir, ext = '.md') {
   }
 }
 
-function relPath(memoryDir, absPath) {
-  return absPath.replace(memoryDir + path.sep, '').replaceAll(path.sep, '/');
+function relPath(cwd, absPath) {
+  return absPath.replace(cwd + path.sep, '').replaceAll(path.sep, '/');
 }
 
-function updateMemoryIndex(memoryDir) {
+function updateMemoryIndex(memoryDir, cwd) {
   try {
     const lines = [];
     lines.push(
@@ -39,11 +39,13 @@ function updateMemoryIndex(memoryDir) {
     );
     const domainMap = path.join(memoryDir, 'domain-map.md');
     if (fs.existsSync(domainMap)) {
-      lines.push('- `domain-map.md` — business context, core entities, invariants');
+      lines.push(`- \`${relPath(cwd, domainMap)}\` — business context, core entities, invariants`);
     }
     const patterns = path.join(memoryDir, 'patterns.md');
     if (fs.existsSync(patterns)) {
-      lines.push('- `patterns.md` — reusable code index (shared folders and file trees)');
+      lines.push(
+        `- \`${relPath(cwd, patterns)}\` — reusable code index (shared folders and file trees)`,
+      );
     }
     lines.push('');
 
@@ -52,7 +54,7 @@ function updateMemoryIndex(memoryDir) {
     lines.push('## Active Constraints');
     if (constraintFiles.length > 0) {
       for (const f of constraintFiles) {
-        lines.push(`- \`${relPath(memoryDir, f)}\``);
+        lines.push(`- \`${relPath(cwd, f)}\``);
       }
     } else {
       lines.push('- (none)');
@@ -64,7 +66,7 @@ function updateMemoryIndex(memoryDir) {
     lines.push('## Episodes', '_Read by Planner for the relevant module area._');
     if (episodeFiles.length > 0) {
       for (const f of episodeFiles) {
-        lines.push(`- \`${relPath(memoryDir, f)}\``);
+        lines.push(`- \`${relPath(cwd, f)}\``);
       }
     } else {
       lines.push('- (none yet)');
@@ -79,7 +81,7 @@ function updateMemoryIndex(memoryDir) {
     );
     if (semanticFiles.length > 0) {
       for (const f of semanticFiles) {
-        lines.push(`- \`${relPath(memoryDir, f)}\``);
+        lines.push(`- \`${relPath(cwd, f)}\``);
       }
     } else {
       lines.push('- (none yet)');
@@ -94,7 +96,7 @@ function updateMemoryIndex(memoryDir) {
     );
     if (lessonFiles.length > 0) {
       for (const f of lessonFiles) {
-        lines.push(`- \`${relPath(memoryDir, f)}\``);
+        lines.push(`- \`${relPath(cwd, f)}\``);
       }
     } else {
       lines.push('- (none yet)');

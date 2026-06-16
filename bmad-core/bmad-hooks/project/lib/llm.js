@@ -5,11 +5,13 @@ const { log } = require('./state');
 
 const MAX_RETRIES = 3;
 const TIMEOUT_MS = 60_000;
+const AGENT_TIMEOUT_MS = 600_000; // 10 min — large codebases need room
+const AGENT_TOOLS = ['Glob', 'Read', 'Grep'];
 
 async function callClaude(prompt) {
   let lastError;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const result = await _spawnClaude(prompt);
+    const result = await _spawnClaude(prompt, { timeoutMs: TIMEOUT_MS });
     if (result !== null) return result;
     lastError = 'spawn returned null';
     if (attempt < MAX_RETRIES) {
@@ -20,11 +22,24 @@ async function callClaude(prompt) {
   return null;
 }
 
-function _spawnClaude(prompt) {
+// Single-attempt agentic call — allows file exploration tools, generous timeout.
+// Used by background processes (distillFromCode) that run detached from the installer.
+async function callClaudeAgent(prompt) {
+  const result = await _spawnClaude(prompt, {
+    timeoutMs: AGENT_TIMEOUT_MS,
+    allowedTools: AGENT_TOOLS,
+  });
+  if (result === null) log('llm: callClaudeAgent returned null', {});
+  return result;
+}
+
+function _spawnClaude(prompt, { timeoutMs = TIMEOUT_MS, allowedTools = null } = {}) {
   return new Promise((resolve) => {
+    const args = ['--print', '--output-format', 'text'];
+    if (allowedTools) args.push('--allowedTools', allowedTools.join(','));
     let proc;
     try {
-      proc = spawn('claude', ['--print', '--output-format', 'text'], {
+      proc = spawn('claude', args, {
         env: { ...process.env, BMAD_HOOK_SUBPROCESS: '1' },
         stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true,
@@ -43,7 +58,7 @@ function _spawnClaude(prompt) {
       proc.kill();
       log('llm: claude --print timed out', {});
       resolve(null);
-    }, TIMEOUT_MS);
+    }, timeoutMs);
 
     proc.stdout.on('data', (chunk) => {
       output += chunk;
@@ -72,4 +87,4 @@ function _spawnClaude(prompt) {
   });
 }
 
-module.exports = { callClaude };
+module.exports = { callClaude, callClaudeAgent };

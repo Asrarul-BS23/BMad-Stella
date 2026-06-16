@@ -4,12 +4,15 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { log } = require('./state');
 const { callClaude } = require('./llm');
+const { buildCompressEpisodePrompt } = require('../prompts/compress-episode');
 
 const WORD_CAP = 800;
 const TEMPLATE_PATH = path.join(
   __dirname,
   '..',
   '..',
+  '..',
+  '.bmad-core',
   'templates',
   'memories',
   'episodes',
@@ -30,22 +33,13 @@ function loadTemplate(area) {
   } catch {
     // fall through to inline template
   }
-  return `---\ntype: episodic\narea: "${area || 'untagged'}"\nlast-updated: ${new Date().toISOString().slice(0, 10)}\ncycle-count: 0\n---\n\n# ${area || 'Untagged'} Episode History\n\n`;
+  return `---\ntype: episodic\narea: "${area || 'untagged'}"\nlast-updated: ${new Date().toISOString().slice(0, 10)}\ncycle-count: 0\n---\n\n# ${area || 'Untagged'} Episode History\n\n<!-- Format: Plan-ID | date | what-built | key-decision | notable-deviation | QA/security-finding -->\n`;
 }
 
 async function compressEpisodeFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
-    const prompt = `You are compressing an episodic memory file. The file has grown too large.
-
-TASK: Compress all entries EXCEPT the 2 most recent ones to approximately 20 words each.
-Keep the 2 most recent entries at their full length (50-100 words each).
-Preserve the YAML frontmatter unchanged.
-Keep all entry dates and Plan IDs visible.
-Output the full compressed file.
-
-FILE CONTENT:
-${content}`;
+    const prompt = buildCompressEpisodePrompt({ content });
 
     const compressed = await callClaude(prompt);
     if (!compressed) {

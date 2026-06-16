@@ -69,6 +69,16 @@ async function run() {
     process.exit(1);
   }
 
+  // Self-terminating guard for detached background runs — prevents zombie on any hang
+  const killTimer = setTimeout(
+    () => {
+      log('pattern-scanner: exceeded max runtime (10 min), exiting', {});
+      process.exit(1);
+    },
+    10 * 60 * 1000,
+  );
+  killTimer.unref();
+
   log('pattern-scanner: starting', { cwd });
 
   const projectTree = buildShallowTree(cwd);
@@ -105,7 +115,7 @@ async function run() {
 
     const memoryDir = path.join(cwd, 'bmad-docs', 'memory');
     writeInitialPatterns(memoryDir, validFolders, cwd);
-    updateMemoryIndex(memoryDir);
+    updateMemoryIndex(memoryDir, cwd);
     process.stdout.write(`patterns.md written with ${validFolders.length} folders\n`);
   } catch (error) {
     log('pattern-scanner: JSON parse failed', { error: error.message });
