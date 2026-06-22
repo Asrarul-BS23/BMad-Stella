@@ -41,15 +41,39 @@ function getFileDate(filePath) {
 function isAfterLastRun(filePath, lastRun) {
   if (!lastRun) return true;
   const fileDate = getFileDate(filePath);
-  return fileDate.toISOString().slice(0, 10) > lastRun;
+  // lastRun may be a legacy date string "YYYY-MM-DD" or a full ISO timestamp.
+  // Pad legacy strings to start-of-day UTC so comparison is always timestamp vs timestamp.
+  const lastRunTs = new Date(lastRun.length === 10 ? lastRun + 'T00:00:00.000Z' : lastRun);
+  return fileDate > lastRunTs;
 }
 
-function scanPlanFiles(implPlanDir, lastDailyRun) {
+function readProcessed(stateDir) {
+  const filePath = path.join(stateDir, '.processed-files.json');
+  try {
+    if (!fs.existsSync(filePath)) return {};
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function markProcessed(stateDir, filename) {
+  const filePath = path.join(stateDir, '.processed-files.json');
+  const processed = readProcessed(stateDir);
+  processed[filename] = new Date().toISOString();
+  const tmp = filePath + '.tmp.' + process.pid;
+  fs.writeFileSync(tmp, JSON.stringify(processed, null, 2), 'utf8');
+  fs.renameSync(tmp, filePath);
+}
+
+function scanPlanFiles(implPlanDir, lastDailyRun, stateDir) {
   try {
     if (!fs.existsSync(implPlanDir)) return [];
+    const processed = readProcessed(stateDir);
     return fs
       .readdirSync(implPlanDir)
       .filter((f) => f.endsWith('.md'))
+      .filter((f) => !processed[f])
       .map((f) => path.join(implPlanDir, f))
       .filter((fp) => isAfterLastRun(fp, lastDailyRun));
   } catch {
@@ -206,7 +230,7 @@ async function run() {
   const dailyState = readState(dailyStateFile, { last_daily_run: null, last_weekly_run: null });
   const today = todayUTC();
 
-  const planFiles = scanPlanFiles(implPlanDir, dailyState.last_daily_run);
+  const planFiles = scanPlanFiles(implPlanDir, dailyState.last_daily_run, stateDir);
   log('daily-job: plan files to process', {
     count: planFiles.length,
     lastRun: dailyState.last_daily_run,
@@ -239,6 +263,9 @@ async function run() {
         log('daily-job: lessons extracted', { planId, count: analysis.lessons.length });
       }
     }
+
+    markProcessed(stateDir, path.basename(planFile));
+    log('daily-job: plan marked processed', { file: planId });
   }
 
   if (anyCompressed) {
@@ -270,7 +297,7 @@ async function run() {
   // Rebuild MEMORY.md index after all writes complete
   updateMemoryIndex(memoryDir, cwd);
 
-  dailyState.last_daily_run = today;
+  dailyState.last_daily_run = new Date().toISOString();
   writeState(dailyStateFile, dailyState);
 
   log('daily-job: complete', { processed: planFiles.length, today });
