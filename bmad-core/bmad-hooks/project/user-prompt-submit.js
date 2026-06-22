@@ -47,7 +47,7 @@ process.stdin.on('end', () => {
     const state = readDailyState(cwd);
     const today = todayUTC();
 
-    if (state.last_daily_run === today) {
+    if (state.last_daily_run && state.last_daily_run.slice(0, 10) === today) {
       // Already ran today
       process.exit(0);
     }
