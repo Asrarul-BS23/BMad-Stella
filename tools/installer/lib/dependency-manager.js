@@ -737,6 +737,16 @@ class DependencyManager {
             `   Create a fine-grained token at ${tokenAuth.helpUrl} with access to the repositories you want Claude to work with.`,
           ),
         );
+        console.log(
+          chalk.dim(
+            '   Grant Repository permissions (read-only): Contents: Read AND Pull requests: Read (Metadata: Read is required automatically).',
+          ),
+        );
+        console.log(
+          chalk.dim(
+            '   Contents: Read is required to fetch PR diffs and file contents — a Pull-requests-only token returns 403 on the diff.',
+          ),
+        );
         token = await this._collectFreshGithubToken(tokenAuth);
       }
 
