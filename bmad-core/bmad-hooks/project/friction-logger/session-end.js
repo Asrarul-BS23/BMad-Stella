@@ -8,7 +8,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { makeLogger } = require('./lib/state');
+const { makeLogger, findBmadRoot } = require('./lib/state');
 const { resolvePlanId } = require('./lib/planfile');
 const { readTracker, writeTracker, upsertSession } = require('./lib/tracker');
 
@@ -36,7 +36,10 @@ function main(rawStdin) {
     return;
   }
 
-  const cwd = payload.cwd || process.cwd();
+  // Resolve the install root — payload.cwd may have drifted into a subfolder
+  // (Bash cwd persists across `cd`). Outside a BMad project: exit, create nothing.
+  const cwd = findBmadRoot(payload.cwd || process.cwd());
+  if (!cwd) return;
   const sessionId = payload.session_id;
   const transcriptPath = payload.transcript_path;
   const log = makeLogger(cwd);
