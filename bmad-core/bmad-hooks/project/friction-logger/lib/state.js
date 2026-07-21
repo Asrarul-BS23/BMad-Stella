@@ -3,6 +3,22 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+// Walk up from startDir to the BMad install root — the folder holding
+// .bmad-core/core-config.yaml. The hook payload cwd is the session's CURRENT
+// directory, not the launch directory: `cd frontend && npm test` moves it and
+// Bash cwd persists, so trusting it verbatim scattered stray
+// bmad-docs/bmad-logs/ folders into subdirectories and dropped their sessions
+// from the tracker. Returns null when not inside a BMad project.
+function findBmadRoot(startDir) {
+  let dir = path.resolve(startDir);
+  for (;;) {
+    if (fs.existsSync(path.join(dir, '.bmad-core', 'core-config.yaml'))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
 // Debug logger for the friction-logger hooks. Hooks must never throw or print
 // to the session — every failure is silent and lands here instead.
 function makeLogger(cwd) {
@@ -20,4 +36,4 @@ function makeLogger(cwd) {
   };
 }
 
-module.exports = { makeLogger };
+module.exports = { makeLogger, findBmadRoot };

@@ -10,7 +10,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
-const { makeLogger } = require('./lib/state');
+const { makeLogger, findBmadRoot } = require('./lib/state');
 const { readTracker } = require('./lib/tracker');
 
 const STALE_LOCK_MS = 30 * 60 * 1000; // 30 min — crashed worker recovery
@@ -26,7 +26,10 @@ function main(rawStdin) {
   } catch {
     return;
   }
-  const cwd = payload.cwd || process.cwd();
+  // Resolve the install root — payload.cwd may have drifted into a subfolder
+  // (Bash cwd persists across `cd`). Outside a BMad project: exit, create nothing.
+  const cwd = findBmadRoot(payload.cwd || process.cwd());
+  if (!cwd) return;
   const log = makeLogger(cwd);
 
   const logsDir = path.join(cwd, 'bmad-docs', 'bmad-logs');
