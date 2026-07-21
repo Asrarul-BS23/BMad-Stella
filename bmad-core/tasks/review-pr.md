@@ -24,7 +24,7 @@ Before reviewing, gather the context the review depends on:
 
   Capture the acceptance criteria and business intent — this is the yardstick for the review.
 
-- **Pull request** — fetch via GitHub MCP from `pr_url`: title, description, and the diff (changed files + hunks). The diff is the implementation under review.
+- **Pull request** — parse `owner`, `repo`, `pull_number` from `pr_url` (every GitHub MCP call needs them). Via `pull_request_read`: `get` → title/description + head SHA (keep the SHA); `get_diff`/`get_files` → the diff under review. GitHub MCP is the ONLY source — never run local `git`, never read a local checkout (it may lack the PR's commits). On failure (e.g. 403 on `get_diff`), HALT and report — usually the token lacks `Contents: Read`; do NOT fall back to `git`.
 - **Architecture docs** — `coding-standards.md`, `tech-stack.md`, `project-structure.md` are already loaded at agent activation. Treat them as the rule book.
 - **Domain knowledge** — extract 3-5 key terms from the requirements (module, entity, action, feature area). For each term, `Grep` over `domainKnowledge.location` from core-config.yaml — `output_mode=content, context=5`. Capture only relevant snippets. Never bulk-read `bmad-docs/domain-knowledge/`.
 
@@ -32,7 +32,7 @@ The developer's implementation plan is intentionally NOT consulted — the revie
 
 ## Review the Change Set
 
-Change set = the PR diff fetched during Context Gain — the files and hunks GitHub reports as changed. Review each added or modified hunk in context; when a hunk needs surrounding code to judge it, fetch that file at the PR's head ref via GitHub MCP (do not assume a local checkout). For deletions, judge the removal from the diff and flag any regression or lost validation/tests it causes.
+Change set = the PR diff from Context Gain. Review each added/modified hunk in context; when a hunk needs surrounding code, fetch it with `get_file_contents` using the head SHA as `ref` (the PR's version, not the default branch) — never local `git` or a working copy. For deletions, judge from the diff and flag any regression or lost validation/tests.
 
 For each file, evaluate against the 9 criteria below. Collect only findings the dev actually needs to fix — no cosmetic nits, no open questions, no theoretical concerns.
 
