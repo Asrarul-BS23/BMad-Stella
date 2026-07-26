@@ -302,8 +302,10 @@ class FileManager {
         };
       }
 
-      // Write back the modified config
-      await fs.writeFile(coreConfigPath, yaml.dump(coreConfig, { indent: 2 }));
+      // Write back the modified config. lineWidth: -1 stops js-yaml from folding
+      // long values (e.g. Confluence URLs) into ">-" block scalars, which the
+      // friction logger's zero-dep line-based config reader cannot parse.
+      await fs.writeFile(coreConfigPath, yaml.dump(coreConfig, { indent: 2, lineWidth: -1 }));
 
       return true;
     } catch (error) {

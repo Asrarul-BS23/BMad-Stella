@@ -49,8 +49,13 @@ function readLoggingConfig(cwd) {
     const cBody = confluenceBlock[1];
     const enabled = cBody.match(/enabled:\s*(\S+)/);
     if (enabled) config.confluence.enabled = enabled[1] === 'true';
-    const logsPageUrl = cBody.match(/logsPageUrl:\s*(\S+)/);
-    if (logsPageUrl) config.confluence.logsPageUrl = logsPageUrl[1].replaceAll(/^['"]|['"]$/g, '');
+    // Value may be inline (logsPageUrl: https://…) or a YAML block scalar
+    // (logsPageUrl: >-\n      https://…) — yaml.dump folds long strings.
+    const logsPageUrl = cBody.match(/logsPageUrl:[ \t]*(?:[>|][+-]?[ \t]*\r?\n[ \t]+(\S+)|(\S+))/);
+    if (logsPageUrl) {
+      const value = logsPageUrl[1] || logsPageUrl[2] || '';
+      config.confluence.logsPageUrl = value.replaceAll(/^['"]|['"]$/g, '');
+    }
   }
 
   return config;
