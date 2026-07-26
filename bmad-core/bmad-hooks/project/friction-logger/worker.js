@@ -14,9 +14,11 @@ const { buildScreenplays } = require('./lib/reducer');
 const { callClaude } = require('./lib/llm');
 const { renderMarkdown } = require('./lib/render');
 const { readLoggingConfig } = require('./lib/config');
+const { publishReport } = require('./lib/confluence-publisher');
 const { buildExtractionPrompt } = require('./prompts/extract-friction');
 
 const GENERATION_CAP = 2;
+const PUBLISH_ATTEMPT_CAP = 3;
 
 function lockPath(cwd) {
   return path.join(cwd, 'bmad-docs', 'bmad-logs', '.fire-lock');
@@ -78,7 +80,9 @@ async function analyzePlan(cwd, planId, entry, log) {
   }
 
   // envelope metadata + recomputed stats (don't trust model arithmetic)
-  const titleMatch = planText.match(/^#\s*Implementation Plan:\s*[^\n-]*-\s*(.+)$/m);
+  // "# Implementation Plan: AIL-518 - Chat Sidebar" -> "Chat Sidebar"
+  // (\S+ eats the JIRA key so hyphens inside it, e.g. AIL-518, don't split the title)
+  const titleMatch = planText.match(/^#\s*Implementation Plan:\s*\S+\s*-\s*(.+)$/m);
   const friction = {
     plan_id: planId,
     plan_title: titleMatch ? titleMatch[1].trim() : '',
@@ -120,12 +124,64 @@ function recomputeStats(entries) {
   return stats;
 }
 
+// Publish pass: upload every analyzed-but-unpublished report to Confluence.
+// Covers reports generated this run AND leftovers from earlier failed uploads.
+// Hard cap: PUBLISH_ATTEMPT_CAP tries per generation, then local-only forever.
+async function publishPending(cwd, confluenceConfig, log) {
+  const tracker = readTracker(cwd);
+  let changed = false;
+
+  for (const [planId, entry] of Object.entries(tracker.plans)) {
+    if (!entry.analyzed || entry.published) continue;
+    if ((entry.publishAttempts || 0) >= PUBLISH_ATTEMPT_CAP) continue;
+
+    const frictionPath = path.join(cwd, 'bmad-docs', 'bmad-logs', planId, 'friction.json');
+    let friction;
+    try {
+      friction = JSON.parse(fs.readFileSync(frictionPath, 'utf8'));
+    } catch {
+      // no local report to upload — exhaust attempts so we stop trying
+      entry.publishAttempts = PUBLISH_ATTEMPT_CAP;
+      changed = true;
+      log(`publish: ${planId} has no local friction.json — giving up`);
+      continue;
+    }
+
+    const res = await publishReport(cwd, confluenceConfig, friction, log);
+    entry.publishAttempts = (entry.publishAttempts || 0) + 1;
+    changed = true;
+    if (res.ok) {
+      entry.published = true;
+      entry.publishedAt = new Date().toISOString();
+      log(`publish: ${planId} -> Confluence page ${res.pageId}`);
+    } else if (entry.publishAttempts >= PUBLISH_ATTEMPT_CAP) {
+      log(
+        `publish: giving up on ${planId} after ${PUBLISH_ATTEMPT_CAP} attempts (${res.reason}) — report kept locally at bmad-docs/bmad-logs/${planId}/`,
+      );
+    } else {
+      log(
+        `publish: ${planId} failed (${res.reason}) — attempt ${entry.publishAttempts}/${PUBLISH_ATTEMPT_CAP}, will retry next fire`,
+      );
+    }
+  }
+
+  if (changed) writeTracker(cwd, tracker);
+}
+
 // 30-day prune: generationCount >= 2 OR latest endedAt > 30 days (OR rule, locked).
-function prune(tracker, log) {
+// Exception: a generation-capped entry stays while its final report still has
+// publish retries left — otherwise the retry state would vanish with the entry.
+function prune(tracker, log, publishEnabled) {
   const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
   for (const [planId, entry] of Object.entries(tracker.plans)) {
     const latest = entry.sessions.reduce((m, s) => Math.max(m, Date.parse(s.endedAt) || 0), 0);
-    if (entry.generationCount >= GENERATION_CAP || (latest > 0 && latest < cutoff)) {
+    const stale = latest > 0 && latest < cutoff;
+    const awaitingPublish =
+      publishEnabled &&
+      entry.analyzed &&
+      !entry.published &&
+      (entry.publishAttempts || 0) < PUBLISH_ATTEMPT_CAP;
+    if (stale || (entry.generationCount >= GENERATION_CAP && !awaitingPublish)) {
       delete tracker.plans[planId];
       log(`worker: pruned ${planId}`, { generationCount: entry.generationCount });
     }
@@ -156,13 +212,24 @@ function prune(tracker, log) {
         if (freshEntry) {
           freshEntry.analyzed = true;
           freshEntry.generationCount = (freshEntry.generationCount || 0) + 1;
+          // new generation = fresh report -> reset the publish cycle (3 fresh attempts)
+          freshEntry.published = false;
+          freshEntry.publishAttempts = 0;
           writeTracker(cwd, fresh);
         }
       }
     }
 
+    // Publish everything analyzed-but-unpublished (fresh + earlier failures).
+    const publishEnabled = Boolean(
+      config.confluence && config.confluence.enabled && config.confluence.logsPageUrl,
+    );
+    if (publishEnabled) {
+      await publishPending(cwd, config.confluence, log);
+    }
+
     const finalTracker = readTracker(cwd);
-    prune(finalTracker, log);
+    prune(finalTracker, log, publishEnabled);
     writeTracker(cwd, finalTracker);
   } catch (error) {
     log('worker: unexpected error', { error: error.message });

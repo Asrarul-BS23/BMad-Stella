@@ -293,6 +293,15 @@ class FileManager {
         coreConfig.architecture.architectureFolderUrl = config.architectureFolderUrl;
       }
 
+      // Save friction-logs Confluence page (null/absent -> publishing disabled, reports stay local)
+      if (config.frictionLogsUrl !== undefined) {
+        coreConfig.logging = coreConfig.logging || {};
+        coreConfig.logging.confluence = {
+          enabled: Boolean(config.frictionLogsUrl),
+          logsPageUrl: config.frictionLogsUrl || '',
+        };
+      }
+
       // Write back the modified config
       await fs.writeFile(coreConfigPath, yaml.dump(coreConfig, { indent: 2 }));
 

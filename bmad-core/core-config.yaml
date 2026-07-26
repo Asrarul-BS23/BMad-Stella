@@ -54,4 +54,7 @@ logging:
     - Ready for Review
     - Ready for Done
   model: default
+  confluence:
+    enabled: false
+    logsPageUrl: ""
 slashPrefix: BMad
