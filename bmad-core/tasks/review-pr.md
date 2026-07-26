@@ -73,9 +73,9 @@ Format:
 
 ## Findings
 
-- [ ] {one-sentence finding} | Location: {file:line} | Fix: {specific action}
+- [ ] {one-sentence finding} | Location: {file:line} | Why: {impact in one clause} | Fix: {specific action}
 
-(One checkbox per finding. No severity tags, no praise, no commentary. If there are no findings, write "No actionable findings.")
+(One checkbox per finding. `Why` states the consequence of not fixing — one clause, no lectures. No severity tags, no praise, no commentary. If there are no findings, write "No actionable findings.")
 
 ## Key takeaways
 

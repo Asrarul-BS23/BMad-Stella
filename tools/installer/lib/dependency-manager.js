@@ -747,6 +747,11 @@ class DependencyManager {
             '   Contents: Read is required to fetch PR diffs and file contents — a Pull-requests-only token returns 403 on the diff.',
           ),
         );
+        console.log(
+          chalk.dim(
+            '   Step-by-step guide: docs/github-pat-guide.md (also in .bmad-core after install).',
+          ),
+        );
         token = await this._collectFreshGithubToken(tokenAuth);
       }
 
