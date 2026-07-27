@@ -10,10 +10,15 @@ const path = require('node:path');
 const DEFAULTS = {
   triggerStatuses: ['Ready for Review', 'Ready for Done'],
   model: 'default', // 'default' = no --model flag on claude --print
+  confluence: { enabled: false, logsPageUrl: '' }, // publishing is opt-in via installer
 };
 
 function readLoggingConfig(cwd) {
-  const config = { ...DEFAULTS, triggerStatuses: [...DEFAULTS.triggerStatuses] };
+  const config = {
+    ...DEFAULTS,
+    triggerStatuses: [...DEFAULTS.triggerStatuses],
+    confluence: { ...DEFAULTS.confluence },
+  };
   let text;
   try {
     text = fs.readFileSync(path.join(cwd, '.bmad-core', 'core-config.yaml'), 'utf8');
@@ -37,6 +42,21 @@ function readLoggingConfig(cwd) {
 
   const model = body.match(/model:\s*(\S+)/);
   if (model) config.model = model[1];
+
+  // confluence: sub-block (written by the installer; absent on local-only installs)
+  const confluenceBlock = body.match(/confluence:\s*\r?\n((?:[ \t]+[^\n]*\r?\n?)*)/);
+  if (confluenceBlock) {
+    const cBody = confluenceBlock[1];
+    const enabled = cBody.match(/enabled:\s*(\S+)/);
+    if (enabled) config.confluence.enabled = enabled[1] === 'true';
+    // Value may be inline (logsPageUrl: https://…) or a YAML block scalar
+    // (logsPageUrl: >-\n      https://…) — yaml.dump folds long strings.
+    const logsPageUrl = cBody.match(/logsPageUrl:[ \t]*(?:[>|][+-]?[ \t]*\r?\n[ \t]+(\S+)|(\S+))/);
+    if (logsPageUrl) {
+      const value = logsPageUrl[1] || logsPageUrl[2] || '';
+      config.confluence.logsPageUrl = value.replaceAll(/^['"]|['"]$/g, '');
+    }
+  }
 
   return config;
 }

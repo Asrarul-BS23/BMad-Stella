@@ -459,7 +459,8 @@ class Installer {
       config.installType !== 'expansion-only' &&
       (config.prdSharded !== undefined ||
         config.architectureSharded !== undefined ||
-        config.architectureFolderUrl !== undefined)
+        config.architectureFolderUrl !== undefined ||
+        config.frictionLogsUrl !== undefined)
     ) {
       spinner.text = 'Configuring document settings...';
       await fileManager.modifyCoreConfig(installDir, config);
