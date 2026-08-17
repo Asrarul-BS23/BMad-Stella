@@ -101,4 +101,4 @@ async function writeEpisodic(episodesDir, moduleTag, entry) {
   }
 }
 
-module.exports = { writeEpisodic };
+module.exports = { writeEpisodic, loadTemplate };
