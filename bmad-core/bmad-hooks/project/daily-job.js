@@ -270,7 +270,7 @@ async function run() {
 
   if (anyCompressed) {
     log('daily-job: running semantic consolidation (triggered by compression)', {});
-    await consolidateAll(memoryDir);
+    await consolidateAll(memoryDir, cwd);
   }
 
   await checkConstraintExpiry(constraintsDir, stateDir);
@@ -290,7 +290,7 @@ async function run() {
     log('daily-job: pattern trees refreshed', {});
     await promoteConstraintCandidates(memoryDir);
     log('daily-job: constraint promotion check complete', {});
-    await consolidateAll(memoryDir);
+    await consolidateAll(memoryDir, cwd);
     dailyState.last_weekly_run = today;
   }
 
