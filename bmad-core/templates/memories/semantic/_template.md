@@ -16,17 +16,13 @@ superseded-by: ''
 
 [What the system does in this domain right now — no history, no chronology]
 
-## Established Patterns
+## Invariants
 
-[Patterns that have proven stable across multiple cycles]
+[Business rules or technical constraints of THIS domain that must never be violated]
 
 ## Known Gotchas
 
-[Things that trip up agents or developers — watch out for these]
-
-## Invariants
-
-[Business rules or technical constraints that must never be violated]
+[Things that trip up agents or developers in THIS domain — watch out for these]
 
 ## Reference Implementation
 
