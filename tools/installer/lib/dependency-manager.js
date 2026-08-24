@@ -15,8 +15,11 @@ class DependencyManager {
         name: 'Atlassian MCP Server',
         description:
           'Required for JIRA integration (retrieve-ticket-information, comment-plan commands)',
-        transport: 'sse',
-        url: 'https://mcp.atlassian.com/v1/sse',
+        // Atlassian retired the SSE endpoint (mcp.atlassian.com/v1/sse) on 2026-06-30 in favor
+        // of Streamable HTTP. See:
+        // https://community.atlassian.com/forums/Atlassian-Remote-MCP-Server/HTTP-SSE-Deprecation-Notice/ba-p/3205484
+        transport: 'http',
+        url: 'https://mcp.atlassian.com/v1/mcp',
         envVars: {
           JIRA_BASE_URL: {
             description: 'Your JIRA instance URL (e.g., https://yourcompany.atlassian.net)',
@@ -89,7 +92,7 @@ class DependencyManager {
     }
 
     // Parse the output to extract server names and status. Example line:
-    //   atlassian: https://mcp.atlassian.com/v1/sse (SSE) - ✔ Connected
+    //   atlassian: https://mcp.atlassian.com/v1/mcp (HTTP) - ✔ Connected
     // Detection must be robust to Claude Code's formatting: it uses ✔ (U+2714, heavy
     // check) — not ✓ (U+2713) — and capitalized "Connected". Match either check glyph,
     // or the word "connected" case-insensitively while excluding failure/disconnected text.

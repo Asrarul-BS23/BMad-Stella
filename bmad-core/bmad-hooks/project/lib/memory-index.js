@@ -73,8 +73,11 @@ function updateMemoryIndex(memoryDir, cwd) {
     }
     lines.push('');
 
-    // Semantic
-    const semanticFiles = listFiles(path.join(memoryDir, 'semantic'));
+    // Semantic — `-prev.md` files are superseded snapshots kept for reference
+    // only; indexing them invites agents to read stale current-state knowledge.
+    const semanticFiles = listFiles(path.join(memoryDir, 'semantic')).filter(
+      (f) => !f.endsWith('-prev.md'),
+    );
     lines.push(
       '## Semantic',
       '_Distilled current-state knowledge. Read by Planner for the relevant domain._',
