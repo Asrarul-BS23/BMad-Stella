@@ -2,9 +2,18 @@
 
 const path = require('node:path');
 const fs = require('node:fs');
-const crypto = require('node:crypto');
 const yaml = require('js-yaml');
 const { log, readState, writeState } = require('./state');
+const {
+  BODY_SECTIONS,
+  BODY_SCHEMA_VERSION,
+  parseFrontmatter,
+  splitFrontmatter,
+  hasRealContent,
+  countBodyWords,
+  hashSources,
+  changedSources,
+} = require('./semantic-body');
 const { normalizeModuleTag } = require('./slug');
 const { callClaude } = require('./llm');
 const { buildConsolidateSemanticPrompt } = require('../prompts/consolidate-semantic');
@@ -25,6 +34,30 @@ const TEMPLATE_PATH = path.join(
 const EXCERPT_CHARS = 800;
 const AREA_EXCERPT_CHARS = 600;
 const EPISODE_BUDGET_CHARS = 6000;
+
+// Deltas are surgical, so drift accumulates slowly rather than never. A
+// re-verification rebuild every Nth delta catches what the surgical path
+// missed. Counted in DELTAS, not days: consolidation runs weekly, so a
+// ten-DAY window would fire on roughly every second run and rebuild would
+// become the normal path, defeating delta entirely.
+const DELTA_REBUILD_INTERVAL = 10;
+
+// A returned body is rejected if it falls below this fraction of the existing
+// one. Retiring every gotcha cannot trip it: `Known Gotchas` measures ~23% of a
+// body, so deleting the whole section lands at 77%.
+const MIN_BODY_RATIO = 0.6;
+
+// Split trigger. 3000 words is set by decision, not measurement. The area gate
+// is the arithmetic floor: a split partitions AREAS, so a one-area domain has
+// nothing to divide — a single area distilling to 3000 words means the module
+// tag is too broad, which is fixed in tagging, not here.
+const SPLIT_BODY_WORDS = 3000;
+const SPLIT_WARN_BODY_WORDS = 2000;
+const SPLIT_MIN_AREAS = 2;
+
+// Consecutive rejected rebuilds after which the sticky rebuild triggers are
+// blocked and the domain falls back to delta. See isRebuildBlocked.
+const MAX_REBUILD_REJECTIONS = 2;
 
 // Bumped when the partitioning algorithm changes in a way that invalidates
 // previously-stored mappings. v1 was one-domain-per-area with no map; v2 was
@@ -53,22 +86,6 @@ const BANNED_DOMAIN_SLUGS = new Set([
   'other',
 ]);
 
-function parseFrontmatter(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return {};
-  try {
-    return yaml.load(match[1]) || {};
-  } catch {
-    return {};
-  }
-}
-
-function splitFrontmatter(content) {
-  const match = content.match(/^---\n[\s\S]*?\n---\n?/);
-  if (!match) return { fm: {}, body: content.trim() };
-  return { fm: parseFrontmatter(content), body: content.slice(match[0].length).trim() };
-}
-
 function buildFrontmatter({ domain, lastUpdated, episodeSources, supersededBy }) {
   const sourcesYaml =
     episodeSources.length > 0 ? episodeSources.map((p) => `  - ${p}`).join('\n') : '  []';
@@ -93,66 +110,29 @@ function templateBody(domain) {
   } catch {
     // fall through to inline default
   }
-  return [
-    `# ${domain} — Current State`,
-    '',
-    '## Current State',
-    '',
-    '## Established Patterns',
-    '',
-    '## Known Gotchas',
-    '',
-    '## Invariants',
-    '',
-    '## Reference Implementation',
-  ].join('\n');
-}
-
-// True when a semantic body carries real distilled knowledge, as opposed to
-// being the unfilled template (headings plus [bracketed placeholders]).
-function hasRealContent(body) {
-  const stripped = body
-    .split('\n')
-    .filter((line) => {
-      const t = line.trim();
-      if (!t) return false;
-      if (t.startsWith('#')) return false;
-      if (t.startsWith('<!--')) return false;
-      if (/^\[.*]$/.test(t)) return false;
-      return true;
-    })
-    .join('');
-  return stripped.length > 0;
+  // Only reached when the installed template is missing, but if the two
+  // disagree a project without the template silently gets the old contract.
+  return [`# ${domain} — Current State`, '', ...BODY_SECTIONS.flatMap((h) => [`## ${h}`, ''])]
+    .join('\n')
+    .trimEnd();
 }
 
 // ---------------------------------------------------------------------------
-// Staleness: content signature
+// Staleness: per-source content hashes
 // ---------------------------------------------------------------------------
 
-// The old gate compared the semantic file's last-updated against each episode's
-// last-updated and required the episode to be STRICTLY newer. Because a freshly
-// seeded file was stamped with today's date, it could never pass that check on
+// Staleness is tracked per SOURCE, not per domain, so a run can feed only the
+// episode files that actually changed. See lib/semantic-body.js for the hash.
+//
+// The gate before this compared the semantic file's last-updated against each
+// episode's last-updated and required the episode to be STRICTLY newer. A
+// freshly seeded file was stamped with today's date, so it could never pass on
 // the day it was created — and since it never consolidated, its date never
-// advanced, so it stayed an empty template forever unless an episode happened to
-// be touched on a strictly later day. A content signature has no such
-// dependency on the file's own timestamp and also catches two episode updates
-// landing on the same day.
-function computeSignature(memoryDir, episodeSources) {
-  const hash = crypto.createHash('sha1');
-  for (const source of [...episodeSources].sort()) {
-    let stamp = 'missing';
-    try {
-      const fullPath = path.join(memoryDir, source);
-      const stat = fs.statSync(fullPath);
-      const fm = parseFrontmatter(fs.readFileSync(fullPath, 'utf8'));
-      stamp = `${fm['last-updated'] || '?'}:${stat.size}`;
-    } catch {
-      // keep 'missing' — a source disappearing is itself a change
-    }
-    hash.update(`${source}|${stamp}\n`);
-  }
-  return hash.digest('hex');
-}
+// advanced. Content hashes have no dependency on the file's own timestamp.
+//
+// The single per-domain signature that replaced it was `last-updated + file
+// size`, which is blind to a same-day edit preserving byte count, and could
+// only say "something changed" — not what.
 
 function getDomainMapStatePath(memoryDir) {
   return path.join(memoryDir, '.state', 'semantic-domain-map.json');
@@ -281,13 +261,14 @@ function validatePartition(domains, areaNames) {
   return { areaToDomain, problems, missing };
 }
 
-async function resolveAllDomains(areas, currentPartition, memoryDir, cwd) {
+async function resolveAllDomains(areas, currentPartition, memoryDir, cwd, pinnedSeparations) {
   const areaNames = areas.map((a) => a.area);
   const basePrompt = buildResolveSemanticDomainsPrompt({
     areas,
     currentPartition,
     domainMapExcerpt: readDomainMapExcerpt(memoryDir),
     projectStructureExcerpt: readProjectStructureExcerpt(cwd),
+    pinnedSeparations,
   });
 
   let lastProblems = [];
@@ -334,9 +315,13 @@ async function resolveAllDomains(areas, currentPartition, memoryDir, cwd) {
 
 function readDomainMapState(memoryDir) {
   const raw = readState(getDomainMapStatePath(memoryDir), {});
+  // `splits` records children of a deliberate domain split, so the partition
+  // prompt can be told not to merge them back. Nothing writes it yet — the
+  // split machinery is designed but not built — so it reads as empty today.
+  const splits = Array.isArray(raw.splits) ? raw.splits : [];
   // Legacy shape was a flat { area: domain } map with no version field.
-  if (typeof raw.version !== 'number') return { version: 0, areas: {} };
-  return { version: raw.version, areas: raw.areas || {} };
+  if (typeof raw.version !== 'number') return { version: 0, areas: {}, splits };
+  return { version: raw.version, areas: raw.areas || {}, splits };
 }
 
 function invertPartition(areas) {
@@ -366,8 +351,12 @@ function listSemanticFiles(semanticDir) {
 // episode listed under several domains) and retires files whose domain no
 // longer exists. Retired files carrying real content are handed back so their
 // knowledge is folded into whichever domain now owns their episodes.
+//
+// Membership changes are RETURNED, not just logged: an area joining or leaving
+// a domain is a rebuild trigger, and the caller cannot act on a log line.
 function reconcileSemanticDir(semanticDir, byDomain, domainMap) {
   const carryover = new Map();
+  const membershipChanged = new Set();
   const domainSourcesOf = (domain) =>
     (byDomain[domain] || []).map((area) => `episodes/${area}.md`).sort();
 
@@ -380,21 +369,34 @@ function reconcileSemanticDir(semanticDir, byDomain, domainMap) {
     if (byDomain[domain]) {
       const desired = domainSourcesOf(domain);
       const current = [...(fm['episode-sources'] || [])].sort();
-      const changed = desired.length !== current.length || desired.some((s, i) => s !== current[i]);
-      if (changed) {
+      const sourcesChanged =
+        desired.length !== current.length || desired.some((s, i) => s !== current[i]);
+
+      // A date on a body that is still the unfilled template is a false
+      // 'fresh' — the dangerous direction. Normalize it at the source so legacy
+      // dated templates stop lying, rather than only papering over it at
+      // display time in MEMORY.md.
+      const storedLastUpdated = fm['last-updated'] || '';
+      const desiredLastUpdated = hasRealContent(body) ? storedLastUpdated : '';
+      const dateChanged = desiredLastUpdated !== storedLastUpdated;
+
+      if (sourcesChanged) membershipChanged.add(domain);
+
+      if (sourcesChanged || dateChanged) {
         fs.writeFileSync(
           filePath,
           `${buildFrontmatter({
             domain,
-            lastUpdated: fm['last-updated'] || '',
+            lastUpdated: desiredLastUpdated,
             episodeSources: desired,
             supersededBy: fm['superseded-by'],
           })}\n\n${body}\n`,
           'utf8',
         );
-        log('semantic-consolidator: rewrote episode-sources to match partition', {
+        log('semantic-consolidator: reconciled semantic frontmatter', {
           domain,
-          sources: desired,
+          sources: sourcesChanged ? desired : undefined,
+          clearedStaleDate: dateChanged ? storedLastUpdated : undefined,
         });
       }
       continue;
@@ -426,7 +428,7 @@ function reconcileSemanticDir(semanticDir, byDomain, domainMap) {
     fs.rmSync(path.join(semanticDir, `${path.basename(file, '.md')}-prev.md`), { force: true });
   }
 
-  return carryover;
+  return { carryover, membershipChanged };
 }
 
 // New domain files are seeded with an EMPTY last-updated on purpose: an empty
@@ -448,7 +450,8 @@ async function ensureSemanticFiles(memoryDir, cwd) {
   const episodesDir = path.join(memoryDir, 'episodes');
   const semanticDir = path.join(memoryDir, 'semantic');
 
-  if (!fs.existsSync(episodesDir)) return { byDomain: {}, carryover: new Map() };
+  const empty = { byDomain: {}, carryover: new Map(), forceRebuild: new Set() };
+  if (!fs.existsSync(episodesDir)) return empty;
   fs.mkdirSync(semanticDir, { recursive: true });
 
   // `_untagged.md` is a holding bin for entries whose module tag couldn't be
@@ -469,7 +472,7 @@ async function ensureSemanticFiles(memoryDir, cwd) {
     );
   }
 
-  if (episodeFiles.length === 0) return { byDomain: {}, carryover: new Map() };
+  if (episodeFiles.length === 0) return empty;
 
   const areas = episodeFiles.map((file) => ({
     area: normalizeModuleTag(path.basename(file, '.md')) || path.basename(file, '.md'),
@@ -488,11 +491,16 @@ async function ensureSemanticFiles(memoryDir, cwd) {
   const versionStale = stored.version !== PARTITION_VERSION;
   const hasUnmapped = areaNames.some((a) => !stored.areas[a]);
 
+  // Deliberate separations survive a re-partition: the pin is what stops
+  // merging (which runs inside this call) from undoing a split.
+  const writeMap = (map) =>
+    writeState(mapPath, { version: PARTITION_VERSION, areas: map, splits: stored.splits });
+
   let areaMap = stored.areas;
   if (versionStale || hasUnmapped) {
     const currentPartition = versionStale ? {} : invertPartition(stored.areas);
-    areaMap = await resolveAllDomains(areas, currentPartition, memoryDir, cwd);
-    writeState(mapPath, { version: PARTITION_VERSION, areas: areaMap });
+    areaMap = await resolveAllDomains(areas, currentPartition, memoryDir, cwd, stored.splits);
+    writeMap(areaMap);
     log('semantic-consolidator: partitioned episodic areas into semantic domains', {
       reason: versionStale ? `version ${stored.version} -> ${PARTITION_VERSION}` : 'new areas',
       partition: invertPartition(areaMap),
@@ -504,12 +512,17 @@ async function ensureSemanticFiles(memoryDir, cwd) {
     );
     if (Object.keys(pruned).length !== Object.keys(areaMap).length) {
       areaMap = pruned;
-      writeState(mapPath, { version: PARTITION_VERSION, areas: areaMap });
+      writeMap(areaMap);
     }
   }
 
   const byDomain = invertPartition(areaMap);
-  const carryover = reconcileSemanticDir(semanticDir, byDomain, areaMap);
+  const { carryover, membershipChanged } = reconcileSemanticDir(semanticDir, byDomain, areaMap);
+
+  // A PARTITION_VERSION bump means every stored grouping came from a different
+  // algorithm, so every domain rebuilds even where its membership happens to be
+  // unchanged.
+  const forceRebuild = versionStale ? new Set(Object.keys(byDomain)) : membershipChanged;
 
   for (const [domain, domainAreas] of Object.entries(byDomain)) {
     const semanticPath = path.join(semanticDir, `${domain}.md`);
@@ -522,19 +535,125 @@ async function ensureSemanticFiles(memoryDir, cwd) {
     }
   }
 
-  return { byDomain, carryover };
+  return { byDomain, carryover, forceRebuild };
 }
 
 // ---------------------------------------------------------------------------
 // Consolidation
 // ---------------------------------------------------------------------------
 
-async function consolidateSemantic(memoryDir, semanticFilePath, carryoverBody) {
+// Chooses rebuild / delta / skip BEFORE any LLM call, so an unchanged domain
+// costs nothing at all.
+function selectMode({
+  stored,
+  currentHashes,
+  bodyHasRealContent,
+  carryoverBody,
+  forceRebuild,
+  rebuildBlocked,
+}) {
+  if (forceRebuild) return { mode: 'rebuild', reason: 'partition or membership changed' };
+  if (carryoverBody) return { mode: 'rebuild', reason: 'carryover body from a retired domain' };
+  if (!stored || Object.keys(stored.sources || {}).length === 0) {
+    return { mode: 'rebuild', reason: 'no stored source hashes' };
+  }
+  if (stored.bodySchema !== BODY_SCHEMA_VERSION && !rebuildBlocked) {
+    return {
+      mode: 'rebuild',
+      reason: `body schema ${stored.bodySchema} -> ${BODY_SCHEMA_VERSION}`,
+    };
+  }
+  // A stored body that is still the unfilled template has nothing for a delta
+  // to be surgical about, so this trigger is never blocked — there is no
+  // alternative mode to fall back to.
+  if (!bodyHasRealContent) return { mode: 'rebuild', reason: 'body is an unfilled template' };
+  // Never blocked either: reaching the interval IS the cooldown expiring, which
+  // is what gives a previously-rejected rebuild its next attempt.
+  if ((stored.deltasSinceRebuild || 0) >= DELTA_REBUILD_INTERVAL) {
+    return { mode: 'rebuild', reason: `${stored.deltasSinceRebuild} deltas since last rebuild` };
+  }
+
+  const changed = changedSources(stored.sources, currentHashes);
+  if (changed.length === 0) return { mode: 'skip', reason: 'no source content changed' };
+  return { mode: 'delta', reason: `${changed.length} source(s) changed`, changed };
+}
+
+// A rejection used to be a no-op on every piece of state: hashes stayed stale,
+// the delta counter stayed put, and nothing recorded that it had happened. So
+// the trigger that caused the rebuild was still true next run, identically —
+// and while the domain sat in that loop it stopped updating at all, because
+// every run picked rebuild and every rebuild was rejected.
+//
+// Two of the rebuild triggers are STICKY in that way: a body-schema mismatch
+// and the every-Nth-delta rebuild. This blocks exactly those two once a rebuild
+// has been rejected MAX_REBUILD_REJECTIONS times in a row, so the domain drops
+// back to delta and keeps taking new episodes. The block lifts on its own when
+// the delta counter climbs back to DELTA_REBUILD_INTERVAL, giving the rebuild
+// another attempt roughly every ten runs instead of every single one.
+//
+// What this deliberately does NOT do is give up and save the body anyway. A
+// short or malformed return almost always means the model failed, not that the
+// domain genuinely knows less, so accepting it would turn a visible stall into
+// silent knowledge loss.
+function isRebuildBlocked(stored) {
+  if (!stored) return false;
+  return (
+    (stored.rebuildRejections || 0) >= MAX_REBUILD_REJECTIONS &&
+    (stored.deltasSinceRebuild || 0) < DELTA_REBUILD_INTERVAL
+  );
+}
+
+// Fair-share the character budget across the sources being fed, rather than
+// filling first-come. domainSourcesOf and seedSemanticFile both sort, so a
+// first-come fill meant an alphabetically-early source always reached the model
+// and a late one never did. With few sources each share exceeds the file, so
+// the file is fed whole; the cap only bites when many sources are fed at once.
+function readEpisodeSources(memoryDir, sources, domain) {
+  const share = Math.floor(EPISODE_BUDGET_CHARS / Math.max(1, sources.length));
+  const chunks = [];
+  for (const source of sources) {
+    const fullPath = path.join(memoryDir, source);
+    if (!fs.existsSync(fullPath)) continue;
+    const raw = `### ${source}\n${fs.readFileSync(fullPath, 'utf8')}`;
+    if (raw.length > share) {
+      log('semantic-consolidator: source truncated to its fair share of the budget', {
+        domain,
+        source,
+        share,
+        length: raw.length,
+      });
+    }
+    chunks.push(raw.slice(0, share));
+  }
+  return chunks;
+}
+
+// Both modes are forbidden from shrinking a body: delta is surgical and rebuild
+// is re-verification, so neither has a legitimate reason to return less. The
+// only mechanism that reduces a body is a domain split.
+function rejectionReason(newBody, existingBody) {
+  if (!hasRealContent(newBody)) return 'no real content — placeholders only';
+  const missing = BODY_SECTIONS.filter((h) => !new RegExp(`^##\\s+${h}\\s*$`, 'm').test(newBody));
+  // This is what catches a three-of-four-sections return, which passes any
+  // proportional test while having lost a quarter of the file.
+  if (missing.length > 0) return `missing section(s): ${missing.join(', ')}`;
+  if (existingBody.length > 0 && newBody.length < existingBody.length * MIN_BODY_RATIO) {
+    const pct = Math.round((newBody.length / existingBody.length) * 100);
+    return `shrank to ${pct}% of the existing body`;
+  }
+  return null;
+}
+
+async function consolidateSemantic(memoryDir, semanticFilePath, carryoverBody, forceRebuild) {
   const consolidationStatePath = getConsolidationStatePath(memoryDir);
   try {
     const content = fs.readFileSync(semanticFilePath, 'utf8');
     const { fm, body } = splitFrontmatter(content);
     const domain = normalizeModuleTag(fm.domain) || path.basename(semanticFilePath, '.md');
+
+    // The full map-derived set. It stays the frontmatter value even on a delta
+    // run that fed only some of them — narrowing it would silently un-map the
+    // rest of the domain.
     const episodeSources = fm['episode-sources'] || [];
 
     if (episodeSources.length === 0) {
@@ -542,63 +661,118 @@ async function consolidateSemantic(memoryDir, semanticFilePath, carryoverBody) {
       return;
     }
 
-    const signature = computeSignature(memoryDir, episodeSources);
+    const currentHashes = hashSources(memoryDir, episodeSources);
     const state = readState(consolidationStatePath, {});
-    if (state[domain]?.signature === signature && !carryoverBody && hasRealContent(body)) {
-      log('semantic-consolidator: semantic is up-to-date, skipping', { domain });
+    const stored = state[domain];
+
+    const rebuildBlocked = isRebuildBlocked(stored);
+    const { mode, reason, changed } = selectMode({
+      stored,
+      currentHashes,
+      bodyHasRealContent: hasRealContent(body),
+      carryoverBody,
+      forceRebuild,
+      rebuildBlocked,
+    });
+
+    if (mode === 'skip') {
+      log('semantic-consolidator: semantic is up-to-date, skipping', { domain, reason });
       return;
     }
 
-    const episodeContents = [];
-    let used = 0;
-    for (const source of episodeSources) {
-      const fullPath = path.join(memoryDir, source);
-      if (!fs.existsSync(fullPath)) continue;
-      const remaining = EPISODE_BUDGET_CHARS - used;
-      if (remaining <= 0) {
-        log('semantic-consolidator: episode budget exhausted, later sources truncated', {
-          domain,
-          droppedFrom: source,
-        });
-        break;
-      }
-      const chunk = `### ${source}\n${fs.readFileSync(fullPath, 'utf8')}`.slice(0, remaining);
-      used += chunk.length;
-      episodeContents.push(chunk);
-    }
+    const sourcesToFeed = mode === 'delta' ? changed : episodeSources;
+    const episodeContents = readEpisodeSources(memoryDir, sourcesToFeed, domain);
 
     if (episodeContents.length === 0) {
       log('semantic-consolidator: no episode sources found on disk', { file: semanticFilePath });
       return;
     }
 
-    const newBody = await callClaude(
-      buildConsolidateSemanticPrompt({
-        domain,
-        currentBody: body,
-        episodeContents: episodeContents.join('\n\n---\n\n'),
-        carryoverBody,
-      }),
-    );
+    log('semantic-consolidator: consolidating', {
+      domain,
+      mode,
+      reason,
+      fed: sourcesToFeed,
+      rebuildBlocked: rebuildBlocked || undefined,
+    });
 
-    if (!newBody || !newBody.trim()) {
-      log('semantic-consolidator: LLM returned nothing, skipping', { domain });
-      return;
+    const basePrompt = buildConsolidateSemanticPrompt({
+      domain,
+      currentBody: body,
+      episodeContents: episodeContents.join('\n\n---\n\n'),
+      carryoverBody,
+      mode,
+    });
+
+    // One in-run retry that tells the model what was wrong with its last
+    // answer, mirroring how resolveAllDomains handles a rejected partition. A
+    // dropped heading is usually just a sloppy return, and naming the missing
+    // section fixes it on the spot — far cheaper than waiting a week to find
+    // out whether the next run happens to come back valid.
+    let cleanBody = null;
+    let rejection = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const prompt =
+        attempt === 0
+          ? basePrompt
+          : `${basePrompt}\n\nYour previous answer was rejected for this reason — fix it and answer again:\n- ${rejection}`;
+
+      const raw = await callClaude(prompt);
+      if (!raw || !raw.trim()) {
+        // No body at all is a transport failure, not a bad body: retrying
+        // immediately would just double the failed calls.
+        log('semantic-consolidator: LLM returned nothing, skipping', { domain, mode, attempt });
+        return;
+      }
+
+      // Strip any frontmatter or fencing the model added despite being told not
+      // to — frontmatter is rebuilt here so episode-sources can't be corrupted.
+      const candidate = splitFrontmatter(
+        raw
+          .trim()
+          .replace(/^```(?:markdown|md)?\s*\n/, '')
+          .replace(/\n```\s*$/, ''),
+      ).body;
+
+      rejection = rejectionReason(candidate, body);
+      if (!rejection) {
+        cleanBody = candidate;
+        break;
+      }
+      log('semantic-consolidator: rejected LLM body', { domain, mode, attempt, rejection });
     }
 
-    // Strip any frontmatter or fencing the model added despite being told not
-    // to — frontmatter is rebuilt here so episode-sources can't be corrupted.
-    const cleanBody = splitFrontmatter(
-      newBody
-        .trim()
-        .replace(/^```(?:markdown|md)?\s*\n/, '')
-        .replace(/\n```\s*$/, ''),
-    ).body;
+    // Both attempts rejected. The per-source hashes are deliberately left
+    // UNWRITTEN so the next run still sees these sources as changed, but the
+    // rejection itself is now RECORDED — that counter is what stops a sticky
+    // rebuild trigger from re-firing every run forever.
+    if (!cleanBody) {
+      const rejectedAt = new Date().toISOString();
+      const rebuildRejections =
+        mode === 'rebuild' ? (stored?.rebuildRejections || 0) + 1 : stored?.rebuildRejections || 0;
 
-    if (!hasRealContent(cleanBody)) {
-      log('semantic-consolidator: LLM output had no real content, keeping existing file', {
-        domain,
-      });
+      state[domain] = {
+        ...stored,
+        rebuildRejections,
+        lastRejection: rejection,
+        lastRejectionAt: rejectedAt,
+      };
+
+      // Start the cooldown: with the delta counter back at zero the periodic
+      // rebuild is pushed out a full interval, and isRebuildBlocked holds until
+      // it climbs back.
+      if (mode === 'rebuild' && rebuildRejections >= MAX_REBUILD_REJECTIONS) {
+        state[domain].deltasSinceRebuild = 0;
+        log('semantic-consolidator: rebuild rejected repeatedly, falling back to delta', {
+          domain,
+          rebuildRejections,
+          rejection,
+          retryAfterDeltas: DELTA_REBUILD_INTERVAL,
+        });
+      }
+
+      writeState(consolidationStatePath, state);
+      log('semantic-consolidator: keeping existing file', { domain, mode, rejection });
       return;
     }
 
@@ -607,6 +781,8 @@ async function consolidateSemantic(memoryDir, semanticFilePath, carryoverBody) {
     const base = path.basename(semanticFilePath, '.md');
 
     // Keep one prior generation, but only once there was something to preserve.
+    // Under surgical updates its diff is small and genuinely reviewable, which
+    // makes it the practical way to audit what a consolidation changed.
     if (hasRealContent(body)) {
       fs.writeFileSync(
         path.join(dir, `${base}-prev.md`),
@@ -625,26 +801,78 @@ async function consolidateSemantic(memoryDir, semanticFilePath, carryoverBody) {
     fs.writeFileSync(tmp, `${frontmatter}\n\n${cleanBody}\n`, 'utf8');
     fs.renameSync(tmp, semanticFilePath);
 
-    state[domain] = { signature, consolidatedAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    // bodySchema is stamped only HERE, on a successful consolidation — never at
+    // seed time. Stamping at seed would mark a freshly seeded template as
+    // current, so its first real consolidation would skip its own rebuild.
+    //
+    // Only a REBUILD may stamp it. A delta running because the schema rebuild
+    // was blocked has not migrated anything, so stamping there would mark the
+    // migration done while the body is still the old shape — the same false
+    // 'current' as the seed-time bug above.
+    state[domain] = {
+      bodySchema:
+        mode === 'rebuild' ? BODY_SCHEMA_VERSION : (stored?.bodySchema ?? BODY_SCHEMA_VERSION),
+      sources: currentHashes,
+      deltasSinceRebuild: mode === 'rebuild' ? 0 : (stored?.deltasSinceRebuild || 0) + 1,
+      lastRebuildAt: mode === 'rebuild' ? now : stored?.lastRebuildAt || now,
+      // Consecutive REBUILD rejections. Cleared by a successful rebuild only: a
+      // successful delta says nothing about whether rebuild works, and clearing
+      // on delta would unblock the sticky trigger immediately, putting the loop
+      // straight back.
+      rebuildRejections: mode === 'rebuild' ? 0 : stored?.rebuildRejections || 0,
+      consolidatedAt: now,
+    };
     writeState(consolidationStatePath, state);
 
-    log('semantic-consolidator: consolidated', { domain, sources: episodeSources.length });
+    log('semantic-consolidator: consolidated', {
+      domain,
+      mode,
+      fed: sourcesToFeed.length,
+      of: episodeSources.length,
+    });
   } catch (error) {
     log('semantic-consolidator: failed', { file: semanticFilePath, error: error.message });
+  }
+}
+
+// The split TRIGGER lands now; the split MACHINERY waits until a real body
+// passes the warning threshold, at which point this will have been logging for
+// weeks. Bodies only start growing once surgical updates stop re-deriving them
+// from their sources, so there is time.
+function checkSplitTrigger(semanticFilePath, domain, areas) {
+  try {
+    const { body } = splitFrontmatter(fs.readFileSync(semanticFilePath, 'utf8'));
+    const bodyWords = countBodyWords(body);
+    if (bodyWords >= SPLIT_BODY_WORDS && areas >= SPLIT_MIN_AREAS) {
+      log('semantic-consolidator: split needed', { domain, bodyWords, areas });
+    } else if (bodyWords >= SPLIT_BODY_WORDS) {
+      // Not splittable: a split partitions areas, and one area cannot divide. A
+      // single area distilling to this much means the module tag is too broad.
+      log('semantic-consolidator: over split threshold but only one area, left intact', {
+        domain,
+        bodyWords,
+      });
+    } else if (bodyWords >= SPLIT_WARN_BODY_WORDS) {
+      log('semantic-consolidator: approaching split threshold', { domain, bodyWords, areas });
+    }
+  } catch {
+    // A body we cannot read is not a split decision.
   }
 }
 
 async function consolidateAll(memoryDir, cwd) {
   const semanticDir = path.join(memoryDir, 'semantic');
 
-  const { carryover } = await ensureSemanticFiles(memoryDir, cwd);
+  const { byDomain, carryover, forceRebuild } = await ensureSemanticFiles(memoryDir, cwd);
 
   if (!fs.existsSync(semanticDir)) return;
 
   for (const file of listSemanticFiles(semanticDir)) {
     const filePath = path.join(semanticDir, file);
     const domain = normalizeModuleTag(parseFrontmatter(fs.readFileSync(filePath, 'utf8')).domain);
-    await consolidateSemantic(memoryDir, filePath, carryover.get(domain));
+    await consolidateSemantic(memoryDir, filePath, carryover.get(domain), forceRebuild.has(domain));
+    checkSplitTrigger(filePath, domain, (byDomain[domain] || []).length);
   }
 }
 
