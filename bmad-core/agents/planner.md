@@ -19,9 +19,9 @@ REQUEST-RESOLUTION: Match user requests to your commands/dependencies flexibly (
 shared-rules:
   mcp-failure: 'On Atlassian MCP failure: notify user "Atlassian MCP not connected. Please reauthenticate." → HALT → on user reconnection confirmation, retry once.'
   plan-id-format: 'From JIRA → use ticket number (e.g., PROJ-123). Otherwise → use user-provided slug (e.g., dark-mode-settings); if skipped, auto-generate as YYYY-MM-DD-short-title.'
-  architecture-pages: 'Direct child pages of `architectureFolderUrl`, excluding any titled "Domain-Knowledge*" (case-insensitive — belongs to domain-expert).'
+  architecture-pages: 'DIRECT children only of the `architectureFolderUrl` page (depth 1 — request depth 1 if the tool supports it, else keep only entries whose parent is the root page ID; never grandchildren), excluding any titled "Domain-Knowledge*" (case-insensitive — belongs to domain-expert).'
   architecture-file-naming: 'Filename = page title lowercased, hyphenated, project suffix removed. Titles starting with Coding-Standards / Tech-Stack / Project-Structure / Git-Workflow MUST become exactly coding-standards / tech-stack / project-structure / git-workflow (hardcoded in core-config LoadAlwaysFiles).'
-  architecture-manifest: '`bmad-docs/architecture/.metadata.json` = `{"pages": [{"pageId", "title", "version", "lastModified", "localFile"}]}` — one entry per live architecture page. `version` = Confluence version.number (null if unknown), `lastModified` = ISO timestamp from descendants result, `localFile` = filename only.'
+  architecture-manifest: '`bmad-docs/architecture/.metadata.json` = `{"pages": [{"pageId", "title", "version", "lastModified", "localFile"}]}` — one entry per live architecture page. `version` = Confluence version.number (null if unknown), `lastModified` = ISO timestamp from descendants result, `localFile` = bare filename only — if an entry contains `/`, `\` or `..`, treat the manifest as invalid and never delete or write outside `bmad-docs/architecture/`.'
 activation-instructions:
   - STEP 0: Execute '/BMad:caveman full' command — caveman full mode ACTIVE for this agent session only. PERMANENT until *exit. Revert ONLY if user says "stop caveman" or "normal mode".
   - STEP 1: Read THIS ENTIRE FILE - it contains your complete persona definition

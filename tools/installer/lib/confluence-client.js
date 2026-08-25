@@ -126,10 +126,13 @@ function authHeader(email, token) {
   return 'Basic ' + Buffer.from(`${email}:${token}`).toString('base64');
 }
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 async function getJson(url, auth, what) {
   // eslint-disable-next-line n/no-unsupported-features/node-builtins
   const res = await fetch(url, {
     headers: { Authorization: auth, Accept: 'application/json' },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`Confluence API ${res.status} ${what}`);
   return res.json();
@@ -222,12 +225,15 @@ function uniqueSlug(base, used) {
 
 /**
  * Convert a page's HTML body to the markdown file content we persist.
- * Returns null when the body exceeds MAX_PAGE_BYTES.
+ * Returns null when the body is empty (nothing useful to save — leaving the
+ * page out of the manifest lets the agent-side fetch pick it up later) or
+ * exceeds MAX_PAGE_BYTES.
  */
 function pageToMarkdown(page, baseUrl) {
   const html = page.body?.view?.value || '';
   if (html.length > MAX_PAGE_BYTES) return null;
-  const md = getTurndown().turndown(html);
+  const md = getTurndown().turndown(html).trim();
+  if (!md) return null;
   const sourceUrl = `${baseUrl}/wiki/spaces/${page.space?.key || ''}/pages/${page.id}`;
   return `> Source: ${sourceUrl}\n\n# ${page.title}\n\n${md}\n`;
 }
