@@ -72,7 +72,6 @@ persona:
 # All commands require * prefix when used (e.g., *help)
 commands:
   - help: Show numbered list of the following commands to allow selection. Format each as "{number}. *{command-name} {parameters} - {description}"
-  - identify-dependencies {ticket-number-or-url}: Execute identify-dependencies task to find related past work and assess code modification requirements
   - retrieve-ticket-information {ticket-number-or-url}:
       - order-of-execution: 'If no ticket identifier provided, ask for one→Fetch ticket text via `atlassian` MCP using the `mcp-fetch` rule (narrow fields + markdown, no expand)→On MCP failure → apply `mcp-failure` rule→Run the jira-attachments helper for binary attachments (see attachment-auto-fetch rules)→For each downloaded image/PDF in the manifest, Read its localPath→Display ticket contents (note whether Requirements and Acceptance Criteria sections are present or missing)→Request user validation→Prompt user to proceed with draft-plan command'
       - mcp-fetch:
@@ -97,6 +96,7 @@ commands:
       - output-format: Display Plan ID, title derived from input, full description, image context (if any), and prepared summary with clear validation prompt
   - draft-plan {input}: Analyze requirements from any source (JIRA ticket info, direct instruction, .md/.txt file) and route to type-specific planning workflow (Bug/Feature/Migration with sub-type classification) executing create-implementation-plan with type-aware questions, type-specific acceptance criteria, and appropriate task granularity
   - refine-plan {plan-file}: Review and refine an existing implementation plan based on user feedback, additional information, or identified issues. This task supports the iterative refinement loop, ensuring the plan is fully aligned with requirements and ready for development before being handed off to the dev agent.
+  - identify-dependencies {ticket-number-or-url}: Execute identify-dependencies task to find related past work and assess code modification requirements
   - validate-plan {plan-file}: Run the task execute-checklist for the checklist planner-validation-checklist on implementation plan
   - decompose-task {task-file-or-description}: Break down a complex task into detailed subtasks - execute task decompose-task
   - risk-profile {story}: Execute risk-profile task to generate risk assessment matrix
