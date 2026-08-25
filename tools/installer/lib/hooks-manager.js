@@ -1,5 +1,6 @@
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const fs = require('fs-extra');
 const chalk = require('chalk').default || require('chalk');
@@ -51,6 +52,146 @@ class HooksManager {
 
   getHooksSourceDir() {
     return path.join(resourceLocator.getBmadCorePath(), 'bmad-hooks', 'user');
+  }
+
+  getManifestPath() {
+    return path.join(this.getHooksDestDir(), '.install-manifest.json');
+  }
+
+  /**
+   * Content hash of a plugin's source files. Used instead of package.json version
+   * so plugin edits are detected without anyone remembering to bump a version.
+   * Returns null when the plugin source is missing.
+   */
+  async hashPlugin(plugin, baseDir = this.getHooksSourceDir()) {
+    const pluginSrcDir = path.join(baseDir, plugin.name);
+    if (!(await fs.pathExists(pluginSrcDir))) return null;
+
+    const hash = crypto.createHash('sha256');
+    for (const file of [...plugin.files].sort()) {
+      const filePath = path.join(pluginSrcDir, file);
+      hash.update(file);
+      if (await fs.pathExists(filePath)) {
+        hash.update(await fs.readFile(filePath));
+      }
+    }
+    // Registered events are part of the installed state — a change means settings.json is stale
+    hash.update(JSON.stringify(plugin.events));
+    return hash.digest('hex').slice(0, 16);
+  }
+
+  async getSourceState() {
+    const state = {};
+    for (const plugin of PLUGINS) {
+      const hash = await this.hashPlugin(plugin);
+      if (hash) state[plugin.name] = hash;
+    }
+    return state;
+  }
+
+  /** Hash of what is actually sitting in ~/.claude/bmad-hooks/ right now. */
+  async getInstalledState() {
+    const state = {};
+    for (const plugin of PLUGINS) {
+      const hash = await this.hashPlugin(plugin, this.getHooksDestDir());
+      if (hash) state[plugin.name] = hash;
+    }
+    return state;
+  }
+
+  async readManifest() {
+    try {
+      const manifestPath = this.getManifestPath();
+      if (!(await fs.pathExists(manifestPath))) return null;
+      return JSON.parse(await fs.readFile(manifestPath, 'utf8'));
+    } catch {
+      return null;
+    }
+  }
+
+  async writeManifest(manifest) {
+    await fs.ensureDir(this.getHooksDestDir());
+    await fs.writeFile(this.getManifestPath(), JSON.stringify(manifest, null, 2), 'utf8');
+  }
+
+  /** True when settings.json still registers this plugin for every event it declares. */
+  isPluginRegistered(settings, plugin) {
+    const hooks = settings && settings.hooks;
+    if (!hooks || typeof hooks !== 'object') return false;
+
+    const command = this.buildPluginCommand(plugin.name);
+    return Object.keys(plugin.events).every((event) => {
+      const entries = hooks[event];
+      if (!Array.isArray(entries)) return false;
+      return entries.some(
+        (entry) =>
+          Array.isArray(entry.hooks) &&
+          entry.hooks.length > 0 &&
+          entry.hooks[0].command === command,
+      );
+    });
+  }
+
+  /**
+   * Decide whether the user-level hooks need attention at all.
+   *   current   - installed, up to date, still registered -> stay silent
+   *   declined  - user said no to this exact version -> stay silent
+   *   outdated  - installed but plugin sources changed -> offer an update
+   *   missing   - never installed here -> offer a first-time setup
+   */
+  async getHooksStatus() {
+    const sourceState = await this.getSourceState();
+    const manifest = await this.readManifest();
+
+    if (!manifest || !manifest.plugins) {
+      // No manifest — either a first install, or hooks installed before manifests existed.
+      // Fall back to comparing the files actually on disk so an existing, current install
+      // is adopted silently instead of re-prompting.
+      const installedState = await this.getInstalledState();
+      const settings = await this.readUserSettings();
+      const adoptable =
+        Object.keys(sourceState).length > 0 &&
+        JSON.stringify(installedState) === JSON.stringify(sourceState) &&
+        PLUGINS.every(
+          (plugin) => !sourceState[plugin.name] || this.isPluginRegistered(settings, plugin),
+        );
+
+      if (adoptable) {
+        // Record it so later installs take the cheap path
+        try {
+          await this.writeManifest({
+            declined: false,
+            plugins: sourceState,
+            updatedAt: new Date().toISOString(),
+            adopted: true,
+          });
+        } catch {
+          // Non-fatal
+        }
+        return { status: 'current', sourceState };
+      }
+
+      return {
+        status: Object.keys(installedState).length > 0 ? 'outdated' : 'missing',
+        sourceState,
+      };
+    }
+
+    const sameVersion =
+      JSON.stringify(manifest.plugins) === JSON.stringify(sourceState) &&
+      Object.keys(sourceState).length > 0;
+
+    if (!sameVersion) return { status: 'outdated', sourceState, manifest };
+    if (manifest.declined) return { status: 'declined', sourceState, manifest };
+
+    // Same version — but the user may have stripped the entries out of settings.json by hand.
+    // That is a deliberate opt-out, not a reason to re-install.
+    const settings = await this.readUserSettings();
+    const registered = PLUGINS.every(
+      (plugin) => !sourceState[plugin.name] || this.isPluginRegistered(settings, plugin),
+    );
+
+    return { status: registered ? 'current' : 'declined', sourceState, manifest };
   }
 
   buildPluginCommand(pluginName) {
@@ -227,19 +368,43 @@ class HooksManager {
   }
 
   async setupCustomHooks(spinner) {
+    const { status, sourceState } = await this.getHooksStatus();
+
+    // Notification hooks are installed once per user (~/.claude), while BMad is installed
+    // per project. Only ask when there is actually something to do.
+    if (status === 'current' || status === 'declined') {
+      if (spinner) {
+        spinner.text = 'Claude notification hooks already up to date — skipping.';
+      }
+      return;
+    }
+
     if (spinner) spinner.stop();
 
+    const isUpdate = status === 'outdated';
     const { setupHooks } = await inquirer.prompt([
       {
         type: 'confirm',
         name: 'setupHooks',
-        message: 'Do you want to set up Notification from Claude events?',
+        message: isUpdate
+          ? 'Claude notification hooks have been updated. Update them now?'
+          : 'Do you want to set up Notification from Claude events?',
         default: true,
       },
     ]);
 
     if (!setupHooks) {
       console.log(chalk.yellow('⚠️  Skipping notification hooks setup.'));
+      // Remember the decline so the next project install does not re-ask for this same version
+      try {
+        await this.writeManifest({
+          declined: true,
+          plugins: sourceState,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch {
+        // Non-fatal — worst case we ask again next time
+      }
       if (spinner) spinner.start();
       return;
     }
@@ -255,9 +420,21 @@ class HooksManager {
       this.mergeHooks(settings);
       await this.writeUserSettings(settings);
 
+      await this.writeManifest({
+        declined: false,
+        plugins: sourceState,
+        updatedAt: new Date().toISOString(),
+      });
+
       if (spinner) spinner.stop();
 
-      console.log(chalk.green('✓ Claude notification hooks configured!'));
+      console.log(
+        chalk.green(
+          isUpdate
+            ? '✓ Claude notification hooks updated!'
+            : '✓ Claude notification hooks configured!',
+        ),
+      );
       console.log(chalk.green(`  Hook scripts → ${this.getHooksDestDir()}`));
       console.log(chalk.green('  settings.json updated (PermissionRequest + Stop events)'));
     } catch (error) {

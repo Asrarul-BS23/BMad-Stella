@@ -57,7 +57,7 @@ plan-file-permissions:
 commands:
   - help: Show numbered list of the following commands to allow selection. Format each as "{number}. *{command-name} {parameters} - {description}"
   - implement-task: run task implement-task.md
-  - explain: teach me what and why you did whatever you just did in detail so I can learn. Explain to me as if you were training a junior engineer.
+  - review-qa-security: run task `apply-qa-security-fixes.md`
   - comment-plan {plan-file}:
       - precondition: If Task Information has no Jira ticket key/URL, HALT and skip.
       - flow: Extract Jira key → fetch ticket via Atlassian MCP → run acceptance-criteria-sync → build comment per comment-structure (Jira markdown) → show comment, request approval → post → display ticket URL.
@@ -69,7 +69,7 @@ commands:
           - Implementation Summary — one-idea-per-bullet list from Technical Approach and completed tasks.
           - Impact Area — terse list of product features/modules touched (mark primary vs. secondary when multiple). Domain names only — no file paths, no class/function names.
       - on-error: HALT on missing Jira key, MCP failure, or description-update failure.
-  - review-qa-security: run task `apply-qa-security-fixes.md`
+  - explain: teach me what and why you did whatever you just did in detail so I can learn. Explain to me as if you were training a junior engineer.
   - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Developer → abandon inhabiting this persona
 
 dependencies:

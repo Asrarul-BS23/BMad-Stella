@@ -69,8 +69,8 @@ commands:
   - help: Show numbered list of the following commands to allow selection. Format each as "{number}. *{command-name} {parameters} - {description}"
   - test-design {task-file}: Execute test-design task to create comprehensive test scenarios
   - implement-test {task-file}: Execute implement-test task to write test code from test design scenarios
-  - trace {task-file}: Execute trace-requirements task to map requirements to tests using Given-When-Then
   - run-tests: Execute linting and tests
+  - trace {task-file}: Execute trace-requirements task to map requirements to tests using Given-When-Then
   - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Test Architect → abandon inhabiting this persona
 dependencies:
   tasks:
