@@ -11,7 +11,7 @@ const os = require('node:os');
 const { readState, writeState, log } = require('./lib/state');
 const { parsePlanFile } = require('./lib/plan-parser');
 const { writeEpisodic } = require('./lib/episodic-writer');
-const { writeLesson } = require('./lib/lesson-writer');
+const { writeLesson, readExistingLessons } = require('./lib/lesson-writer');
 const { refreshPatternTrees } = require('./lib/pattern-writer');
 const { consolidateAll } = require('./lib/semantic-consolidator');
 const { distillIfStale } = require('./lib/domain-map-distiller');
@@ -104,7 +104,7 @@ function extractPlanSections(content) {
 }
 
 // Single batched call — returns { episodic, lessons } or null
-async function analyzePlan(planInfo) {
+async function analyzePlan(planInfo, existingLessons) {
   const today = todayUTC();
   const planId = path.basename(planInfo.filePath, '.md');
   const sections = extractPlanSections(planInfo.content);
@@ -120,6 +120,7 @@ async function analyzePlan(planInfo) {
     moduleTag: planInfo.moduleTag || 'untagged',
     description: planInfo.description || 'not provided',
     sectionsBlock,
+    existingLessons,
   });
 
   const result = await callClaude(prompt);
@@ -134,7 +135,9 @@ async function analyzePlan(planInfo) {
     if (typeof parsed !== 'object' || parsed === null) return null;
     return {
       episodic: typeof parsed.episodic === 'string' ? parsed.episodic.trim() : null,
-      lessons: Array.isArray(parsed.lessons) ? parsed.lessons.filter(Boolean) : [],
+      // Hard cap: the prompt asks for 0 or 1, but a model that returns two
+      // near-identical lessons must not be able to create two files.
+      lessons: Array.isArray(parsed.lessons) ? parsed.lessons.filter(Boolean).slice(0, 1) : [],
     };
   } catch {
     log('daily-job: plan analysis JSON parse failed', { planId });
@@ -245,8 +248,12 @@ async function run() {
     const planId = path.basename(planFile, '.md');
     log('daily-job: processing plan', { file: planId, module: planInfo.moduleTag });
 
+    // Re-read per plan: a lesson written for an earlier plan in this same run
+    // must be matchable by later plans, otherwise a backfill duplicates it.
+    const existingLessons = readExistingLessons(lessonsDir);
+
     // Single batched Claude call per plan — episodic + lessons + patterns
-    const analysis = await analyzePlan(planInfo);
+    const analysis = await analyzePlan(planInfo, existingLessons);
 
     const episodicEntry =
       analysis?.episodic ||
