@@ -55,6 +55,10 @@ Press **ENTER** to install the core. Toggle expansion packs with **SPACE** if ne
   Risk Monitor
   SAFV
   QuarryConnect
+  DRE
+  SLS-FRONTEND
+  SLS-BACKEND
+  TEC
   Other (custom URL)
 ```
 

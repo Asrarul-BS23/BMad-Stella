@@ -364,6 +364,23 @@ async function promptInstallation() {
         url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1364983831/DRE',
         logsUrl: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1481113604/DRE-LOGS',
       },
+      'sls-frontend': {
+        name: 'SLS-FRONTEND',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1521811499/SLS-Frontend',
+        logsUrl:
+          'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1536557104/SLS-Frontend-LOGS',
+      },
+      'sls-backend': {
+        name: 'SLS-BACKEND',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1521614903/SLS-Backend',
+        logsUrl:
+          'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1536819234/SLS-Backend-LOGS',
+      },
+      tec: {
+        name: 'TEC',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1536851989/TEC',
+        logsUrl: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1536426002/TEC-LOGS',
+      },
       other: {
         name: 'Other (custom URL)',
         url: null,
