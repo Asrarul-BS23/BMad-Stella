@@ -64,31 +64,6 @@ class ClaudePermissionsManager {
       'Edit(bmad-docs/**)',
       'Edit(*bmad-docs*)',
 
-      // File operations for scribe notes
-      'Read(bmad-docs/bmad-notes/**)',
-      'Read(**/bmad-docs/bmad-notes/**)',
-      'Write(bmad-docs/bmad-notes/**)',
-      'Write(*bmad-notes*)',
-      'Edit(bmad-docs/bmad-notes/**)',
-      'Edit(*bmad-notes*)',
-
-      // Bash for notes directory ops (Unix)
-      'Bash(mkdir -p bmad-docs/bmad-notes/**)',
-      'Bash(mkdir bmad-docs/bmad-notes/**)',
-      'Bash(ls bmad-docs/bmad-notes/**)',
-      'Bash(test -f bmad-docs/bmad-notes/**)',
-      'Bash(test -d bmad-docs/bmad-notes/**)',
-      'Bash([ -f bmad-docs/bmad-notes/** ])',
-      'Bash([ -d bmad-docs/bmad-notes/** ])',
-
-      // Bash for notes directory ops (Windows) — non-destructive only
-      'Bash(mkdir *bmad-notes*)',
-      'Bash(dir bmad-docs/bmad-notes/**)',
-
-      // Glob/Grep for notes
-      'Grep(bmad-docs/bmad-notes/**)',
-      'Glob(bmad-docs/bmad-notes/**)',
-
       // Bash commands for directory operations (Unix)
       'Bash(mkdir -p bmad-docs/**)',
       'Bash(mkdir -p **/bmad-docs/**)',

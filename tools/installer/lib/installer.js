@@ -9,7 +9,6 @@ const ideSetup = require('./ide-setup');
 const { extractYamlFromAgent } = require('../../lib/yaml-utils');
 const resourceLocator = require('./resource-locator');
 const dependencyManager = require('./dependency-manager');
-const scribeSetup = require('./scribe-setup');
 const hooksManager = require('./hooks-manager');
 const memorySetup = require('./memory-setup');
 const cjson = require('comment-json');
@@ -494,15 +493,6 @@ class Installer {
       spinner.text = 'Updating .gitignore...';
       spinner.stop();
       await this.updateGitignore(installDir);
-      spinner.start();
-    }
-
-    // Initialize scribe notes (silent, idempotent)
-    if (config.installType !== 'expansion-only') {
-      spinner.text = 'Initializing notes...';
-      spinner.stop();
-      const notesResult = await scribeSetup.setup(installDir);
-      scribeSetup.showSummary(notesResult);
       spinner.start();
     }
 

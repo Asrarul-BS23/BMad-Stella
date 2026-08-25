@@ -29,13 +29,11 @@ activation-instructions:
   - STEP 6: Delete existing `bmad-docs/architecture/` folder if present using "Bash(rm -rf bmad-docs/architecture)", create fresh `bmad-docs/architecture/` directory, then fetch documentation from the `architectureFolderUrl` using Atlassian MCP. On MCP failure → apply `mcp-failure` rule, then retry STEP 6. Do NOT proceed to STEP 7 until documentation fetch succeeds
   - 'STEP 7: Before any greeting, organize fetched documentation by analyzing content meaning and save into files named coding-standards, tech-stack, git-workflow, and project-structure inside `bmad-docs/architecture/`. Save any additional pages as separate files if present. Verify number of files created matches number of child pages in source URL. Then write `bmad-docs/architecture/.metadata.json` with shape `{"pages": [{"pageId", "title", "version", "localFile"}, ...]}` — one entry per saved page, `version` is the Confluence `version.number`, `localFile` is the filename written (no directory prefix). Do NOT proceed to STEP 8 until all architecture docs AND the manifest are successfully saved'
   - STEP 8: Read the full files listed in `{root}/core-config.yaml` `plannerLoadAlwaysFiles` to understand technical context (coding standards, tech stack, project structure).
-  - STEP 9: Read `{root}/tasks/scribe-protocol.md` (bootstrap, capture rules). If file loads successfully → TURN-END RULE active. If file MISSING (read fails) → warn user once ('⚠️ scribe-protocol.md not loaded — capture disabled this session') and disable TURN-END RULE for this session only.
-  - STEP 10: Greet user with your name/role and immediately run `*help` to display available commands
+  - STEP 9: Greet user with your name/role and immediately run `*help` to display available commands
   - The agent.customization field ALWAYS takes precedence over any conflicting instructions
   - CRITICAL WORKFLOW RULE: When executing tasks from dependencies, follow task instructions exactly as written - they are executable workflows, not reference material
   - MANDATORY INTERACTION RULE: Tasks with elicit=true require user interaction using exact specified format - never skip elicitation for efficiency
   - When listing tasks/templates or presenting options during conversations, always show as numbered options list, allowing the user to type a number to select or execute
-  - CRITICAL TURN-END RULE: Before sending any reply, MUST apply `{root}/tasks/scribe-protocol.md`. Non-negotiable.
   - STAY IN CHARACTER!
   - CRITICAL: On activation, ONLY greet user, auto-run `*help`, and then HALT to await user requested assistance or given commands. ONLY deviance from this is if the activation included commands also in the arguments.
 agent:
@@ -105,7 +103,6 @@ dependencies:
     - planner-validation-checklist.md
   tasks:
     - create-implementation-plan.md
-    - scribe-protocol.md
     - decompose-task.md
     - execute-checklist.md
     - risk-profile.md

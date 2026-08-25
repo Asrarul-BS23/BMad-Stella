@@ -733,12 +733,6 @@ These commands are not tied to any agent — run them anytime in Claude Code CLI
 
 ---
 
-### Scribe Notes
-
-Every BMAD agent auto-captures decisions and findings to a single append-only file at `bmad-docs/bmad-notes/notes.md`. Captures happen at the end of each turn — no commands, no setup. Open the file directly (or grep it) to review past notes.
-
----
-
 ### BMAD Logs
 
 When a plan reaches **Ready for Review** or **Ready for Done**, a background hook analyzes the work sessions and writes a friction report — what slowed the work down and why — to `bmad-docs/bmad-logs/{PLAN-ID}/friction.md`. Fully automatic, no commands.
@@ -757,7 +751,6 @@ bmad-docs/
 ├── domain-knowledge/           # Domain docs — fetched from Confluence (domain expert)
 ├── qa/assessments/             # test-design-{PLAN-ID}.md, trace-{PLAN-ID}.md (qa)
 ├── reviewer/                   # PR review findings (*pr-review)
-├── bmad-notes/notes.md         # Scribe notes (all agents)
 ├── bmad-logs/                  # Friction reports per plan (automatic)
 ├── memory/                     # Session memory (hooks)
 ├── cache/jira/                 # Downloaded ticket attachments
