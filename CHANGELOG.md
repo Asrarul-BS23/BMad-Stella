@@ -2,7 +2,8 @@
 
 ### Features
 
-- **installer**: architecture docs are now prefetched from Confluence at install time (`tools/installer/lib/architecture-docs-fetcher.js`), alongside domain knowledge. Direct child pages of `architectureFolderUrl` (excluding `Domain-Knowledge`) are saved to `bmad-docs/architecture/` with canonical names (`coding-standards`, `tech-stack`, `project-structure`, `git-workflow`) plus a `.metadata.json` manifest so the planner's activation cache check passes. Planner MCP fetch remains as fallback when credentials are missing.
+- **installer**: architecture docs are now prefetched from Confluence at install time (`tools/installer/lib/architecture-docs-fetcher.js`), alongside domain knowledge. Direct child pages of `architectureFolderUrl` (excluding `Domain-Knowledge`) are saved to `bmad-docs/architecture/` with canonical names (`coding-standards`, `tech-stack`, `project-structure`, `git-workflow`) plus a `.metadata.json` manifest (`pageId`, `title`, `version`, `lastModified`, `localFile`) so the planner's activation cache check passes. Planner MCP fetch remains as fallback when credentials are missing.
+- **planner**: activation cache check now costs one `getConfluencePageDescendants` call and never fetches page bodies (previously re-fetched every page just to read its version, ~15k tokens per activation). Cache miss is incremental — only new/changed pages are fetched, removed pages deleted, unchanged files left untouched.
 - **installer**: shared Confluence REST helpers extracted to `tools/installer/lib/confluence-client.js`; `domain-knowledge-fetcher.js` now uses them (behaviour unchanged).
 
 ### Removed

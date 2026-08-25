@@ -14,7 +14,10 @@ const confluence = require('./confluence-client');
 const CANONICAL_NAMES = ['coding-standards', 'tech-stack', 'project-structure', 'git-workflow'];
 
 // Manifest consumed by the planner's activation cache check (planner.md STEP 5).
-// Shape must stay: { pages: [{ pageId, title, version, localFile }] }
+// Shape must stay: { pages: [{ pageId, title, version, lastModified, localFile }] }
+// `version` = Confluence version.number, `lastModified` = version.when (ISO 8601).
+// The planner compares these against getConfluencePageDescendants output without
+// fetching page bodies.
 const METADATA_FILE = '.metadata.json';
 
 class ArchitectureDocsFetcher {
@@ -81,6 +84,7 @@ class ArchitectureDocsFetcher {
           pageId: String(page.id),
           title: page.title,
           version: page.version?.number ?? null,
+          lastModified: page.version?.when ?? null,
           localFile,
         });
       }
