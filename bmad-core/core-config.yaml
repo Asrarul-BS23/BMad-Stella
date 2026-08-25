@@ -46,8 +46,6 @@ jira:
       - application/json
     maxAttachmentMB: 50
     concurrency: 5
-scribe:
-  notesFile: bmad-docs/bmad-notes/notes.md
 logging:
   localDir: bmad-docs/bmad-logs
   triggerStatuses:
