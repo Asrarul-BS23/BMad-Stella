@@ -465,15 +465,25 @@ class Installer {
       await fileManager.modifyCoreConfig(installDir, config);
     }
 
-    // Pre-fetch Confluence domain knowledge so Sage is ready on first activation.
-    // Silent — runs only when URL + Atlassian credentials are both present.
+    // Pre-fetch Confluence architecture docs + domain knowledge so agents are
+    // ready on first activation. Silent — runs only when URL + Atlassian
+    // credentials are both present. Planner / Sage fall back to MCP fetch if
+    // either prefetch is skipped.
     if (
       config.installType !== 'expansion-only' &&
       config.architectureFolderUrl &&
       mcpResults?.jiraCredentials?.ok
     ) {
-      spinner.text = 'Fetching domain knowledge from Confluence...';
+      spinner.text = 'Fetching architecture docs from Confluence...';
       spinner.stop();
+      const architectureDocsFetcher = require('./architecture-docs-fetcher');
+      const archResult = await architectureDocsFetcher.fetchAndPersist({
+        installDir,
+        architectureFolderUrl: config.architectureFolderUrl,
+      });
+      architectureDocsFetcher.showSummary(archResult);
+
+      spinner.text = 'Fetching domain knowledge from Confluence...';
       const domainKnowledgeFetcher = require('./domain-knowledge-fetcher');
       const dkResult = await domainKnowledgeFetcher.fetchAndPersist({
         installDir,

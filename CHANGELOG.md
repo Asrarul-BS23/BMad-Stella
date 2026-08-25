@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Features
+
+- **installer**: architecture docs are now prefetched from Confluence at install time (`tools/installer/lib/architecture-docs-fetcher.js`), alongside domain knowledge. Direct child pages of `architectureFolderUrl` (excluding `Domain-Knowledge`) are saved to `bmad-docs/architecture/` with canonical names (`coding-standards`, `tech-stack`, `project-structure`, `git-workflow`) plus a `.metadata.json` manifest so the planner's activation cache check passes. Planner MCP fetch remains as fallback when credentials are missing.
+- **installer**: shared Confluence REST helpers extracted to `tools/installer/lib/confluence-client.js`; `domain-knowledge-fetcher.js` now uses them (behaviour unchanged).
+
 ### Removed
 
 - **scribe**: removed the scribe notes feature entirely — `scribe-protocol.md`, `scribe-rules.yaml`, installer notes setup, `bmad-notes` permission allowlist entries, `scribe.notesFile` config, and the TURN-END capture rule from all agents. Existing `bmad-docs/bmad-notes/` and `bmad-ledger/` directories remain as historical orphans (no migration).
