@@ -46,6 +46,8 @@ Rules:
 - Threshold >= 3 distinct files, cap 15 entries total
 - No file trees, no directory listings
 - Keep the whole file under 30 lines
+- You have NO file-write access — do not use a Write/Edit tool or attempt to save anything yourself.
+  Just return the file content as your final text response; the calling process saves it.
 - Output ONLY the file content`;
 }
 
