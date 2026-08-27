@@ -5,7 +5,7 @@
 ## Always Injected at Agent Activation
 
 - `domain-map.md` — business context, core entities, invariants
-- `patterns.md` — reusable code index (shared folders and file trees)
+- `patterns.md` — reuse-patterns index (verified base classes/utilities, ranked by reference count)
 
 ## Active Constraints
 

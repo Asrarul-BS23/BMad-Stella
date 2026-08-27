@@ -145,7 +145,7 @@ function updateMemoryIndex(memoryDir, cwd) {
     const patterns = path.join(memoryDir, 'patterns.md');
     if (fs.existsSync(patterns)) {
       lines.push(
-        `- \`${relPath(cwd, patterns)}\` — reusable code index (shared folders and file trees)`,
+        `- \`${relPath(cwd, patterns)}\` — reuse-patterns index (verified base classes/utilities, ranked by reference count)`,
       );
     }
     lines.push('');

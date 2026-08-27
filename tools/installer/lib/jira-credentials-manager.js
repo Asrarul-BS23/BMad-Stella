@@ -366,28 +366,39 @@ class JiraCredentialsManager {
    * @returns {Promise<object|null>}
    */
   async _collectFreshCredentials(prefilled) {
+    // The tenant URL is already known (collected once during MCP setup, or from an
+    // existing .env/process env) — don't ask for it a second time. Only unlock it if
+    // verification later comes back "notfound", since that means the known URL itself
+    // may be wrong and the user needs a way to correct it.
+    let urlLocked = Boolean(prefilled.JIRA_BASE_URL && prefilled.JIRA_BASE_URL.trim());
+    if (urlLocked) {
+      console.log(chalk.dim(`  Using Atlassian site: ${prefilled.JIRA_BASE_URL}`));
+    }
+
     let last = null;
     for (let attempt = 1; attempt <= MAX_VERIFY_ATTEMPTS; attempt += 1) {
       const defaults = last || prefilled;
-      const answers = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'JIRA_BASE_URL',
-          message: `Atlassian site URL (e.g., ${DEFAULT_ATLASSIAN_BASE_URL}):`,
-          default: defaults.JIRA_BASE_URL || DEFAULT_ATLASSIAN_BASE_URL,
-          validate: (input) => {
-            if (!input || !input.trim()) return 'Required';
-            try {
-              const url = new URL(input.trim());
-              return url.protocol === 'https:' || url.protocol === 'http:'
-                ? true
-                : 'Must be an http(s) URL';
-            } catch {
-              return `Enter a valid URL, e.g. ${DEFAULT_ATLASSIAN_BASE_URL}`;
-            }
-          },
-          filter: (input) => (input ? input.trim().replace(/\/+$/, '') : input),
+      const urlQuestion = {
+        type: 'input',
+        name: 'JIRA_BASE_URL',
+        message: `Atlassian site URL (e.g., ${DEFAULT_ATLASSIAN_BASE_URL}):`,
+        default: defaults.JIRA_BASE_URL || DEFAULT_ATLASSIAN_BASE_URL,
+        validate: (input) => {
+          if (!input || !input.trim()) return 'Required';
+          try {
+            const url = new URL(input.trim());
+            return url.protocol === 'https:' || url.protocol === 'http:'
+              ? true
+              : 'Must be an http(s) URL';
+          } catch {
+            return `Enter a valid URL, e.g. ${DEFAULT_ATLASSIAN_BASE_URL}`;
+          }
         },
+        filter: (input) => (input ? input.trim().replace(/\/+$/, '') : input),
+      };
+
+      const answers = await inquirer.prompt([
+        ...(urlLocked ? [] : [urlQuestion]),
         {
           type: 'input',
           name: 'JIRA_EMAIL',
@@ -414,6 +425,10 @@ class JiraCredentialsManager {
         },
       ]);
 
+      if (urlLocked) {
+        answers.JIRA_BASE_URL = defaults.JIRA_BASE_URL.trim().replace(/\/+$/, '');
+      }
+
       const verification = await this._verifyCredentials(answers);
 
       if (verification.classification === 'ok' || verification.classification === 'skipped') {
@@ -426,6 +441,10 @@ class JiraCredentialsManager {
       }
 
       // auth / notfound — blocking failures, retry within the attempt budget.
+      if (verification.classification === 'notfound') {
+        // The known URL may itself be wrong — unlock it so the next attempt can fix it.
+        urlLocked = false;
+      }
       last = answers;
       console.log(chalk.red(`✗ ${this._verifyFailureReason(verification)}.`));
       if (attempt < MAX_VERIFY_ATTEMPTS) {
