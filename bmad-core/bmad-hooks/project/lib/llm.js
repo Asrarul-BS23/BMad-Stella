@@ -7,6 +7,12 @@ const MAX_RETRIES = 3;
 const TIMEOUT_MS = 60_000;
 const AGENT_TIMEOUT_MS = 600_000; // 10 min — large codebases need room
 const AGENT_TOOLS = ['Glob', 'Read', 'Grep'];
+// Hard-blocked regardless of settings — these headless/detached calls must never be able to
+// touch the filesystem or network themselves; the caller persists the returned text.
+// --allowedTools only pre-approves AGENT_TOOLS, it does not hide the rest of the default
+// toolset — without this, the model can still attempt Write and hit a permission prompt
+// that nobody is present to answer.
+const AGENT_DISALLOWED_TOOLS = ['Write', 'Edit', 'NotebookEdit', 'Bash', 'WebFetch', 'WebSearch'];
 
 async function callClaude(prompt) {
   let lastError;
@@ -28,15 +34,20 @@ async function callClaudeAgent(prompt) {
   const result = await _spawnClaude(prompt, {
     timeoutMs: AGENT_TIMEOUT_MS,
     allowedTools: AGENT_TOOLS,
+    disallowedTools: AGENT_DISALLOWED_TOOLS,
   });
   if (result === null) log('llm: callClaudeAgent returned null', {});
   return result;
 }
 
-function _spawnClaude(prompt, { timeoutMs = TIMEOUT_MS, allowedTools = null } = {}) {
+function _spawnClaude(
+  prompt,
+  { timeoutMs = TIMEOUT_MS, allowedTools = null, disallowedTools = null } = {},
+) {
   return new Promise((resolve) => {
     const args = ['--print', '--output-format', 'text'];
     if (allowedTools) args.push('--allowedTools', allowedTools.join(','));
+    if (disallowedTools) args.push('--disallowedTools', disallowedTools.join(','));
     let proc;
     try {
       proc = spawn('claude', args, {
