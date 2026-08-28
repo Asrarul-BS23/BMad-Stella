@@ -83,6 +83,10 @@ When processing sections with agent permission fields:
 - Include a note in the generated document indicating the responsible agent
 - Example: "_(This section is owned by dev-agent and can only be modified by dev-agent)_"
 
+## Architecture Conflict Check (Conditional)
+
+**Conditional on template:** `architecture-tmpl.yaml`, `fullstack-architecture-tmpl.yaml`, `brownfield-architecture-tmpl.yaml`, `front-end-architecture-tmpl.yaml`, `prd-tmpl.yaml`, `brownfield-prd-tmpl.yaml`. After the document is saved (step 4), check whether `tech-stack.md`/`coding-standards.md`/`project-structure.md` already exist. None exist (greenfield) → no conflict possible, skip. Exist → run `{root}/checklists/architecture-conflict-checklist` against the newly created doc; HALT on unresolved conflict.
+
 ## YOLO Mode
 
 User can type `#yolo` to toggle to YOLO mode (process all sections at once).

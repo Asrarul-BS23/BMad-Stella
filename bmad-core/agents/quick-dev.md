@@ -177,6 +177,7 @@ dependencies:
     - review-and-improve.md
     - execute-checklist.md
   checklists:
+    - architecture-conflict-checklist.md
     - task-dod-checklist.md
   templates:
     - implementation-plan-tmpl.yaml
