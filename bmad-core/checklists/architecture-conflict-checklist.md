@@ -16,7 +16,7 @@ Mark each item [x] done, [N/A] not applicable, or add a note. Never resolve a co
 
 ## 1. Identify Conflicts
 
-[[LLM: Compare the proposal against each doc. Name the exact doc, the contradicted rule, and what the proposal does instead. If nothing conflicts, mark the rest of this checklist N/A.]]
+[[LLM: Check semantic compatibility, not exact string match — a version within a documented floor/range (e.g. `3.12.0` vs `3.11+`) is NOT a conflict; flag only outside-range or incompatible choices. Name the exact doc, the contradicted rule, and what the proposal does instead. If nothing conflicts, mark the rest N/A.]]
 
 - [ ] Proposal checked against tech-stack.md, coding-standards.md, project-structure.md
 - [ ] **Conflicts found (if any):** doc + rule + what the proposal does instead
