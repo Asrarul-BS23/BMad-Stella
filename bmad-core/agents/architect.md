@@ -74,6 +74,7 @@ commands:
 dependencies:
   checklists:
     - architect-checklist.md
+    - architecture-conflict-checklist.md
   data:
     - technical-preferences.md
   tasks:

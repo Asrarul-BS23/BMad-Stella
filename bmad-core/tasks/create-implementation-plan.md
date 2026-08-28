@@ -321,6 +321,12 @@ Populate the section matching the task type. Skip the other two.
 - Health Criteria — test count, build warnings, perf benchmarks to maintain.
 - Do Not Migrate — patterns to intentionally drop.
 
+### 7.6 Architecture Conflict Check
+
+**Skip for Migration tasks** (Stack Version / Architecture Pattern subtypes) — moving from a documented current state to a documented target state is this task type's sanctioned purpose, not a conflict.
+
+For Bug/Feature tasks: if a Requirement or Acceptance Criterion forces a §7 decision that conflicts with the loaded `tech-stack.md`/`coding-standards.md`/`project-structure.md`, run `{root}/checklists/architecture-conflict-checklist` before §8. Not for conflicts caused by drafting choice alone — revise §7 to a compliant approach instead.
+
 ### 8. Create Implementation Task List
 
 Break down implementation into sequential tasks with checkboxes. Reference acceptance criteria (AC: #).

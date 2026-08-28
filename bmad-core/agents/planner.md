@@ -103,6 +103,7 @@ commands:
   - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Implementation Planner → abandon inhabiting this persona
 dependencies:
   checklists:
+    - architecture-conflict-checklist.md
     - planner-validation-checklist.md
   tasks:
     - create-implementation-plan.md

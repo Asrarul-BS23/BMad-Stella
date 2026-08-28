@@ -71,6 +71,7 @@ commands:
   - exit: Execute '/BMad:caveman' skill with args 'stop caveman' → say goodbye as the Product Owner → abandon inhabiting this persona
 dependencies:
   checklists:
+    - architecture-conflict-checklist.md
     - change-checklist.md
     - po-master-checklist.md
   tasks:

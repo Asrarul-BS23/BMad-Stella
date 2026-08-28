@@ -100,6 +100,11 @@ process.stdin.on('data', (chunk) => {
   raw += chunk;
 });
 process.stdin.on('end', () => {
+  // Background LLM subprocesses (daily-job.js, pattern-scanner.js, domain-map-distiller.js)
+  // are spawned headless with this env var set — nobody is present to see or act on a
+  // notification for them, so skip sending one entirely.
+  if (process.env.BMAD_HOOK_SUBPROCESS === '1') return;
+
   let data = {};
   try {
     data = JSON.parse(raw);

@@ -35,6 +35,10 @@
   - Record the status of each checklist item (e.g., `[x] Addressed`, `[N/A]`, `[!] Further Action Needed`) and any pertinent notes or decisions.
   - Collaboratively agree on the "Recommended Path Forward" as prompted by Section 4 of the checklist.
 
+### 2a. Architecture Conflict Check (Conditional)
+
+- If the change touches `tech-stack.md`/`coding-standards.md`/`project-structure.md`, run `{root}/checklists/architecture-conflict-checklist` before Instruction 3.
+
 ### 3. Draft Proposed Changes (Iteratively or Batched)
 
 - Based on the completed checklist analysis (Sections 1-4) and the agreed "Recommended Path Forward" (excluding scenarios requiring fundamental replans that would necessitate immediate handoff to PM/Architect):
