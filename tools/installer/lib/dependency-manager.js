@@ -99,18 +99,52 @@ class DependencyManager {
     const servers = [];
     const lines = output.split('\n');
     for (const line of lines) {
-      const match = line.trim().match(/^(\w+)/);
+      const match = line.trim().match(/^(\w+):\s*(\S+)/);
       if (match && match[1]) {
         const lower = line.toLowerCase();
         const connected =
           line.includes('✔') || // ✔ heavy check mark (current Claude Code)
           line.includes('✓') || // ✓ check mark (older versions)
           (/\bconnected\b/.test(lower) && !/disconnected|not connected|fail/.test(lower));
-        servers.push({ name: match[1].toLowerCase(), connected });
+        servers.push({ name: match[1].toLowerCase(), url: match[2], connected });
       }
     }
 
     return servers;
+  }
+
+  /**
+   * Check whether an installed server's URL is the retired Atlassian SSE endpoint.
+   * Keyed on the URL string only — never on connected status, since "not connected"
+   * can just mean pending authentication and must not trigger a remove/re-add.
+   * @param {string} installDir
+   * @param {string} serverName
+   * @returns {Promise<boolean>}
+   */
+  async isStaleAtlassianSseServer(installDir, serverName) {
+    const installedServers = await this.getInstalledMcpServers(installDir);
+    const server = installedServers.find((s) => s.name === serverName.toLowerCase());
+    return Boolean(server && server.url && server.url.includes('v1/sse'));
+  }
+
+  /**
+   * Remove an MCP server via `claude mcp remove`.
+   * @param {string} installDir
+   * @param {string} serverName
+   * @returns {Promise<boolean>}
+   */
+  async removeMcpServer(installDir, serverName) {
+    try {
+      console.log(chalk.cyan(`\n🗑️  Removing outdated ${serverName} MCP server...`));
+      execSync(`claude mcp remove ${serverName}`, {
+        cwd: installDir,
+        stdio: 'inherit',
+      });
+      return true;
+    } catch (error) {
+      console.error(chalk.red(`\n✗ Failed to remove ${serverName}:`), error.message);
+      return false;
+    }
   }
 
   /**
@@ -619,7 +653,7 @@ class DependencyManager {
           'Which MCP servers do you want to configure? (Select with SPACEBAR, confirm with ENTER):',
         choices: [
           {
-            name: 'Atlassian (for JIRA integration)',
+            name: 'Atlassian (for JIRA & Confluence integration)',
             value: 'atlassian',
             checked: true,
           },
@@ -658,7 +692,15 @@ class DependencyManager {
       console.log(chalk.cyan(`\n📦 Configuring ${serverConfig.name}...`));
 
       // Check if server is already configured
-      const isInstalled = await this.isMcpServerInstalled(installDir, serverName);
+      let isInstalled = await this.isMcpServerInstalled(installDir, serverName);
+
+      // Atlassian retired the SSE endpoint in favor of Streamable HTTP (v1/mcp). If the
+      // existing entry still points at the old v1/sse URL, remove it so it gets re-added
+      // below with the current URL — regardless of its connected/auth status.
+      if (isInstalled && (await this.isStaleAtlassianSseServer(installDir, serverName))) {
+        const removed = await this.removeMcpServer(installDir, serverName);
+        isInstalled = removed ? false : isInstalled;
+      }
 
       if (isInstalled) {
         console.log(chalk.green(`✓ ${serverConfig.name} is already configured`));
@@ -841,7 +883,7 @@ class DependencyManager {
           {
             type: 'input',
             name: 'url',
-            message: 'Enter MCP server URL (e.g., https://mcp.example.com/v1/sse):',
+            message: 'Enter MCP server URL (e.g., https://mcp.example.com/v1/mcp):',
             validate: (input) => {
               if (!input.trim()) {
                 return 'Server URL is required';

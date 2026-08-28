@@ -1,37 +1,54 @@
 'use strict';
 
 /**
- * Prompt for codebase scan — identifies folders containing shared/reusable code.
- * Called once at install time by pattern-scanner.js.
+ * Prompt for reuse-pattern distillation — explores the codebase (Glob/Read/Grep) to find
+ * things that are ACTUALLY widely reused, verified by reference count, not guessed by folder name.
+ * Called by pattern-scanner.js at install time and weekly by daily-job.js.
  */
-function buildScanPatternsPrompt({ projectTree }) {
-  return `You are scanning a software project to identify reusable code locations — folders or individual files that developers must inherit, extend, or follow rather than recreate.
+function buildScanPatternsFromCodePrompt({ cwd, today }) {
+  return `You are exploring a software project's source code to find things that are ACTUALLY widely reused —
+base classes, wrappers, shared utilities — so they get extended/imported instead of recreated.
 
-PROJECT STRUCTURE:
-${projectTree}
+PROJECT ROOT: ${cwd}
 
-Identify code meant to be reused across the project — NOT module-specific business logic.
+Use Glob, Read, and Grep. For each candidate (base class, utility, constants pattern, result wrapper,
+validation helper, auth pattern, mapper, cache wrapper):
+- Grep to count DISTINCT files that import/extend/inherit it. Keep only entries with >= 3 distinct
+  referencing files. Discard anything used once or only within its own folder.
+- Open the file briefly to confirm the real import/using statement and what it exposes — write the
+  exact copy-pasteable line, not a guessed path.
+- If you notice the same kind of thing named inconsistently across the codebase (e.g. both
+  "Constants" and "Constant" folders, or "Helpers" vs "Extensions"), note it as its own line so
+  future greps don't miss half the codebase.
 
-Look for:
-- Shared utilities and helper functions (return the folder)
-- Base or abstract classes meant to be extended — e.g. BaseApiController.ts, GenericRepository.ts (return the specific file if it is the only reusable thing in its folder)
-- Shared middleware, interceptors, guards, filters (return the folder)
-- Framework wrappers used project-wide — e.g. src/core/http-client.ts (return the file)
-- Shared DTOs, interfaces, types used project-wide (return the folder)
-- Common constants or enums used across multiple modules (return the folder)
+TASK: Produce patterns.md with this exact structure:
 
-Return a JSON array of relative paths from project root — folder path OR individual file path:
-- Use a folder path when multiple files in the folder are reusable: "src/common/utils"
-- Use a file path when only one file in the folder is the reusable pattern: "src/core/base-api.controller.ts"
+---
+type: reuse-patterns
+project: "[project name from code or root folder]"
+last-updated: "${today}"
+---
 
-["src/common", "src/base/generic.repository.ts", "src/shared/utils"]
+## Reuse these — do not recreate
+
+[One line per entry, ranked by count descending, hard cap 15 entries. Format:]
+[exact import/using statement or file path]          # N files
+[Add a naming-inconsistency line only where relevant, same list, e.g.:]
+Note: both Constants/ and Constant/ exist — check both
+
+Optional grouping if the list is long (use only if it aids scanning, otherwise keep one flat list):
+## Base classes — extend
+## Shared utilities — import
 
 Rules:
-- Relative path from project root — no leading slash
-- Maximum 10 entries — pick the most clearly reusable
-- Exclude: module-specific folders, test folders, config folders, migration folders, generated code
-- Return [] if no clear reusable code identified
-- Return ONLY valid JSON array, no other text`;
+- Copy-pasteable line, zero inference needed at use time
+- Count is evidence — only include what you verified via Grep, never estimate
+- Threshold >= 3 distinct files, cap 15 entries total
+- No file trees, no directory listings
+- Keep the whole file under 30 lines
+- You have NO file-write access — do not use a Write/Edit tool or attempt to save anything yourself.
+  Just return the file content as your final text response; the calling process saves it.
+- Output ONLY the file content`;
 }
 
-module.exports = { buildScanPatternsPrompt };
+module.exports = { buildScanPatternsFromCodePrompt };

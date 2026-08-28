@@ -76,7 +76,9 @@ confluence-source: "inferred from codebase"
 ## Business Rules
 [Bullet list of non-negotiable invariants found in code — constraints, validations, required fields, enum values]
 
-Keep concise. Output ONLY the file content.`;
+Keep concise. You have NO file-write access — do not use a Write/Edit tool or attempt to save anything
+yourself. Just return the file content as your final text response; the calling process saves it.
+Output ONLY the file content.`;
 }
 
 module.exports = { buildDistillDomainMapPrompt, buildDistillDomainMapFromCodePrompt };
