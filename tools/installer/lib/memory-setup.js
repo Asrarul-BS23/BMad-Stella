@@ -1,0 +1,174 @@
+'use strict';
+
+const path = require('node:path');
+const { execSync, spawn } = require('node:child_process');
+const os = require('node:os');
+const fs = require('fs-extra');
+const chalk = require('chalk').default || require('chalk');
+const resourceLocator = require('./resource-locator');
+
+const PERSONALIZATION_FILE = path.join(os.homedir(), '.claude', 'personalization.md');
+const PERSONALIZATION_TEMPLATE = path.join(
+  resourceLocator.getBmadCorePath(),
+  'templates',
+  'memories',
+  'personalization.md',
+);
+const MEMORIES_TEMPLATE_DIR = path.join(resourceLocator.getBmadCorePath(), 'templates', 'memories');
+
+function getGitConfig(key) {
+  try {
+    return execSync(`git config ${key}`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return '';
+  }
+}
+
+async function initMemoryFolder(installDir, spinner) {
+  const memoryDest = path.join(installDir, 'bmad-docs', 'memory');
+
+  // Idempotent — skip if MEMORY.md already exists (brownfield re-install)
+  if (await fs.pathExists(path.join(memoryDest, 'MEMORY.md'))) {
+    console.log(chalk.dim('  bmad-docs/memory/ already initialized, skipping'));
+    return;
+  }
+
+  if (spinner) spinner.text = 'Initializing bmad-docs/memory/...';
+
+  await fs.ensureDir(memoryDest);
+
+  // Copy only the two placeholder files — domain-map and MEMORY index
+  for (const file of ['domain-map.md', 'MEMORY.md']) {
+    const src = path.join(MEMORIES_TEMPLATE_DIR, file);
+    if (await fs.pathExists(src)) {
+      await fs.copy(src, path.join(memoryDest, file), { overwrite: false });
+    }
+  }
+
+  // Copy state seed files
+  const stateDestDir = path.join(memoryDest, '.state');
+  await fs.ensureDir(stateDestDir);
+  for (const file of ['.daily-state.json', '.injection-state.json']) {
+    const src = path.join(MEMORIES_TEMPLATE_DIR, '.state', file);
+    if (await fs.pathExists(src)) {
+      await fs.copy(src, path.join(stateDestDir, file), { overwrite: false });
+    }
+  }
+
+  // Create empty subdirectories — content written later by hooks and background jobs
+  for (const dir of ['episodes', 'lessons', 'semantic', 'constraints']) {
+    await fs.ensureDir(path.join(memoryDest, dir));
+  }
+
+  console.log(chalk.green('✓ bmad-docs/memory/ initialized'));
+}
+
+async function seedPersonalization(spinner) {
+  if (await fs.pathExists(PERSONALIZATION_FILE)) {
+    console.log(chalk.dim('  ~/.claude/personalization.md already exists, skipping seed'));
+    return;
+  }
+
+  if (spinner) spinner.text = 'Seeding ~/.claude/personalization.md...';
+
+  const claudeDir = path.join(os.homedir(), '.claude');
+  await fs.ensureDir(claudeDir);
+
+  const gitName = getGitConfig('user.name') || 'Developer';
+  const gitEmail = getGitConfig('user.email') || '';
+
+  let template = '';
+  if (await fs.pathExists(PERSONALIZATION_TEMPLATE)) {
+    template = await fs.readFile(PERSONALIZATION_TEMPLATE, 'utf8');
+  } else {
+    template =
+      '# Developer Personalization Profile\n\n- Name: {{git_name}}\n- Email: {{git_email}}\n';
+  }
+
+  const seeded = template.replaceAll('{{git_name}}', gitName).replaceAll('{{git_email}}', gitEmail);
+
+  await fs.writeFile(PERSONALIZATION_FILE, seeded, 'utf8');
+
+  console.log(chalk.green('✓ ~/.claude/personalization.md seeded from git config'));
+  console.log(
+    chalk.yellow('  ⚠️  Please complete Layer 1 profile in ~/.claude/personalization.md'),
+  );
+}
+
+async function generateDomainMap(installDir, spinner) {
+  const domainKnowledgeDir = path.join(installDir, 'bmad-docs', 'domain-knowledge');
+
+  const distillerPath = path.join(
+    installDir,
+    '.claude',
+    'bmad-hooks',
+    'lib',
+    'domain-map-distiller.js',
+  );
+
+  if (!(await fs.pathExists(distillerPath))) {
+    console.log(chalk.yellow('  ⚠️  Distiller not found. domain-map.md left blank.'));
+    return;
+  }
+
+  const hasDomainKnowledge =
+    (await fs.pathExists(domainKnowledgeDir)) &&
+    (await fs.readdir(domainKnowledgeDir)).some((f) => f.endsWith('.md'));
+
+  const flag = hasDomainKnowledge ? '--force' : '--from-code';
+  const source = hasDomainKnowledge ? 'Confluence domain-knowledge pages' : 'codebase exploration';
+
+  const proc = spawn(process.execPath, [distillerPath, installDir, flag], {
+    detached: true,
+    stdio: 'ignore',
+    env: { ...process.env },
+  });
+  proc.unref();
+
+  console.log(chalk.dim(`  ⏳ Generating domain-map.md from ${source} in background...`));
+}
+
+async function scanPatterns(installDir, spinner) {
+  const scannerPath = path.join(installDir, '.claude', 'bmad-hooks', 'pattern-scanner.js');
+  if (!(await fs.pathExists(scannerPath))) {
+    console.log(chalk.dim('  pattern-scanner.js not found, skipping patterns scan'));
+    return;
+  }
+
+  const patternsFile = path.join(installDir, 'bmad-docs', 'memory', 'patterns.md');
+  if (await fs.pathExists(patternsFile)) {
+    console.log(chalk.dim('  patterns.md already exists, skipping scan'));
+    return;
+  }
+
+  const proc = spawn(process.execPath, [scannerPath, installDir], {
+    detached: true,
+    stdio: 'ignore',
+    env: { ...process.env },
+  });
+  proc.unref();
+
+  console.log(chalk.dim('  ⏳ Scanning codebase for reusable patterns in background...'));
+}
+
+async function initialize(installDir, spinner) {
+  try {
+    if (spinner) spinner.stop();
+
+    await initMemoryFolder(installDir, spinner);
+    await seedPersonalization(spinner);
+    await generateDomainMap(installDir, spinner);
+    await scanPatterns(installDir, spinner);
+
+    if (spinner) spinner.start();
+  } catch (error) {
+    console.log(chalk.yellow(`⚠️  Memory setup encountered an error: ${error.message}`));
+    console.log(chalk.dim('   You can initialize memory manually by running the installer again.'));
+    if (spinner) spinner.start();
+  }
+}
+
+module.exports = { initialize };

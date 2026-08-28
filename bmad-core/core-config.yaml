@@ -15,6 +15,12 @@ architecture:
   architectureShardedLocation: bmad-docs/architecture
 domainKnowledge:
   location: bmad-docs/domain-knowledge
+  # Glob patterns for files used to generate domain-map.md. Matches against filenames in location/.
+  # Use * as wildcard. If empty or omitted, all .md files are used.
+  domainMapSourceFiles:
+    - "*business*"
+    - "*domain*"
+    - "*faqs*"
 customTechnicalDocuments: null
 devLoadAlwaysFiles:
   - bmad-docs/architecture/coding-standards.md
@@ -40,6 +46,13 @@ jira:
       - application/json
     maxAttachmentMB: 50
     concurrency: 5
-scribe:
-  notesFile: bmad-docs/bmad-notes/notes.md
+logging:
+  localDir: bmad-docs/bmad-logs
+  triggerStatuses:
+    - Ready for Review
+    - Ready for Done
+  model: default
+  confluence:
+    enabled: false
+    logsPageUrl: ""
 slashPrefix: BMad

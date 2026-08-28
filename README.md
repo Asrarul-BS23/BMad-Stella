@@ -36,6 +36,7 @@ Planner → Dev → QA → Reviewer
 - [Claude Code CLI](https://docs.anthropic.com/claude/docs/claude-code) installed and configured
 - JIRA account with access to your organization's instance
 - Confluence page URL for architecture documentation (recommended)
+- GitHub fine-grained token for PR review (optional) — see [Create a GitHub Token for BMad](docs/github-pat-guide.md)
 
 ### Installation (5 minutes)
 

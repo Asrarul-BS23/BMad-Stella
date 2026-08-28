@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 'use strict';
 
 const fsp = require('node:fs/promises');
@@ -237,8 +236,13 @@ async function handleDownloads(client, plan, ticketKey, config, logger) {
   const results = await runWithConcurrency(plan, config.concurrency, async (item) => {
     const target = attachmentTargetPath(config.cacheRoot, ticketKey, item.id, item.filename);
     try {
-      logger.debug(`Downloading ${item.filename} (${item.id}) → ${path.relative(cacheDir, target)}`);
-      await client.downloadAttachmentToFile({ content: item.contentUrl, filename: item.filename }, target);
+      logger.debug(
+        `Downloading ${item.filename} (${item.id}) → ${path.relative(cacheDir, target)}`,
+      );
+      await client.downloadAttachmentToFile(
+        { content: item.contentUrl, filename: item.filename },
+        target,
+      );
       const checksum = await hashFile(target);
       const stat = await fsp.stat(target);
       return {
@@ -401,7 +405,7 @@ async function main(argv) {
   const validation = validateConfig(config);
   if (!validation.ok) {
     logger.error(
-      `Missing credentials: ${validation.missing.join(', ')}. Set them as env vars or in .env at ${config.projectRoot}.`,
+      `Missing credentials: ${validation.missing.join(', ')}. Set them as env vars or in ${path.join(config.projectRoot, 'bmad-docs', '.bmad-tokens', '.env')}.`,
     );
     return EXIT_CODES.CONFIG;
   }
@@ -451,7 +455,7 @@ async function main(argv) {
   if (!args.forceRefresh && isCacheFresh(previous, issue)) {
     logger.info('Cache fresh — reusing existing manifest and files');
     const manifestPath = path.join(ticketCacheDir(config.cacheRoot, ticketKey), 'manifest.json');
-    previous.cache = { ...(previous.cache || {}), hit: true, reason: 'ticket-unchanged' };
+    previous.cache = { ...previous.cache, hit: true, reason: 'ticket-unchanged' };
     await writeManifestAtomic(config.cacheRoot, ticketKey, previous);
     emitResult(manifestPath, previous);
     return EXIT_CODES.OK;
@@ -480,8 +484,20 @@ async function main(argv) {
     return mapErrorToExit(error);
   }
 
-  const manifest = buildManifest({ issue, ticketKey, config, downloads, skipped, adfLocations, startMs });
-  manifest.cache = { ...(manifest.cache || {}), hit: false, reason: args.forceRefresh ? 'force-refresh' : 'ticket-updated' };
+  const manifest = buildManifest({
+    issue,
+    ticketKey,
+    config,
+    downloads,
+    skipped,
+    adfLocations,
+    startMs,
+  });
+  manifest.cache = {
+    ...manifest.cache,
+    hit: false,
+    reason: args.forceRefresh ? 'force-refresh' : 'ticket-updated',
+  };
 
   const manifestPath = await writeManifestAtomic(config.cacheRoot, ticketKey, manifest);
   emitResult(manifestPath, manifest);

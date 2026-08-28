@@ -293,8 +293,19 @@ class FileManager {
         coreConfig.architecture.architectureFolderUrl = config.architectureFolderUrl;
       }
 
-      // Write back the modified config
-      await fs.writeFile(coreConfigPath, yaml.dump(coreConfig, { indent: 2 }));
+      // Save friction-logs Confluence page (null/absent -> publishing disabled, reports stay local)
+      if (config.frictionLogsUrl !== undefined) {
+        coreConfig.logging = coreConfig.logging || {};
+        coreConfig.logging.confluence = {
+          enabled: Boolean(config.frictionLogsUrl),
+          logsPageUrl: config.frictionLogsUrl || '',
+        };
+      }
+
+      // Write back the modified config. lineWidth: -1 stops js-yaml from folding
+      // long values (e.g. Confluence URLs) into ">-" block scalars, which the
+      // friction logger's zero-dep line-based config reader cannot parse.
+      await fs.writeFile(coreConfigPath, yaml.dump(coreConfig, { indent: 2, lineWidth: -1 }));
 
       return true;
     } catch (error) {

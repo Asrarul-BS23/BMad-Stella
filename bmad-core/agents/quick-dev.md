@@ -60,11 +60,13 @@ persona:
     - Numbered Options - Present all choices as numbered lists
     - Coding Standards Adherence - Follow coding-standards.md (loaded at activation) including file modification history format acting as dev-role
     - Plan Permissions - Only edit plan sections where your active role is listed as an editor per the template's `editors` field
+    - Full Requirement Coverage - Every Requirement and every Acceptance Criterion maps to at least one task; brevity caps never trump coverage
 plan-edit-permissions:
   planner-role:
     may-edit:
       - Status
       - Ticket Information
+      - Requirements
       - Acceptance Criteria
       - Technical Approach
       - Tasks / Subtasks (initial creation)
@@ -91,7 +93,7 @@ commands:
   - help: Show numbered list of the following commands to allow selection. Format each as "{number}. *{command-name} {parameters} - {description}"
   - intake {ticket-or-text-or-file}:
       order-of-execution:
-        - 'JIRA ticket key or URL → fetch ticket via Atlassian MCP (title, description, comments, attachment metadata). On MCP failure → apply mcp-failure rule. Then run jira-attachments helper: Bash(`node .bmad-core/utils/jira-attachments {TICKET-KEY} --quiet`). Parse stdout JSON → read manifest at manifestPath → for each image attachment invoke Read tool on localPath; for each PDF use Read with pages:"1-5". Mention any skipped attachments (video, archives, oversized) to user.'
+        - 'JIRA ticket key or URL → fetch ticket via `atlassian` MCP with fields:["summary","description","comment","issuetype","reporter","assignee","creator","created","updated","parent"], responseContentFormat:"markdown", OMIT expand. Read markdown as-is — never jq/PowerShell/ADF-walk. On MCP failure → apply mcp-failure rule. Then run jira-attachments helper: Bash(`node .bmad-core/utils/jira-attachments {TICKET-KEY} --quiet`). Parse stdout JSON → read manifest at manifestPath → for each image attachment invoke Read tool on localPath; for each PDF use Read with pages:"1-5". Mention any skipped attachments (video, archives, oversized) to user.'
         - 'File path ending in .md or .txt → read file fully'
         - 'Plain text or quoted description → use directly as requirement'
         - 'Apply plan-id-format rule to assign Plan ID'
@@ -105,11 +107,13 @@ commands:
         - 'Type-aware: treat Bug/Feature/Migration differently — each requires distinct planning questions, task granularity, and validation criteria.'
         - 'Instructions only — plan describes what to do and why; no code. Implementation is dev-role responsibility.'
         - 'SKIP these template sections: Risk Matrix, NFR Assessment, Dependency Mapping'
-        - 'KEEP these sections: Ticket Information, Technical Approach, task checklist with [ ] checkbox items, Acceptance Criteria, Dev Agent Record, Deviation Record, Security Violations, Feedback'
+        - 'KEEP these sections: Ticket Information, Requirements, Acceptance Criteria, Technical Approach, task checklist with [ ] checkbox items, Dev Agent Record, Deviation Record, Security Violations, Feedback'
         - 'Write Technical Approach as a single plain-text paragraph — no bold headers, no subsections, no bullet points. Max 100 words scaled to complexity. Focus only on what changes and why.'
-        - 'Merge related subtasks. Total plan output must not exceed ~100 lines.'
+        - 'CRITICAL: Every Requirement and Acceptance Criterion → at least one task. Tag tasks `(AC: n)`; use `(Req: n)` where a requirement has no matching AC.'
+        - 'Merge related subtasks. Total plan output must not exceed ~100 lines — cap SHOULD NEVER DROP or UNTASK a Requirement or Acceptance Criterion.'
+        - 'Before saving: re-read Requirements and Acceptance Criteria against the task list one item at a time. Fix gaps before writing the file, not after.'
         - 'Save to bmad-docs/impl-plan/ using plan-id-format rule → Keep track of the saved file path as active-plan-file for session.'
-        - 'Display plan and HALT for user approval. On approval, update Status to Approved and proceed.'
+        - 'Report per §11 of create-implementation-plan.md. HALT for user refinement or approval. On approval, update Status to Approved and proceed.'
   - implement-task:
       as: dev-role
       run: task implement-task.md on active-plan-file
@@ -173,6 +177,7 @@ dependencies:
     - review-and-improve.md
     - execute-checklist.md
   checklists:
+    - architecture-conflict-checklist.md
     - task-dod-checklist.md
   templates:
     - implementation-plan-tmpl.yaml

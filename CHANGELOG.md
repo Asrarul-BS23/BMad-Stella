@@ -2,18 +2,13 @@
 
 ### Features
 
-- **scribe**: simplified cross-session notes capture.
-  - New location: `bmad-docs/bmad-notes/notes.md` (single append-only file).
-  - Single entry type with timestamp-based IDs: `NOTE-{YYYY-MM-DD-HHMMSS-mmm}`.
-  - Capture protocol embedded in all 14 BMAD agents — auto-records decisions and findings per turn at zero extra API cost.
-  - Tag taxonomy retained in `bmad-core/data/scribe-rules.yaml`.
-  - Silent installer setup; notes path auto-allowlisted via Claude Code permissions manager.
-  - Docs: [docs/scribe-user-guide.md](docs/scribe-user-guide.md).
+- **installer**: architecture docs are now prefetched from Confluence at install time (`tools/installer/lib/architecture-docs-fetcher.js`), alongside domain knowledge. Direct child pages of `architectureFolderUrl` (excluding `Domain-Knowledge`) are saved to `bmad-docs/architecture/` with canonical names (`coding-standards`, `tech-stack`, `project-structure`, `git-workflow`) plus a `.metadata.json` manifest (`pageId`, `title`, `version`, `lastModified`, `localFile`) so the planner's activation cache check passes. Planner MCP fetch remains as fallback when credentials are missing.
+- **planner**: activation cache check now costs one `getConfluencePageDescendants` call and never fetches page bodies (previously re-fetched every page just to read its version, ~15k tokens per activation). Cache miss is incremental — only new/changed pages are fetched, removed pages deleted, unchanged files left untouched.
+- **installer**: shared Confluence REST helpers extracted to `tools/installer/lib/confluence-client.js`; `domain-knowledge-fetcher.js` now uses them (behaviour unchanged).
 
 ### Removed
 
-- **scribe**: removed read protocol, on-disk index (`index.yaml`), atomic-rename pattern, `actions.md`, schema version, and the `/scribe` agent (Sam) with its `*recall` command. Recall is now manual — open the notes file or grep it.
-- Old `bmad-ledger/` directory replaced by `bmad-docs/bmad-notes/`. Existing ledger directories remain as historical orphans (no migration).
+- **scribe**: removed the scribe notes feature entirely — `scribe-protocol.md`, `scribe-rules.yaml`, installer notes setup, `bmad-notes` permission allowlist entries, `scribe.notesFile` config, and the TURN-END capture rule from all agents. Existing `bmad-docs/bmad-notes/` and `bmad-ledger/` directories remain as historical orphans (no migration).
 
 ## [4.36.2](https://github.com/bmadcode/BMAD-METHOD/compare/v4.36.1...v4.36.2) (2025-08-10)
 

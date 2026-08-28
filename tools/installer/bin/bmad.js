@@ -330,33 +330,61 @@ async function promptInstallation() {
     // To add a new project, add a new entry with:
     //   'project-id': {
     //     name: 'Display Name',
-    //     url: 'https://your-confluence-url/wiki/spaces/SPACE/pages/architecture'
+    //     url: 'https://your-confluence-url/wiki/spaces/SPACE/pages/architecture',
+    //     logsUrl: 'https://your-confluence-url/wiki/spaces/SPACE/pages/friction-logs'
     //   }
+    // logsUrl is the project's pre-created "BMAD Friction Logs" Confluence page —
+    // friction reports are published under it. Omit it (or leave null) to keep
+    // friction reports local-only for that project.
     // NOTE: Always keep 'other' as the last option
     const predefinedProjects = {
       'leadrs-core': {
         name: 'LEADRS Core',
         url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1144356887/LEADRSC',
+        logsUrl: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1481277441/LEADRS-LOGS',
       },
       'risk-monitor': {
         name: 'Risk Monitor',
         url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1160970277/RISK+MONITOR',
+        logsUrl: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1481080837/RM-LOGS',
       },
       safv: {
         name: 'SAFV',
         url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1167523851/SAFV',
+        logsUrl: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1481244689/SAFV-LOGS',
       },
       QuarryConnect: {
         name: 'Quarry Connect',
         url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1188200468/QuarryConnect',
+        logsUrl:
+          'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1481244697/QuarryConnect-LOGS',
       },
       dre: {
         name: 'DRE',
         url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1364983831/DRE',
+        logsUrl: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1481113604/DRE-LOGS',
+      },
+      'sls-frontend': {
+        name: 'SLS-FRONTEND',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1521811499/SLS-Frontend',
+        logsUrl:
+          'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1536557104/SLS-Frontend-LOGS',
+      },
+      'sls-backend': {
+        name: 'SLS-BACKEND',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1521614903/SLS-Backend',
+        logsUrl:
+          'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1536819234/SLS-Backend-LOGS',
+      },
+      tec: {
+        name: 'TEC',
+        url: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1536851989/TEC',
+        logsUrl: 'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1536426002/TEC-LOGS',
       },
       other: {
         name: 'Other (custom URL)',
         url: null,
+        logsUrl: null,
       },
     };
 
@@ -404,6 +432,12 @@ async function promptInstallation() {
     }
 
     answers.architectureFolderUrl = architectureFolderUrl;
+
+    // Friction-logs Confluence page for the selected project. "Other" projects
+    // (and unreplaced REPLACE-ME placeholders) get null -> publishing stays off.
+    const logsUrl =
+      selectedProject === 'other' ? null : predefinedProjects[selectedProject].logsUrl;
+    answers.frictionLogsUrl = logsUrl && !logsUrl.includes('REPLACE-ME') ? logsUrl : null;
   }
 
   // Ask for IDE configuration

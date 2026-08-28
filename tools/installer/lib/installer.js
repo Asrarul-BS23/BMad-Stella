@@ -9,8 +9,9 @@ const ideSetup = require('./ide-setup');
 const { extractYamlFromAgent } = require('../../lib/yaml-utils');
 const resourceLocator = require('./resource-locator');
 const dependencyManager = require('./dependency-manager');
-const scribeSetup = require('./scribe-setup');
 const hooksManager = require('./hooks-manager');
+const memorySetup = require('./memory-setup');
+const cjson = require('comment-json');
 
 class Installer {
   async getCoreVersion() {
@@ -439,6 +440,11 @@ class Installer {
       await hooksManager.setupCustomHooks(spinner);
     }
 
+    // Copy project-level bmad-hooks and register them in .claude/settings.local.json
+    if (config.installType !== 'expansion-only') {
+      await this.installBmadHooks(installDir, spinner);
+    }
+
     // Check and configure required MCP servers (e.g., Atlassian MCP for JIRA integration)
     let mcpResults = null;
     if (config.installType !== 'expansion-only') {
@@ -452,21 +458,32 @@ class Installer {
       config.installType !== 'expansion-only' &&
       (config.prdSharded !== undefined ||
         config.architectureSharded !== undefined ||
-        config.architectureFolderUrl !== undefined)
+        config.architectureFolderUrl !== undefined ||
+        config.frictionLogsUrl !== undefined)
     ) {
       spinner.text = 'Configuring document settings...';
       await fileManager.modifyCoreConfig(installDir, config);
     }
 
-    // Pre-fetch Confluence domain knowledge so Sage is ready on first activation.
-    // Silent — runs only when URL + Atlassian credentials are both present.
+    // Pre-fetch Confluence architecture docs + domain knowledge so agents are
+    // ready on first activation. Silent — runs only when URL + Atlassian
+    // credentials are both present. Planner / Sage fall back to MCP fetch if
+    // either prefetch is skipped.
     if (
       config.installType !== 'expansion-only' &&
       config.architectureFolderUrl &&
       mcpResults?.jiraCredentials?.ok
     ) {
-      spinner.text = 'Fetching domain knowledge from Confluence...';
+      spinner.text = 'Fetching architecture docs from Confluence...';
       spinner.stop();
+      const architectureDocsFetcher = require('./architecture-docs-fetcher');
+      const archResult = await architectureDocsFetcher.fetchAndPersist({
+        installDir,
+        architectureFolderUrl: config.architectureFolderUrl,
+      });
+      architectureDocsFetcher.showSummary(archResult);
+
+      spinner.text = 'Fetching domain knowledge from Confluence...';
       const domainKnowledgeFetcher = require('./domain-knowledge-fetcher');
       const dkResult = await domainKnowledgeFetcher.fetchAndPersist({
         installDir,
@@ -476,20 +493,16 @@ class Installer {
       spinner.start();
     }
 
+    // Initialize bmad-docs/memory/ and seed ~/.claude/personalization.md
+    if (config.installType !== 'expansion-only') {
+      await memorySetup.initialize(installDir, spinner);
+    }
+
     // Update .gitignore with BMad directories
     if (config.installType !== 'expansion-only') {
       spinner.text = 'Updating .gitignore...';
       spinner.stop();
       await this.updateGitignore(installDir);
-      spinner.start();
-    }
-
-    // Initialize scribe notes (silent, idempotent)
-    if (config.installType !== 'expansion-only') {
-      spinner.text = 'Initializing notes...';
-      spinner.stop();
-      const notesResult = await scribeSetup.setup(installDir);
-      scribeSetup.showSummary(notesResult);
       spinner.start();
     }
 
@@ -2009,6 +2022,98 @@ class Installer {
       }
     } catch (error) {
       console.warn(`Warning: Could not cleanup legacy .yml files: ${error.message}`);
+    }
+  }
+
+  async installBmadHooks(installDir, spinner) {
+    try {
+      if (spinner) spinner.text = 'Installing BMad project hooks...';
+
+      const bmadHooksSrc = path.join(resourceLocator.getBmadCorePath(), 'bmad-hooks', 'project');
+      const bmadHooksDest = path.join(installDir, '.claude', 'bmad-hooks');
+
+      if (!(await fileManager.pathExists(bmadHooksSrc))) {
+        console.log(chalk.yellow('⚠️  bmad-hooks/project source not found, skipping'));
+        return;
+      }
+
+      await fs.ensureDir(bmadHooksDest);
+      await fs.copy(bmadHooksSrc, bmadHooksDest, { overwrite: true });
+
+      // Friction logger data home (runtime files appear here: plan-tracker.json, {plan_id}/friction.*)
+      await fs.ensureDir(path.join(installDir, 'bmad-docs', 'bmad-logs'));
+
+      // npm install for project hooks
+      if (spinner) spinner.text = 'Installing BMad hook dependencies...';
+      await new Promise((resolve) => {
+        const { spawn } = require('node:child_process');
+        const proc = spawn('npm install --omit=dev', {
+          cwd: bmadHooksDest,
+          stdio: 'ignore',
+          shell: true,
+        });
+        proc.on('close', resolve);
+        proc.on('error', resolve);
+      });
+
+      // Register hooks in .claude/settings.local.json
+      const settingsLocalPath = path.join(installDir, '.claude', 'settings.local.json');
+      let settings = {};
+      if (await fileManager.pathExists(settingsLocalPath)) {
+        try {
+          const raw = await fs.readFile(settingsLocalPath, 'utf8');
+          settings = cjson.parse(raw);
+        } catch {
+          settings = {};
+        }
+      }
+
+      if (!settings.hooks || typeof settings.hooks !== 'object') {
+        settings.hooks = {};
+      }
+
+      const submitScript = path.join(bmadHooksDest, 'user-prompt-submit.js');
+      const expansionScript = path.join(bmadHooksDest, 'user-prompt-expansion.js');
+      const frictionSessionEnd = path.join(bmadHooksDest, 'friction-logger', 'session-end.js');
+      const frictionSessionStart = path.join(bmadHooksDest, 'friction-logger', 'session-start.js');
+      const nodeExec = `"${process.execPath}"`;
+
+      const projectHooks = [
+        { event: 'UserPromptSubmit', script: submitScript },
+        { event: 'UserPromptExpansion', script: expansionScript },
+        // Friction logger hooks (self-contained under friction-logger/)
+        { event: 'SessionEnd', script: frictionSessionEnd },
+        { event: 'SessionStart', script: frictionSessionStart },
+      ];
+
+      for (const { event, script } of projectHooks) {
+        if (!Array.isArray(settings.hooks[event])) {
+          settings.hooks[event] = [];
+        }
+        const command = `${nodeExec} "${script}"`;
+        const exists = settings.hooks[event].some(
+          (e) => Array.isArray(e.hooks) && e.hooks[0]?.command === command,
+        );
+        if (!exists) {
+          settings.hooks[event].push({ hooks: [{ type: 'command', command }] });
+        }
+      }
+
+      await fs.ensureDir(path.dirname(settingsLocalPath));
+      await fs.writeFile(settingsLocalPath, cjson.stringify(settings, null, 2), 'utf8');
+
+      if (spinner) spinner.stop();
+      console.log(chalk.green('✓ BMad project hooks installed'));
+      console.log(chalk.green(`  Hook scripts → ${bmadHooksDest}`));
+      console.log(
+        chalk.green(
+          '  settings.local.json updated (UserPromptSubmit + UserPromptExpansion + SessionEnd/SessionStart friction logger)',
+        ),
+      );
+      if (spinner) spinner.start();
+    } catch (error) {
+      console.log(chalk.yellow(`⚠️  Could not install BMad hooks: ${error.message}`));
+      if (spinner) spinner.start();
     }
   }
 
