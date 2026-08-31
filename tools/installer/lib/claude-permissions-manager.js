@@ -16,11 +16,6 @@ class ClaudePermissionsManager {
       'mcp__atlassian__fetch',
       'mcp__atlassian__addCommentToJiraIssue',
 
-      // GitHub MCP tools (read-only) — used by the pr-reviewer to fetch PR details/diff/files
-      // and surrounding code. Matches a fine-grained PAT with pull-requests:read + contents:read.
-      'mcp__github__pull_request_read',
-      'mcp__github__get_file_contents',
-
       'WebFetch(domain:stellaint.atlassian.net)',
 
       // Jira attachment helper (fetches binary attachments the MCP cannot return)
@@ -132,7 +127,11 @@ class ClaudePermissionsManager {
     // unsafe (a wildcard before the rest of the Bash command). Also includes the
     // bmad-notes/bmad-ledger scribe-feature entries removed when scribe was dropped.
     // checkAndSetupPermissions() prunes these from existing settings.local.json files.
+    // Also includes the GitHub MCP entries removed when the GitHub MCP integration
+    // was retired from the installer.
     this.deprecatedPermissions = [
+      'mcp__github__pull_request_read',
+      'mcp__github__get_file_contents',
       'Write(bmad-docs/**)',
       'Write(*bmad-docs*)',
       'Glob(.bmad-core/**)',
