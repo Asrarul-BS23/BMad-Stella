@@ -127,7 +127,11 @@ class ClaudePermissionsManager {
     // unsafe (a wildcard before the rest of the Bash command). Also includes the
     // bmad-notes/bmad-ledger scribe-feature entries removed when scribe was dropped.
     // checkAndSetupPermissions() prunes these from existing settings.local.json files.
+    // Also includes the GitHub MCP entries removed when the GitHub MCP integration
+    // was retired from the installer.
     this.deprecatedPermissions = [
+      'mcp__github__pull_request_read',
+      'mcp__github__get_file_contents',
       'Write(bmad-docs/**)',
       'Write(*bmad-docs*)',
       'Glob(.bmad-core/**)',

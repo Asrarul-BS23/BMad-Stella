@@ -1,5 +1,4 @@
 const { execSync } = require('node:child_process');
-const fs = require('fs-extra');
 const path = require('node:path');
 const chalk = require('chalk');
 const inquirer = require('inquirer');
@@ -119,6 +118,143 @@ class DependencyManager {
       console.error(chalk.red(`\n✗ Failed to remove ${serverName}:`), error.message);
       return false;
     }
+  }
+
+  /**
+   * Silently remove artifacts left behind by the retired GitHub MCP integration
+   * (older installer versions registered a `github` MCP server, stored a PAT in the
+   * project's .env, and shipped a headers-helper script). The server is removed ONLY
+   * when its definition carries the BMad fingerprint — a headersHelper pointing at
+   * .bmad-core/utils/github-mcp-auth.js — which no manually-configured GitHub MCP
+   * would have, so a server the user added themselves is never touched. Best-effort
+   * and intentionally silent: any failure leaves things exactly as they are.
+   * @param {string} installDir
+   */
+  async cleanupLegacyGithubMcp(installDir) {
+    try {
+      await this._removeLegacyGithubServer(installDir);
+    } catch {
+      // silent — leave the server as-is
+    }
+    try {
+      await this._removeLegacyGithubEnvBlock(installDir);
+    } catch {
+      // silent — leave the .env as-is
+    }
+    try {
+      await this._removeLegacyGithubAuthHelper(installDir);
+    } catch {
+      // silent — leave the helper file as-is
+    }
+  }
+
+  /**
+   * Remove the BMad-registered `github` MCP server for this project, identified by
+   * its headersHelper fingerprint in ~/.claude.json. No fingerprint → no removal.
+   * @param {string} installDir
+   */
+  async _removeLegacyGithubServer(installDir) {
+    if (!this.isClaudeCLIInstalled()) return;
+
+    const fsp = require('node:fs/promises');
+    const os = require('node:os');
+
+    let config;
+    try {
+      config = JSON.parse(await fsp.readFile(path.join(os.homedir(), '.claude.json'), 'utf8'));
+    } catch {
+      return; // no config or unparseable → nothing provably ours to remove
+    }
+
+    const normalize = (p) => {
+      const resolved = path.resolve(String(p));
+      return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+    };
+    const target = normalize(installDir);
+
+    let serverDef = null;
+    for (const [projectPath, project] of Object.entries(config.projects || {})) {
+      if (normalize(projectPath) === target) {
+        serverDef = project && project.mcpServers ? project.mcpServers.github : null;
+        break;
+      }
+    }
+    if (!serverDef) return;
+
+    // Only the BMad installer ever registered the server with a headersHelper
+    // pointing into .bmad-core — a user-added GitHub MCP fails this check and stays.
+    const helper = String(serverDef.headersHelper || '').replaceAll('\\', '/');
+    if (!helper.includes('.bmad-core/utils/github-mcp-auth.js')) return;
+
+    execSync('claude mcp remove github', { cwd: installDir, stdio: 'pipe' });
+  }
+
+  /**
+   * Strip the BMad-written GitHub managed block (and the PAT inside it) from the
+   * project's .env. Lines outside the markers — including a GITHUB_PERSONAL_ACCESS_TOKEN
+   * the user added themselves — are preserved byte-for-byte.
+   * @param {string} installDir
+   */
+  async _removeLegacyGithubEnvBlock(installDir) {
+    const fsp = require('node:fs/promises');
+    const envPath = path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env');
+
+    let contents;
+    try {
+      contents = await fsp.readFile(envPath, 'utf8');
+    } catch {
+      return;
+    }
+
+    const START_MARKER = '# --- BMad-Stella GitHub managed (do not edit) ---';
+    const END_MARKER = '# --- end BMad-Stella GitHub managed ---';
+    if (!contents.includes(START_MARKER)) return;
+
+    const kept = [];
+    let insideBlock = false;
+    for (const line of contents.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (trimmed === START_MARKER) {
+        insideBlock = true;
+        continue;
+      }
+      if (trimmed === END_MARKER) {
+        insideBlock = false;
+        continue;
+      }
+      if (insideBlock) continue;
+      kept.push(line);
+    }
+    while (kept.length > 0 && kept[0].trim() === '') kept.shift();
+    while (kept.length > 0 && kept.at(-1).trim() === '') kept.pop();
+
+    const output = kept.length > 0 ? `${kept.join('\n')}\n` : '';
+    // temp + rename so mode is enforced before the data lands at envPath
+    const tmpPath = `${envPath}.${process.pid}.${Date.now()}.tmp`;
+    await fsp.writeFile(tmpPath, output, { encoding: 'utf8', mode: 0o600 });
+    try {
+      await fsp.chmod(tmpPath, 0o600);
+    } catch {
+      // best-effort on Windows (ACLs apply)
+    }
+    await fsp.rename(tmpPath, envPath);
+    try {
+      await fsp.chmod(envPath, 0o600);
+    } catch {
+      // best-effort on Windows
+    }
+  }
+
+  /**
+   * Delete the orphaned headers-helper script from an upgraded install
+   * (upgrades overwrite copied files but never remove ones dropped from bmad-core).
+   * @param {string} installDir
+   */
+  async _removeLegacyGithubAuthHelper(installDir) {
+    const fsp = require('node:fs/promises');
+    await fsp.rm(path.join(installDir, '.bmad-core', 'utils', 'github-mcp-auth.js'), {
+      force: true,
+    });
   }
 
   /**
@@ -245,6 +381,10 @@ class DependencyManager {
       skipped: [],
       alreadyConfigured: [],
     };
+
+    // Silently clean up leftovers from the retired GitHub MCP integration on
+    // upgraded installs (fingerprinted server registration, stored PAT, helper script).
+    await this.cleanupLegacyGithubMcp(installDir);
 
     // Check if Claude CLI is installed
     if (!this.isClaudeCLIInstalled()) {
