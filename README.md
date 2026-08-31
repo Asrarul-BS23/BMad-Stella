@@ -36,7 +36,6 @@ Planner → Dev → QA → Reviewer
 - [Claude Code CLI](https://docs.anthropic.com/claude/docs/claude-code) installed and configured
 - JIRA account with access to your organization's instance
 - Confluence page URL for architecture documentation (recommended)
-- GitHub fine-grained token for PR review (optional) — see [Create a GitHub Token for BMad](docs/github-pat-guide.md)
 
 ### Installation (5 minutes)
 
@@ -68,6 +67,9 @@ npx bmad-stella install
 - 🔧 **[Command Reference](docs/stella-user-guide.md#command-reference)** - All agent commands with detailed usage
 - 💡 **[Best Practices](docs/stella-user-guide.md#best-practices)** - Tips for success with each agent
 - 🐛 **[Troubleshooting](docs/stella-user-guide.md#troubleshooting)** - Common issues and solutions
+- 🔑 **[Atlassian Token Guide](docs/atlassian-token-guide.md)** - Create the JIRA/Confluence API token
+- 🧠 **[BMad Memory](docs/bmad-memory.md)** - How agents remember your project across sessions
+- 📋 **[Semantic Logger](docs/semantic-logger.md)** - Automatic friction reports per plan
 
 ### Understanding BMad-Stella
 

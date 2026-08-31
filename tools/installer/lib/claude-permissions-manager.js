@@ -16,11 +16,6 @@ class ClaudePermissionsManager {
       'mcp__atlassian__fetch',
       'mcp__atlassian__addCommentToJiraIssue',
 
-      // GitHub MCP tools (read-only) — used by the pr-reviewer to fetch PR details/diff/files
-      // and surrounding code. Matches a fine-grained PAT with pull-requests:read + contents:read.
-      'mcp__github__pull_request_read',
-      'mcp__github__get_file_contents',
-
       'WebFetch(domain:stellaint.atlassian.net)',
 
       // Jira attachment helper (fetches binary attachments the MCP cannot return)

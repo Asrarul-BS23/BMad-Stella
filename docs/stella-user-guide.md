@@ -12,8 +12,7 @@ Stella is an AI-powered development workflow system that guides you through the 
 
 - **Node.js 20+** — [nodejs.org](https://nodejs.org)
 - **Claude Code CLI** — [setup guide](https://docs.anthropic.com/claude/docs/claude-code)
-- **Atlassian account** — JIRA access + API token ([create token](https://id.atlassian.com/manage-profile/security/api-tokens))
-- **GitHub personal access token** _(optional)_ — fine-grained, for PR review integration ([create token](https://github.com/settings/personal-access-tokens))
+- **Atlassian account** — JIRA access + API token ([how to create](atlassian-token-guide.md))
 - **Confluence architecture page** _(optional)_ — for auto-loading coding standards, tech stack, project structure
 
 ### Install
@@ -93,24 +92,19 @@ Enter **y**. To be notified upon Claude events like when your permission is requ
 
 ```
 ? Which MCP servers do you want to configure:
-  (*) Atlassian (for JIRA integration)
-  (*) GitHub (for repository, issue, and PR integration)
+  (*) Atlassian (for JIRA & Confluence integration)
   ( ) Other (custom MCP server)
 ```
 
-Both are pre-selected. Press **ENTER**.
+Atlassian is pre-selected. Press **ENTER**.
 
 - **Atlassian:**
   - **If not configured:** asks for your JIRA instance URL. Example: `https://stellaint.atlassian.net`
   - **If already configured:** skips the prompt and shows authentication status.
 
-- **GitHub:**
-  - **First-time setup:** asks for a fine-grained Personal Access Token ([create token](https://github.com/settings/personal-access-tokens)). Verified against GitHub, then stored in a git-ignored `.env` (mode 0600).
-  - **If a token already exists:** press **ENTER** to reuse it, or **n** to enter a fresh one.
-
 **8. Jira API credentials**
 
-Used by the Jira attachment helper to download ticket images and PDFs. Stored in a git-ignored `.env` (mode 0600).
+Used by the Jira attachment helper to download ticket images and PDFs. Stored in git-ignored `bmad-docs/.bmad-tokens/.env` (mode 0600).
 
 - **First-time setup:**
 
@@ -128,7 +122,7 @@ Used by the Jira attachment helper to download ticket images and PDFs. Stored in
 
   [Create a token here](https://id.atlassian.com/manage-profile/security/api-tokens).
 
-- **If credentials already exist in `.env`:**
+- **If credentials already exist in `bmad-docs/.bmad-tokens/.env`:**
 
   ```
   ✓ Detected existing credentials (you@stellainternational.com → https://stellaint.atlassian.net).
@@ -143,15 +137,15 @@ Installation completes with a summary of installed components.
 
 ### What Gets Installed Where
 
-| Location                       | What                                                                |
-| ------------------------------ | ------------------------------------------------------------------- |
-| `.bmad-core/`                  | Agents, tasks, templates, `core-config.yaml`                        |
-| `bmad-docs/`                   | Plans, QA reports, notes, logs, memory — git-ignored, per developer |
-| `bmad-docs/.bmad-tokens/.env`  | JIRA + GitHub tokens (git-ignored, mode 0600)                       |
-| `.claude/settings.local.json`  | BMad permissions allowlist + project hooks                          |
-| `.claude/bmad-hooks/`          | Friction logger (BMAD-LOGS) + prompt hooks (project-level)          |
-| `~/.claude/bmad-hooks/`        | Notification + personalization hooks (user-wide)                    |
-| `~/.claude/personalization.md` | Your developer profile, seeded from git config                      |
+| Location                       | What                                                         |
+| ------------------------------ | ------------------------------------------------------------ |
+| `.bmad-core/`                  | Agents, tasks, templates, `core-config.yaml`                 |
+| `bmad-docs/`                   | Plans, QA reports, logs, memory — git-ignored, per developer |
+| `bmad-docs/.bmad-tokens/.env`  | JIRA API credentials (git-ignored, mode 0600)                |
+| `.claude/settings.local.json`  | BMad permissions allowlist + project hooks                   |
+| `.claude/bmad-hooks/`          | Friction logger (BMAD-LOGS) + prompt hooks (project-level)   |
+| `~/.claude/bmad-hooks/`        | Notification + personalization hooks (user-wide)             |
+| `~/.claude/personalization.md` | Your developer profile, seeded from git config               |
 
 ### Post-Installation
 
@@ -162,9 +156,7 @@ Required before using the planner agent.
 1. Open Claude Code in your project directory
 2. Run `/mcp`
 3. Select **Atlassian** → follow the OAuth redirect → grant JIRA + Confluence access
-4. Verify **Atlassian** and **GitHub** show **Connected**
-
-GitHub needs no OAuth — it authenticates with the token stored during installation. If it shows disconnected, the token is missing or expired — re-run `npx bmad-stella install` to set a fresh one.
+4. Verify **Atlassian** shows **Connected**
 
 ### Troubleshooting
 
@@ -176,7 +168,6 @@ GitHub needs no OAuth — it authenticates with the token stored during installa
 | Architecture docs not loading | Re-authenticate: `/mcp` → Atlassian → Re-authenticate                                                                                                                                                                                |
 | Agent files not found         | Re-run `npx bmad-stella install`                                                                                                                                                                                                     |
 | Jira attachments not loading  | Check all credentials in `bmad-docs/.bmad-tokens/.env` (`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`). If the token expired, [create a new one](https://id.atlassian.com/manage-profile/security/api-tokens) and update the file. |
-| GitHub MCP disconnected       | Token expired or revoked — regenerate ([create token](https://github.com/settings/personal-access-tokens)) and update `GITHUB_PERSONAL_ACCESS_TOKEN` in `bmad-docs/.bmad-tokens/.env`, or re-run `npx bmad-stella install`           |
 | No desktop notifications      | Re-run `npx bmad-stella install` and accept the notification prompt                                                                                                                                                                  |
 
 ---
@@ -208,7 +199,7 @@ Planner → Dev → QA → Security → Reviewer
 
 **Must-Use Commands:**
 
-- `*retrieve-ticket-info` - Fetch JIRA ticket details (JIRA path)
+- `*retrieve-ticket-information` - Fetch JIRA ticket details (JIRA path)
 - `*capture-requirements` - Capture requirements from non-JIRA sources (.md, .txt, direct instruction)
 - `*draft-plan` - Create implementation plan
 - `*implement-task` - Execute planned tasks
@@ -229,6 +220,8 @@ Planner → Dev → QA → Security → Reviewer
 - `*risk-profile` - Assess risks for complex stories
 - `*pr-review` - Review a GitHub PR against its requirements (reviewer, read-only)
 - `*ask` / `*explain` / `*decide` - Query project knowledge (domain expert)
+- `*search` / `*status` - Search loaded docs / show which docs are loaded (domain expert)
+- `*decompose-task` - Break a complex task into detailed subtasks (planner)
 - `*onboard` - Guided project onboarding for new developers (domain expert)
 - `*reload` - Refresh domain knowledge from Confluence (domain expert)
 - `*quick-flow` - Run full dev cycle in one session (quick-dev)
@@ -245,7 +238,7 @@ Planner → Dev → QA → Security → Reviewer
 ```mermaid
 graph TD
     A["Start Development"] --> A1{"Source?"}
-    A1 -->|JIRA Ticket| B["Planner: *retrieve-ticket-info"]
+    A1 -->|JIRA Ticket| B["Planner: *retrieve-ticket-information"]
     A1 -->|Non-JIRA<br/>(.md / .txt / direct)| B2["Planner: *capture-requirements"]
     B --> C["Planner: *draft-plan"]
     B2 --> C
@@ -345,7 +338,7 @@ graph TD
 ```bash
 # 1. Planning Phase (in Claude Code CLI)
 /planner
-*retrieve-ticket-info PROJ-123
+*retrieve-ticket-information PROJ-123
 *draft-plan {task-file}
 # For complex/high-risk stories, add risk assessment:
 # *risk-profile bmad-docs/impl-plan/PROJ-123-plan.md
@@ -403,7 +396,7 @@ graph TD
 ```bash
 # 1. Planning (in Claude Code CLI)
 /planner
-*retrieve-ticket-info BUG-789
+*retrieve-ticket-information BUG-789
 *draft-plan {task-file}
 *validate-plan bmad-docs/impl-plan/BUG-789-plan.md
 
@@ -588,7 +581,7 @@ Use for small, well-scoped work where switching between four agents adds unneces
 | **Attachments not auto-loaded into plan**     | Jira API credentials missing, invalid, or `bmad-docs/.bmad-tokens/.env` not present                                       | Run `npx bmad-stella install` to refresh credentials, or create `bmad-docs/.bmad-tokens/.env` with `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`. Verify with `node .bmad-core/utils/jira-attachments --self-test` |
 | **`Authentication failed (401)` from helper** | Expired or revoked Atlassian API token                                                                                    | Regenerate token at https://id.atlassian.com/manage-profile/security/api-tokens → Update `JIRA_API_TOKEN` in `bmad-docs/.bmad-tokens/.env` → Retry                                                                   |
 | **Agent cannot find plan file**               | Plan file path incorrect or not created                                                                                   | Ensure plan exists in `bmad-docs/impl-plan/{PLAN-ID}-plan.md` → Provide full path                                                                                                                                    |
-| **Tests failing during validation**           | Implementation mismatch or incorrect test scenarios                                                                       | Review test failure messages → Verify implementation matches requirements → Use `/dev` then `*review-qa` → Use `/qa` then `*run-tests` to verify fixes                                                               |
+| **Tests failing during validation**           | Implementation mismatch or incorrect test scenarios                                                                       | Review test failure messages → Verify implementation matches requirements → Use `/dev` then `*review-qa-security` → Use `/qa` then `*run-tests` to verify fixes                                                      |
 | **Dev agent HALTs**                           | Unapproved dependency, ambiguous requirements, 3+ failures, missing config, or failing regression                         | Address blocking issue (approve dependency, clarify requirements, provide config, fix tests) → Resume                                                                                                                |
 | **`*run-tests` shows no tests**               | Test design or implementation not completed                                                                               | Run `/qa` → `*test-design` → `*implement-test` → Then `*run-tests`                                                                                                                                                   |
 | **Architecture docs not loading**             | Install-time prefetch skipped (no Atlassian credentials) and Atlassian MCP not authenticated, or incorrect Confluence URL | `/mcp` → Atlassian → Re-authenticate → Verify Confluence URL in core-config.yaml → Re-run `/planner` activation (or delete `bmad-docs/architecture/` and re-run `npx bmad-stella install`)                           |
@@ -606,17 +599,18 @@ Use for small, well-scoped work where switching between four agents adds unneces
 **Agent:** Alex - Senior Implementation Planner
 **Icon:** 🎯
 
-| Command                  | Purpose                                                                                                                               | When to Use                                                                                                                                                                                                                       | Files Created/Modified                                                   | Parameters                                                                            |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `*help`                  | Display all available commands                                                                                                        | When starting planner agent or need command list                                                                                                                                                                                  | None                                                                     | None                                                                                  |
-| `*retrieve-ticket-info`  | Fetch JIRA ticket details via Atlassian MCP                                                                                           | **First step (JIRA path)** in planning workflow. Use when you have a JIRA ticket number or URL and need to gather requirements, acceptance criteria, and attachments before planning                                              | None (displays ticket info for validation)                               | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                |
-| `*capture-requirements`  | Capture requirements from non-JIRA sources (direct text, .md, or .txt) and prepare for planning                                       | **First step (non-JIRA path)** in planning workflow. Use when work originates from a brief, internal doc, or direct ask. Asks for screenshots, Plan ID, and confirms type (Bug/Feature/Migration) before handoff to `*draft-plan` | None (displays prepared summary for validation)                          | `{input}` - Direct text (quoted) OR path to a `.md`/`.txt` file                       |
-| `*identify-dependencies` | Find related past tickets, analyze code files modified in past work, and assess code modification requirements for the current ticket | After retrieving ticket info. Use before drafting a plan for complex tasks to understand what past work is related, which files are likely impacted, and what risks or blockers exist early                                       | **Creates:** `bmad-docs/temporary/{TICKET-ID}-dependency-tmp.md`         | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                |
-| `*draft-plan`            | Create detailed implementation plan with tasks, technical approach, and dependencies                                                  | After retrieving ticket info and validating requirements. Transforms task into actionable plan with step-by-step tasks that junior developers can follow                                                                          | **Creates:** `bmad-docs/impl-plan/{PLAN-ID}-plan.md`                     | `{task-file-or-description}` - Task file path or description with Acceptance Criteria |
-| `*refine-plan`           | Iterate and improve existing implementation plan                                                                                      | When initial plan needs more technical detail, user provides feedback, requirements change, or approach needs adjustment. Supports iterative refinement before dev handoff                                                        | **Modifies:** Existing plan file                                         | `{plan-file}` - Path to implementation plan                                           |
-| `*validate-plan`         | Run validation checklist on plan completeness                                                                                         | Before handing off to dev agent. Ensures plan has all required sections, clear acceptance criteria, detailed tasks, identified dependencies, and technical decisions documented                                                   | None (displays validation results)                                       | `{plan-file}` - Path to implementation plan                                           |
-| `*risk-profile`          | Generate risk assessment matrix with mitigation strategies                                                                            | For complex/high-risk stories: database migrations, schema changes, breaking API changes, multi-integration features, security-sensitive implementations, or stories affecting critical business flows                            | **Creates:** Risk assessment section in plan or separate assessment file | `{story}` - Story/plan reference                                                      |
-| `*exit`                  | Exit planner agent mode                                                                                                               | When planning phase is complete and plan is validated                                                                                                                                                                             | None                                                                     | None                                                                                  |
+| Command                        | Purpose                                                                                                                               | When to Use                                                                                                                                                                                                                       | Files Created/Modified                                                   | Parameters                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `*help`                        | Display all available commands                                                                                                        | When starting planner agent or need command list                                                                                                                                                                                  | None                                                                     | None                                                                                  |
+| `*retrieve-ticket-information` | Fetch JIRA ticket details via Atlassian MCP                                                                                           | **First step (JIRA path)** in planning workflow. Use when you have a JIRA ticket number or URL and need to gather requirements, acceptance criteria, and attachments before planning                                              | None (displays ticket info for validation)                               | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                |
+| `*capture-requirements`        | Capture requirements from non-JIRA sources (direct text, .md, or .txt) and prepare for planning                                       | **First step (non-JIRA path)** in planning workflow. Use when work originates from a brief, internal doc, or direct ask. Asks for screenshots, Plan ID, and confirms type (Bug/Feature/Migration) before handoff to `*draft-plan` | None (displays prepared summary for validation)                          | `{input}` - Direct text (quoted) OR path to a `.md`/`.txt` file                       |
+| `*identify-dependencies`       | Find related past tickets, analyze code files modified in past work, and assess code modification requirements for the current ticket | After retrieving ticket info. Use before drafting a plan for complex tasks to understand what past work is related, which files are likely impacted, and what risks or blockers exist early                                       | **Creates:** `bmad-docs/temporary/{TICKET-ID}-dependency-tmp.md`         | `{ticket-number-or-url}` - JIRA ticket ID (e.g., PROJ-123) or full URL                |
+| `*draft-plan`                  | Create detailed implementation plan with tasks, technical approach, and dependencies                                                  | After retrieving ticket info and validating requirements. Transforms task into actionable plan with step-by-step tasks that junior developers can follow                                                                          | **Creates:** `bmad-docs/impl-plan/{PLAN-ID}-plan.md`                     | `{task-file-or-description}` - Task file path or description with Acceptance Criteria |
+| `*decompose-task`              | Break down a complex task into detailed subtasks                                                                                      | When a task is too large or vague to plan directly. Produces a detailed subtask breakdown before or during plan drafting                                                                                                          | None (displays decomposition for validation)                             | `{task-file-or-description}` - Task file path or description                          |
+| `*refine-plan`                 | Iterate and improve existing implementation plan                                                                                      | When initial plan needs more technical detail, user provides feedback, requirements change, or approach needs adjustment. Supports iterative refinement before dev handoff                                                        | **Modifies:** Existing plan file                                         | `{plan-file}` - Path to implementation plan                                           |
+| `*validate-plan`               | Run validation checklist on plan completeness                                                                                         | Before handing off to dev agent. Ensures plan has all required sections, clear acceptance criteria, detailed tasks, identified dependencies, and technical decisions documented                                                   | None (displays validation results)                                       | `{plan-file}` - Path to implementation plan                                           |
+| `*risk-profile`                | Generate risk assessment matrix with mitigation strategies                                                                            | For complex/high-risk stories: database migrations, schema changes, breaking API changes, multi-integration features, security-sensitive implementations, or stories affecting critical business flows                            | **Creates:** Risk assessment section in plan or separate assessment file | `{story}` - Story/plan reference                                                      |
+| `*exit`                        | Exit planner agent mode                                                                                                               | When planning phase is complete and plan is validated                                                                                                                                                                             | None                                                                     | None                                                                                  |
 
 ---
 
@@ -626,14 +620,14 @@ Use for small, well-scoped work where switching between four agents adds unneces
 **Agent:** Bob - Full Stack Developer
 **Icon:** 💻
 
-| Command           | Purpose                                        | When to Use                                                                                                                                                                                                                                                     | Files Created/Modified                                                                                                                                         | Parameters                                    |
-| ----------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `*help`           | Display all available commands                 | When starting dev agent or need command list                                                                                                                                                                                                                    | None                                                                                                                                                           | None                                          |
-| `*implement-task` | Execute implementation plan tasks sequentially | **Primary development command.** Use when you have an approved implementation plan and are ready to code. Implements one task at a time, writes tests, runs validations, and HALTs between tasks for user approval                                              | **Modifies:** Implementation plan (checkboxes, Dev Agent Record, Change Log, Status). **Creates/Modifies:** Source code files, test files as specified in plan | None (reads from current implementation plan) |
-| `*comment-plan`   | Post implementation summary to JIRA ticket     | **ONLY after ticket implementation is FULLY done** - all tasks completed with [x], all validations pass, code complete. Posts formatted comment with completed tasks, technical summary, and acceptance criteria (if not in ticket) to update JIRA stakeholders | None (posts comment to JIRA)                                                                                                                                   | `{plan-file}` - Path to implementation plan   |
-| `*review-qa`      | Apply fixes based on QA feedback               | When QA agent identifies bugs, test failures, coverage gaps, or issues during testing. Systematically addresses QA feedback. After fixes, must run `/qa` then `*run-tests` to verify corrections                                                                | **Modifies:** Source code files, test files, implementation plan Debug Log                                                                                     | None (reads QA feedback from plan)            |
-| `*explain`        | Provide detailed explanation of implementation | When you want to learn and understand what was implemented, why certain decisions were made, and how code works. Educational tool for knowledge transfer                                                                                                        | None                                                                                                                                                           | None                                          |
-| `*exit`           | Exit dev agent mode                            | When development phase is complete or switching agents                                                                                                                                                                                                          | None                                                                                                                                                           | None                                          |
+| Command               | Purpose                                        | When to Use                                                                                                                                                                                                                                                     | Files Created/Modified                                                                                                                                         | Parameters                                    |
+| --------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `*help`               | Display all available commands                 | When starting dev agent or need command list                                                                                                                                                                                                                    | None                                                                                                                                                           | None                                          |
+| `*implement-task`     | Execute implementation plan tasks sequentially | **Primary development command.** Use when you have an approved implementation plan and are ready to code. Implements one task at a time, writes tests, runs validations, and HALTs between tasks for user approval                                              | **Modifies:** Implementation plan (checkboxes, Dev Agent Record, Change Log, Status). **Creates/Modifies:** Source code files, test files as specified in plan | None (reads from current implementation plan) |
+| `*comment-plan`       | Post implementation summary to JIRA ticket     | **ONLY after ticket implementation is FULLY done** - all tasks completed with [x], all validations pass, code complete. Posts formatted comment with completed tasks, technical summary, and acceptance criteria (if not in ticket) to update JIRA stakeholders | None (posts comment to JIRA)                                                                                                                                   | `{plan-file}` - Path to implementation plan   |
+| `*review-qa-security` | Apply fixes based on QA and security feedback  | When QA identifies bugs, test failures, or coverage gaps, or security audit records violations in the plan. Systematically addresses the feedback. After fixes, must run `/qa` then `*run-tests` to verify corrections                                          | **Modifies:** Source code files, test files, implementation plan Debug Log                                                                                     | None (reads QA/security feedback from plan)   |
+| `*explain`            | Provide detailed explanation of implementation | When you want to learn and understand what was implemented, why certain decisions were made, and how code works. Educational tool for knowledge transfer                                                                                                        | None                                                                                                                                                           | None                                          |
+| `*exit`               | Exit dev agent mode                            | When development phase is complete or switching agents                                                                                                                                                                                                          | None                                                                                                                                                           | None                                          |
 
 **CRITICAL Dev Rules:**
 
@@ -726,6 +720,43 @@ Use for small, well-scoped work where switching between four agents adds unneces
 
 ---
 
+### Security Agent Commands
+
+**Activation (in Claude Code CLI):** `/security`
+**Agent:** Sam - Security Auditor
+**Icon:** 🔒
+
+| Command           | Purpose                                  | When to Use                                                                                                                            | Files Created/Modified                                                                | Parameters                                  |
+| ----------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `*help`           | Display all available commands           | When starting security agent or need command list                                                                                      | None                                                                                  | None                                        |
+| `*check-frontend` | Audit frontend security against the plan | After QA approval. Runs the frontend security checklist on files changed during implementation                                         | **Modifies:** plan's Security Violations section (findings only — never edits source) | `{implementation-plan}` - Path to plan file |
+| `*check-backend`  | Audit backend security against the plan  | After QA approval. Checks authorization coverage, role/permission correctness, auth pipeline and context integrity, audit completeness | **Modifies:** plan's Security Violations section (findings only — never edits source) | `{implementation-plan}` - Path to plan file |
+| `*exit`           | Exit security agent mode                 | When security phase is complete or switching agents                                                                                    | None                                                                                  | None                                        |
+
+**Important:** Security never modifies code. Violations land in the plan — fix them with `/dev` then `*review-qa-security`, and re-run both checks until clean.
+
+---
+
+### Domain Expert Agent Commands
+
+**Activation (in Claude Code CLI):** `/domain-expert`
+**Agent:** Sage - Project Knowledge Oracle
+**Icon:** 🧠
+
+| Command    | Purpose                                                                | When to Use                                                                                                              | Files Created/Modified                      | Parameters                                 |
+| ---------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- | ------------------------------------------ |
+| `*help`    | Display all available commands                                         | When starting domain expert agent or need command list                                                                   | None                                        | None                                       |
+| `*ask`     | Answer a question from loaded domain-knowledge and architecture docs   | Anytime, during any workflow. Answers cite the source document; knowledge gaps are stated instead of guessed             | None                                        | `{question}` - Question in quotes          |
+| `*explain` | Thorough explanation of a topic, component, API, workflow, or concept  | When you need depth on one area. Answers only from loaded docs; offers codebase scan only with permission                | None                                        | `{topic}` - Topic in quotes                |
+| `*decide`  | Recommend a technical/architectural decision based on project patterns | When choosing between approaches. Analyzes the scenario against documented conventions and recommends with reasoning     | None                                        | `{scenario}` - Decision scenario in quotes |
+| `*onboard` | Guided project onboarding for new developers                           | When a new developer joins. Walks through overview, tech stack, architecture, structure, workflow, coding standards, Q&A | None                                        | None                                       |
+| `*search`  | Search all loaded documentation for a term or concept                  | When you need every mention of a keyword across the loaded docs, with context                                            | None                                        | `{term}` - Search term                     |
+| `*status`  | Show which documentation files are currently loaded                    | To verify what knowledge Sage is answering from, and the configured architecture URL                                     | None                                        | None                                       |
+| `*reload`  | Re-fetch all domain knowledge pages fresh from Confluence              | After Confluence documentation updates. **WARNING:** deletes and replaces `bmad-docs/domain-knowledge/`                  | **Replaces:** `bmad-docs/domain-knowledge/` | None                                       |
+| `*exit`    | Exit domain expert agent mode                                          | When done querying project knowledge                                                                                     | None                                        | None                                       |
+
+---
+
 ### User-Level Commands
 
 These commands are not tied to any agent — run them anytime in Claude Code CLI.
@@ -740,6 +771,12 @@ These commands are not tied to any agent — run them anytime in Claude Code CLI
 ### BMAD Logs
 
 When a plan reaches **Ready for Review** or **Ready for Done**, a background hook analyzes the work sessions and writes a friction report — what slowed the work down and why — to `bmad-docs/bmad-logs/{PLAN-ID}/friction.md`. Fully automatic, no commands.
+
+---
+
+### Architecture Conflict Detection
+
+During planning, the planner (and quick-dev's planning phase) checks the proposed direction against the architecture docs in `bmad-docs/architecture/` — tech stack, coding standards, project structure. If a conflict is found, you're asked whether it's a **deliberate architecture change** (Confluence is updated first, then local docs re-synced) or the plan should **align with current docs** (planning halts until the direction is revised). Fully automatic, no commands.
 
 ---
 
@@ -758,7 +795,7 @@ bmad-docs/
 ├── bmad-logs/                  # Friction reports per plan (automatic)
 ├── memory/                     # Session memory (hooks)
 ├── cache/jira/                 # Downloaded ticket attachments
-└── .bmad-tokens/.env           # JIRA + GitHub tokens
+└── .bmad-tokens/.env           # JIRA API credentials
 ```
 
 Dev modifies the plan (checkboxes, Dev Agent Record, Change Log) and project source/test files. Reviewer `*review` modifies source directly. QA also writes test files into the project's test directories.
@@ -774,7 +811,7 @@ Dev modifies the plan (checkboxes, Dev Agent Record, Change Log) and project sou
 3. **Don't skip validation** - Catching issues early saves time
 4. **Keep JIRA updated** - Use `*comment-plan` ONCE when ticket is fully complete
 5. **Ask for help** - Every agent has a `*help` command
-6. **Iterate when needed** - Use refine-plan, review-qa as needed
+6. **Iterate when needed** - Use refine-plan, review-qa-security as needed
 7. **Run all tests** - Including regression before marking done
 8. **Document changes** - File List and Change Log matter
 9. **Review before completion** - Final review catches optimizations
