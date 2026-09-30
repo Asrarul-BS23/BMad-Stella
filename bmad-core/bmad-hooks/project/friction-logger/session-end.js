@@ -22,7 +22,12 @@ const AGENT_MARKERS = [
 ];
 
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit']);
-const PLAN_PATH_RE = /impl-plan[\\/]([^\\/]+?\.md)$/;
+// Dedicated file tools carry the path in input.file_path (must END with the plan path).
+const PLAN_PATH_RE = /impl-plan\/([^/]+?\.md)$/;
+// Bash writes (heredoc, `cat >`, sed -i, …) carry the path somewhere inside
+// input.command — any mention counts; the on-disk existence check below filters
+// out greps/reads that only name a file.
+const BASH_PLAN_RE = /impl-plan[\\/]([^\\/\s'"`)]+?\.md)/g;
 
 function main(rawStdin) {
   // Recursion guard (shared convention with the memory feature, see commit a6831d7):
@@ -68,7 +73,7 @@ function main(rawStdin) {
     for (const m of AGENT_MARKERS) {
       if (line.includes(m.id) && line.includes(m.name)) agents.add(m.agent);
     }
-    // tool_use Write/Edit/MultiEdit on impl-plan/*.md
+    // tool_use Write/Edit/MultiEdit (file_path) or Bash (command) on impl-plan/*.md
     let obj;
     try {
       obj = JSON.parse(line);
@@ -79,11 +84,15 @@ function main(rawStdin) {
     const content = obj.message && obj.message.content;
     if (!Array.isArray(content)) continue;
     for (const block of content) {
-      if (!block || block.type !== 'tool_use' || !WRITE_TOOLS.has(block.name)) continue;
-      const fp = block.input && block.input.file_path;
-      if (typeof fp !== 'string') continue;
-      const match = fp.replaceAll('\\', '/').match(/impl-plan\/([^/]+?\.md)$/);
-      if (match) planFiles.add(match[1]);
+      if (!block || block.type !== 'tool_use' || !block.input) continue;
+      if (WRITE_TOOLS.has(block.name)) {
+        const fp = block.input.file_path;
+        if (typeof fp !== 'string') continue;
+        const match = fp.replaceAll('\\', '/').match(PLAN_PATH_RE);
+        if (match) planFiles.add(match[1]);
+      } else if (block.name === 'Bash' && typeof block.input.command === 'string') {
+        for (const m of block.input.command.matchAll(BASH_PLAN_RE)) planFiles.add(m[1]);
+      }
     }
   }
 
