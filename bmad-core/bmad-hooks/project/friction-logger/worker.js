@@ -7,27 +7,85 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { makeLogger } = require('./lib/state');
-const { readTracker, writeTracker } = require('./lib/tracker');
-const { readStatus } = require('./lib/planfile');
-const { buildScreenplays } = require('./lib/reducer');
-const { callClaude } = require('./lib/llm');
-const { renderMarkdown } = require('./lib/render');
-const { readLoggingConfig } = require('./lib/config');
-const { publishReport } = require('./lib/confluence-publisher');
-const { buildExtractionPrompt } = require('./prompts/extract-friction');
+
+const cwd = process.argv[2];
+if (!cwd) process.exit(0);
+
+function lockPath(dir) {
+  return path.join(dir, 'bmad-docs', 'bmad-logs', '.fire-lock');
+}
+
+// Last-resort logger that depends on nothing but node:fs. Used when a lib
+// fails to load or the main body throws before/outside the normal logger —
+// otherwise such a crash would leave a stuck lock and zero trace.
+function emergencyLog(message) {
+  try {
+    const logsDir = path.join(cwd, 'bmad-docs', 'bmad-logs');
+    fs.mkdirSync(logsDir, { recursive: true });
+    fs.appendFileSync(
+      path.join(logsDir, '.hook-debug.log'),
+      `${new Date().toISOString()} [friction] worker: FATAL ${message}\n`,
+    );
+  } catch {
+    /* even this must never throw */
+  }
+}
+
+function releaseLock() {
+  try {
+    fs.unlinkSync(lockPath(cwd));
+  } catch {
+    /* already gone */
+  }
+}
+
+// Guarded requires: a broken install (missing/invalid lib) must log + release
+// the lock instead of dying silently before the try/finally below exists.
+let makeLogger, readTracker, writeTracker, readStatus, buildScreenplays, callClaude;
+let renderMarkdown, readLoggingConfig, publishReport, buildExtractionPrompt;
+try {
+  ({ makeLogger } = require('./lib/state'));
+  ({ readTracker, writeTracker } = require('./lib/tracker'));
+  ({ readStatus } = require('./lib/planfile'));
+  ({ buildScreenplays } = require('./lib/reducer'));
+  ({ callClaude } = require('./lib/llm'));
+  ({ renderMarkdown } = require('./lib/render'));
+  ({ readLoggingConfig } = require('./lib/config'));
+  ({ publishReport } = require('./lib/confluence-publisher'));
+  ({ buildExtractionPrompt } = require('./prompts/extract-friction'));
+} catch (error) {
+  emergencyLog(`require failed: ${error.message}`);
+  releaseLock();
+  process.exit(1);
+}
 
 const GENERATION_CAP = 2;
 const PUBLISH_ATTEMPT_CAP = 3;
+// Consecutive failed LLM analyses allowed for the same plan content. Without
+// this, a persistently failing analysis (bad JSON, timeout) re-fired on every
+// session start forever. Reset by tracker.js when new content arrives.
+const ANALYSIS_ATTEMPT_CAP = 3;
 
-function lockPath(cwd) {
-  return path.join(cwd, 'bmad-docs', 'bmad-logs', '.fire-lock');
+// Heartbeat: refresh the lock's startedAt so session-start's 30-min stale
+// check measures time since last progress, not since the worker began. A
+// worker legitimately busy for >30 min (many plans × slow LLM) must not be
+// mistaken for a dead one — that spawned a second concurrent worker.
+function touchLock() {
+  try {
+    fs.writeFileSync(
+      lockPath(cwd),
+      JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }),
+    );
+  } catch {
+    /* lock may have been reclaimed — nothing useful to do */
+  }
 }
 
 // Fire gates, cheap-first. LLM is called only after ALL pass. Per-plan isolation.
-function evaluateGates(cwd, planId, entry, triggerStatuses, log) {
+function evaluateGates(planId, entry, triggerStatuses) {
   if (entry.analyzed) return 'analyzed';
   if (entry.generationCount >= GENERATION_CAP) return 'generation-cap';
+  if ((entry.analysisAttempts || 0) >= ANALYSIS_ATTEMPT_CAP) return 'analysis-cap';
 
   // agent completeness: ({planner, dev} ⊆ union) OR quick-dev
   const all = new Set();
@@ -49,7 +107,7 @@ function evaluateGates(cwd, planId, entry, triggerStatuses, log) {
   return null; // all gates pass
 }
 
-async function analyzePlan(cwd, planId, entry, log) {
+async function analyzePlan(planId, entry, log) {
   const planFileAbs = path.join(cwd, entry.planFile);
   const planText = fs.readFileSync(planFileAbs, 'utf8');
   const screenplays = buildScreenplays(entry.sessions);
@@ -58,6 +116,7 @@ async function analyzePlan(cwd, planId, entry, log) {
   log(`worker: analyzing ${planId}`, {
     promptChars: prompt.length,
     sessions: entry.sessions.length,
+    attempt: (entry.analysisAttempts || 0) + 1,
   });
   const text = await callClaude(prompt, log);
   if (text === null) return false;
@@ -124,10 +183,39 @@ function recomputeStats(entries) {
   return stats;
 }
 
+// Record the analysis outcome on a FRESH tracker read (narrows the lost-update
+// window vs concurrent SessionEnd writes). Success → analyzed, new generation,
+// publish cycle reset. Failure → bump analysisAttempts toward the cap.
+function recordAnalysisOutcome(planId, ok, log) {
+  const fresh = readTracker(cwd);
+  const entry = fresh.plans[planId];
+  if (!entry) return;
+  if (ok) {
+    entry.analyzed = true;
+    entry.generationCount = (entry.generationCount || 0) + 1;
+    entry.analysisAttempts = 0;
+    // new generation = fresh report -> reset the publish cycle (3 fresh attempts)
+    entry.published = false;
+    entry.publishAttempts = 0;
+  } else {
+    entry.analysisAttempts = (entry.analysisAttempts || 0) + 1;
+    if (entry.analysisAttempts >= ANALYSIS_ATTEMPT_CAP) {
+      log(
+        `worker: giving up on ${planId} after ${ANALYSIS_ATTEMPT_CAP} failed analyses — will retry only when new session content arrives`,
+      );
+    } else {
+      log(
+        `worker: ${planId} analysis failed — attempt ${entry.analysisAttempts}/${ANALYSIS_ATTEMPT_CAP}, will retry next fire`,
+      );
+    }
+  }
+  writeTracker(cwd, fresh);
+}
+
 // Publish pass: upload every analyzed-but-unpublished report to Confluence.
 // Covers reports generated this run AND leftovers from earlier failed uploads.
 // Hard cap: PUBLISH_ATTEMPT_CAP tries per generation, then local-only forever.
-async function publishPending(cwd, confluenceConfig, log) {
+async function publishPending(confluenceConfig, log) {
   const tracker = readTracker(cwd);
   let changed = false;
 
@@ -148,6 +236,7 @@ async function publishPending(cwd, confluenceConfig, log) {
     }
 
     const res = await publishReport(cwd, confluenceConfig, friction, log);
+    touchLock();
     entry.publishAttempts = (entry.publishAttempts || 0) + 1;
     changed = true;
     if (res.ok) {
@@ -189,8 +278,6 @@ function prune(tracker, log, publishEnabled) {
 }
 
 (async () => {
-  const cwd = process.argv[2];
-  if (!cwd) process.exit(0);
   const log = makeLogger(cwd);
 
   try {
@@ -199,25 +286,14 @@ function prune(tracker, log, publishEnabled) {
     const triggerStatuses = new Set(config.triggerStatuses);
 
     for (const [planId, entry] of Object.entries(tracker.plans)) {
-      const blocked = evaluateGates(cwd, planId, entry, triggerStatuses, log);
+      const blocked = evaluateGates(planId, entry, triggerStatuses);
       if (blocked) {
         log(`worker: skip ${planId} — ${blocked}`);
         continue;
       }
-      const ok = await analyzePlan(cwd, planId, entry, log);
-      if (ok) {
-        // re-read fresh to narrow the lost-update window vs concurrent SessionEnd writes
-        const fresh = readTracker(cwd);
-        const freshEntry = fresh.plans[planId];
-        if (freshEntry) {
-          freshEntry.analyzed = true;
-          freshEntry.generationCount = (freshEntry.generationCount || 0) + 1;
-          // new generation = fresh report -> reset the publish cycle (3 fresh attempts)
-          freshEntry.published = false;
-          freshEntry.publishAttempts = 0;
-          writeTracker(cwd, fresh);
-        }
-      }
+      const ok = await analyzePlan(planId, entry, log);
+      touchLock(); // progress heartbeat — one LLM call can take minutes
+      recordAnalysisOutcome(planId, ok, log);
     }
 
     // Publish everything analyzed-but-unpublished (fresh + earlier failures).
@@ -225,19 +301,16 @@ function prune(tracker, log, publishEnabled) {
       config.confluence && config.confluence.enabled && config.confluence.logsPageUrl,
     );
     if (publishEnabled) {
-      await publishPending(cwd, config.confluence, log);
+      await publishPending(config.confluence, log);
     }
 
     const finalTracker = readTracker(cwd);
     prune(finalTracker, log, publishEnabled);
     writeTracker(cwd, finalTracker);
   } catch (error) {
-    log('worker: unexpected error', { error: error.message });
+    log('worker: unexpected error', { error: error.message, stack: error.stack });
+    emergencyLog(`unexpected error: ${error.stack || error.message}`);
   } finally {
-    try {
-      fs.unlinkSync(lockPath(cwd)); // release the fire-lock
-    } catch {
-      /* already gone */
-    }
+    releaseLock();
   }
 })();
