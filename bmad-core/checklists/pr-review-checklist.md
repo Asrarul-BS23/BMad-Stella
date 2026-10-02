@@ -20,11 +20,16 @@ The goal is dev-actionable output ready to write — not just a finished review.
 
 ## Validation
 
-- [ ] Requirements resolved (JIRA ticket or raw) and acceptance criteria captured.
-- [ ] PR diff fetched and every changed file reviewed.
+- [ ] JIRA key taken from the PR title (or given by the user) and the ticket fetched: summary, description, acceptance criteria, comments.
+- [ ] PR fetched via `gh` only; head SHA captured; `git fetch origin pull/{N}/head` done and the SHA resolves locally.
+- [ ] No write anywhere: no Edit/Write on source, no `gh api`, no `gh pr comment/review/edit/merge/checkout`, no `git checkout/switch/commit/push/add/stash`.
+- [ ] Every changed file reviewed; surrounding code read with `git show {sha}:{path}` at the head SHA, never from the working tree.
 - [ ] Domain knowledge accessed by targeted Grep only — no bulk-read of `bmad-docs/domain-knowledge/`.
-- [ ] All 9 criteria evaluated against the change set: requirements coverage & business correctness, logical correctness, security & hidden bugs, performance & scalability, API & data contracts, observability, coding standards, project architecture, test adequacy.
-- [ ] Every finding is actionable: `file:line`, one-sentence finding, one-clause why (the consequence), concrete fix. No nits, no open questions, no theoretical concerns.
+- [ ] All 10 universal criteria evaluated; criterion 11 (wiring & registration) applied only where the stack has the concept, skipped silently otherwise.
+- [ ] Scope drift checked both ways: PR changes not in the ticket, and AC with no matching code/test. "Acceptance criteria missing" flagged if the ticket has none.
+- [ ] Test coverage stated as `OK` or `MISSING — {exactly what}`.
+- [ ] Ripple check done with `git grep -e` at the head SHA; result stated.
+- [ ] Every finding has `File:LINE` from the diff's new-file numbers (or `File (missing)`), What / Why / Fix, grouped 🔴 Blockers / 🟡 Minor, numbered continuously. No nits, no open questions, no praise.
 
 ## Final Confirmation
 
