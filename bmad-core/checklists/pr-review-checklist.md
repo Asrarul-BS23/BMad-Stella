@@ -30,6 +30,7 @@ The goal is dev-actionable output ready to write — not just a finished review.
 - [ ] Test coverage stated as `OK` or `MISSING — {exactly what}`.
 - [ ] Ripple check done with `git grep -e` at the head SHA; result stated.
 - [ ] Every finding has `File:LINE` from the diff's new-file numbers (or `File (missing)`), What / Why / Fix, grouped 🔴 Blockers / 🟡 Minor, numbered continuously. No nits, no open questions, no praise.
+- [ ] Report is short: two-sentence summary, one line per What / Why / Fix, repeated issues merged into one finding, Minor capped at 5, plain words.
 
 ## Final Confirmation
 

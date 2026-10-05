@@ -76,6 +76,13 @@ Write `bmad-docs/reviewer/{repo}-pr{number}-review-{YYYY-MM-DD}.md`. Create the 
 
 Rules: only findings the dev must fix — no cosmetic nits, no open questions, no theoretical concerns, no praise, no explaining what is fine. Every finding title is `` `File:LINE` `` (or `:START-END`) from the PR diff's new-file line numbers; something missing → `` `File` (missing) `` and say where it should go. Number findings continuously across groups. One blank line between findings. Omit a group heading when it has no findings.
 
+Keep it short — a long report is a second review job:
+
+- Summary: two sentences max. What / Why / Fix: one line each.
+- Same issue in several places → one finding, all locations in the title.
+- Minor group over 5 → keep the 5 most useful, then one line: "N more minor, not listed."
+- Plain words the PR author understands without looking anything up.
+
 Format:
 
 ```markdown
