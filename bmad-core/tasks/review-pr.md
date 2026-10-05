@@ -30,6 +30,11 @@ Run in order. A command error → HALT and show the exact error, unless the step
 1. `gh auth status` — not logged in → HALT, tell user: `gh auth login`.
 2. `gh pr view {pr_url} --json number,title,body,author,state,isDraft,baseRefName,headRefName,headRefOid,baseRefOid,changedFiles,additions,deletions,url` — keep `number`, `headRefOid`, `baseRefOid`. `state` not `OPEN` → say so in one line and continue.
 3. JIRA key = first match of `[A-Z][A-Z0-9]+-\d+` in `title` (e.g. `LEADRSC-4699: gate signed-warrant PDF downloads` → `LEADRSC-4699`). None → ask the user for the key or URL, HALT until given. Fetch the ticket via Atlassian MCP: summary, description, acceptance criteria, comments (comments often override the description). Note the issue type (bug vs feature). This is what the PR is judged against. MCP failure → HALT: "Atlassian MCP not connected. Please reauthenticate (`/mcp`)." Retry once after the user confirms.
+   Ticket is thin when it lacks either a description of what must change or acceptance criteria / clear expected behavior. Then, in order:
+   - Parent ticket exists (`parent` field) → fetch it via Atlassian MCP and use its description + AC as the requirements.
+   - Still thin → ask the user once, one message: "Ticket {KEY} has no {description / acceptance criteria}. Paste the expected behavior, or reply `proceed` to review against the PR title and description only." HALT until answered.
+   - Never ask when the ticket is sufficient. Never ask a second question.
+     Record the requirements source in the report header: `ticket`, `parent {KEY}`, `user-provided`, or `PR description`.
 4. `gh pr diff {pr_url}` — the change set. GitHub refuses diffs over 300 files / 20k lines → HALT: "PR too large for automated review; ask the author to split it." `gh pr checks {pr_url}` — exits non-zero when checks fail or are pending; that is a finding, not a HALT. HALT only if the command itself errors.
 5. `git fetch origin pull/{number}/head`, then `git cat-file -t {headRefOid}` must print `commit`. Else HALT.
 6. On demand during review, always at the head SHA:
@@ -88,7 +93,7 @@ Format:
 ```markdown
 # PR Review: {repo}#{number} — {pr_title}
 
-**Reviewed:** {YYYY-MM-DD} by pr-reviewer · **PR:** {pr_url} · **Ticket:** {JIRA key} · **Head:** {headRefOid short}
+**Reviewed:** {YYYY-MM-DD} by pr-reviewer · **PR:** {pr_url} · **Ticket:** {JIRA key} · **Requirements from:** {ticket | parent KEY | user | PR description} · **Head:** {headRefOid short}
 
 **Summary:** {1–2 sentences: verdict + biggest concern}
 

@@ -20,7 +20,7 @@ The goal is dev-actionable output ready to write — not just a finished review.
 
 ## Validation
 
-- [ ] JIRA key taken from the PR title (or given by the user) and the ticket fetched: summary, description, acceptance criteria, comments.
+- [ ] JIRA key taken from the PR title (or given by the user) and the ticket fetched: summary, description, acceptance criteria, comments. Thin ticket → parent used, else the user asked once; requirements source recorded in the header.
 - [ ] PR fetched via `gh` only; head SHA captured; `git fetch origin pull/{N}/head` done and the SHA resolves locally.
 - [ ] No write anywhere: no Edit/Write on source, no `gh api`, no `gh pr comment/review/edit/merge/checkout`, no `git checkout/switch/commit/push/add/stash`.
 - [ ] Every changed file reviewed; surrounding code read with `git show {sha}:{path}` at the head SHA, never from the working tree.
