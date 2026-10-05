@@ -22,7 +22,7 @@ The goal is dev-actionable output ready to write — not just a finished review.
 
 - [ ] JIRA key taken from the PR title (or given by the user) and the ticket fetched: summary, description, acceptance criteria, comments. Thin ticket → parent used, else the user asked once; requirements source recorded in the header.
 - [ ] PR fetched via `gh` only; head SHA captured; `git fetch origin pull/{N}/head` done and the SHA resolves locally.
-- [ ] No write anywhere: no Edit/Write on source, no `gh api`, no `gh pr comment/review/edit/merge/checkout`, no `git checkout/switch/commit/push/add/stash`.
+- [ ] Only the Guard's allowed commands were run; no Edit/MultiEdit, no Write outside `bmad-docs/reviewer/`, no `gh api`, no other `gh pr` subcommand, no git write command.
 - [ ] Every changed file reviewed; surrounding code read with `git show {sha}:{path}` at the head SHA, never from the working tree.
 - [ ] Domain knowledge accessed by targeted Grep only — no bulk-read of `bmad-docs/domain-knowledge/`.
 - [ ] All 10 universal criteria evaluated; criterion 11 (wiring & registration) applied only where the stack has the concept, skipped silently otherwise.
