@@ -144,7 +144,7 @@ Installation completes with a summary of installed components.
 | `bmad-docs/`                   | Plans, QA reports, logs, memory — git-ignored, per developer |
 | `bmad-docs/.bmad-tokens/.env`  | JIRA API credentials (git-ignored, mode 0600)                |
 | `.claude/settings.local.json`  | BMad permissions allowlist + project hooks                   |
-| `.claude/bmad-hooks/`          | Friction logger (BMAD-LOGS) + prompt hooks (project-level)   |
+| `.claude/bmad-hooks/`          | Friction logger, PR-review guard + prompt hooks (project)    |
 | `~/.claude/bmad-hooks/`        | Notification + personalization hooks (user-wide)             |
 | `~/.claude/personalization.md` | Your developer profile, seeded from git config               |
 

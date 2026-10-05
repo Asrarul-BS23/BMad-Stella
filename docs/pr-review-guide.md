@@ -36,6 +36,12 @@ A file: `bmad-docs/reviewer/{repo}-pr{number}-review-{date}.md`
 
 Each finding: `File:LINE`, What, Why, Fix. Send the file to the PR author.
 
+## Safety
+
+While a review runs, a hook blocks every edit, write, and command that is not read-only — in every permission mode, including auto. Your code, your branch, and the PR cannot change.
+
+The only exception: small pure-logic checks (math, dates, regex) may run as throwaway scripts in `bmad-docs/reviewer/.scratch/`. They cannot touch files, run programs, or reach the network. The folder is deleted when the review ends.
+
 ## If something goes wrong
 
 | Message                         | Do this                                              |
