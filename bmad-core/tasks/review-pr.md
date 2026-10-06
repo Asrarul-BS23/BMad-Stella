@@ -82,10 +82,10 @@ Run `execute-checklist` with `pr-review-checklist.md`. On any FAIL, return to th
 
 ## Write Outputs
 
-Write two files, same name, under `bmad-docs/reviewer/` (create the folder if missing):
+Create one folder per review, `bmad-docs/reviewer/{repo}-pr{number}-{YYYY-MM-DD}/`, with three files:
 
-1. `{repo}-pr{number}-review-{YYYY-MM-DD}.md` — for people. Format below.
-2. `{repo}-pr{number}-review-{YYYY-MM-DD}.json` — for the `pr-comments` helper. Same findings as structured data:
+1. `review.md` — the report, for people. Format below.
+2. `findings.json` — for the `pr-comments` helper. Same findings as structured data:
 
 ```json
 {
@@ -101,7 +101,33 @@ Write two files, same name, under `bmad-docs/reviewer/` (create the folder if mi
 
 `path` and `line` are `null` for a `(missing)` finding. `id` matches the number in the markdown. Never post to JIRA. Posting to GitHub happens only in **Post to PR** below, only after the user says yes.
 
-After both files are written, print the markdown report in chat exactly as written to the file, then one line with the file path. No separate prose summary, no re-wording — the file and the chat answer are the same text. Then continue to Post to PR.
+3. `reproduce.md` — how a dev can see each finding. Steps come from reading the code at the head SHA, never from running anything; say so once in the header. One section per finding, same number as the report. Behavior findings (Requirements & scope, Logical correctness, Security, Performance, API & data contracts, Wiring) get Preconditions / Steps / Expected / Actual (from code). All others (Coding standards, Architecture, Code smells, Tests, Observability) get one line: `No runtime repro — visible at File:LINE.` Never invent a step the code does not support.
+
+```markdown
+# Reproduce: {repo}#{number} at {headRefOid short}
+
+Steps are derived from reading the code, not executed. Use them as a guide.
+
+## 1. {title}
+
+`File:LINE`
+
+Preconditions: {state needed}
+Steps:
+
+1. {command or UI action}
+2. {…}
+   Expected: {what should happen}
+   Actual (from code): {what the code does instead}
+
+## 2. {title}
+
+`File:LINE`
+
+No runtime repro — visible at the line.
+```
+
+After all three files are written, print `review.md` in chat exactly as written, then one line with the folder path. No separate prose summary, no re-wording — the file and the chat answer are the same text. Then continue to Post to PR.
 
 Rules: only findings the dev must fix — no cosmetic nits, no open questions, no theoretical concerns, no praise, no explaining what is fine. Every finding title is `` `File:LINE` `` (or `:START-END`) from the PR diff's new-file line numbers; something missing → `` `File` (missing) `` and say where it should go. Number findings continuously across groups. One blank line between findings. Omit a group heading when it has no findings.
 
@@ -156,8 +182,8 @@ Format:
 
 After both files are written, offer to put the findings on the PR as line comments. The helper is the only way to post; never call `gh api` yourself.
 
-1. Preview: `node .bmad-core/utils/pr-comments {findings.json}` — prints one line per finding: where it will land and the exact comment text (`what — why`, no fix). Show it to the user as-is.
+1. Preview: `node .bmad-core/utils/pr-comments {folder}/findings.json` — prints one line per finding: where it will land and the exact comment text (`what — why`, no fix). Show it to the user as-is.
 2. Any line marked `LONG` → shorten `what`/`why` in the JSON and preview again. Comments must read in five seconds.
 3. Ask once: "Post these {N} comments as a pending review on PR #{number}? (y/n)". `n` or no answer → stop, say the findings stay local.
-4. `y` → `node .bmad-core/utils/pr-comments {findings.json} --post`. Pending = only the reviewer sees it until they press **Submit review** on GitHub. Relay the printed URL and that next step. Use `--submit` only if the user literally types "submit".
+4. `y` → `node .bmad-core/utils/pr-comments {folder}/findings.json --post`. Pending = only the reviewer sees it until they press **Submit review** on GitHub. Relay the printed URL and that next step. Use `--submit` only if the user literally types "submit".
 5. Helper exit 5 (PR head changed) → tell the user to re-run `*pr-review`. Exit 4 (pending review already exists) → tell them to submit or cancel it on GitHub first. Never retry a failed post on your own.

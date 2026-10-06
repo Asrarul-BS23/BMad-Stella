@@ -2,7 +2,7 @@
 
 // pr-comments — post review findings as line comments on a GitHub PR.
 //
-//   node .bmad-core/utils/pr-comments <bmad-docs/reviewer/*.json>            preview only
+//   node .bmad-core/utils/pr-comments <bmad-docs/reviewer/<folder>/findings.json>            preview only
 //   node .bmad-core/utils/pr-comments <findings.json> --post                 pending review (only you see it)
 //   node .bmad-core/utils/pr-comments <findings.json> --post --submit        posted as a "Comment" review
 //
@@ -93,7 +93,7 @@ function parseArgs(argv) {
 
 function usage() {
   return [
-    'Usage: node .bmad-core/utils/pr-comments <bmad-docs/reviewer/*.json> [--post] [--submit]',
+    'Usage: node .bmad-core/utils/pr-comments <bmad-docs/reviewer/<folder>/findings.json> [--post] [--submit]',
     '',
     '  (no flag)   preview the comments, post nothing',
     '  --post      create a PENDING review on the PR (visible only to you until you press Submit)',
@@ -105,7 +105,7 @@ function usage() {
 
 function findingsPathOk(file) {
   const p = path.resolve(file).replaceAll('\\', '/');
-  return /\/bmad-docs\/reviewer\/[^/]+\.json$/.test(p);
+  return /\/bmad-docs\/reviewer\/(?!\.scratch\/)[^/]+\/findings\.json$/.test(p);
 }
 
 function printPreview(result, doc, mode) {
@@ -138,7 +138,9 @@ function main(argv) {
     return args.help ? EXIT.OK : EXIT.USAGE;
   }
   if (!findingsPathOk(args.file)) {
-    process.stderr.write('findings file must be bmad-docs/reviewer/<name>.json\n');
+    process.stderr.write(
+      'findings file must be bmad-docs/reviewer/<review-folder>/findings.json\n',
+    );
     return EXIT.USAGE;
   }
 

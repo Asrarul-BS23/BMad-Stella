@@ -20,7 +20,9 @@ const TASK_FILE_IN_CMD_RE = /[\\/]tasks[\\/]review-pr\.md(\s|$|["'])/i;
 const EXIT_RE = /(^|\n)\s*\*exit\b/i;
 const OTHER_COMMAND_RE =
   /<command-name>\/?bmad:(agents|tasks):(?!review-pr<)[^<]+<\/command-name>/i;
-const FINDINGS_FILE_RE = /(^|[\\/])bmad-docs[\\/]reviewer[\\/][^\\/]+\.md$/;
+// review ends when the report is written: bmad-docs/reviewer/<review-folder>/review.md
+const FINDINGS_FILE_RE =
+  /(^|[\\/])bmad-docs[\\/]reviewer[\\/](?!\.scratch[\\/])[^\\/]+[\\/]review\.md$/;
 const SHELL_TOOLS = new Set(['Bash', 'PowerShell']);
 
 // User message text, whether content is a plain string or an array of blocks.

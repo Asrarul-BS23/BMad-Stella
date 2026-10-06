@@ -28,7 +28,13 @@ Same result. The JIRA ticket is read from the PR title (e.g. `LEADRSC-4699: ...`
 
 ## What you get
 
-`bmad-docs/reviewer/{repo}-pr{number}-review-{date}.md`
+A folder `bmad-docs/reviewer/{repo}-pr{number}-{date}/` with:
+
+- `review.md` — the report, also shown in chat
+- `reproduce.md` — how to see each finding yourself (steps read from the code, not executed)
+- `findings.json` — used to post comments
+
+`review.md` has:
 
 - **Summary** — verdict in two sentences
 - **Test coverage** — `OK`, or what is missing

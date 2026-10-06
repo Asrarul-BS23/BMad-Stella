@@ -31,9 +31,10 @@ The goal is dev-actionable output ready to write — not just a finished review.
 - [ ] Test coverage stated as `OK` or `MISSING — {exactly what}`.
 - [ ] Ripple check done with `git grep -e` at the head SHA; result stated.
 - [ ] Every finding has `File:LINE` from the diff's new-file numbers (or `File (missing)`), What / Why / Fix, grouped 🔴 Blockers / 🟡 Minor, numbered continuously. No nits, no open questions, no praise.
-- [ ] Findings JSON written next to the markdown with matching ids, paths and lines; `fix` present in JSON but never in a posted comment.
+- [ ] One folder per review under `bmad-docs/reviewer/` with `review.md`, `findings.json` (matching ids, paths, lines; `fix` present but never posted) and `reproduce.md`.
+- [ ] `reproduce.md`: header says steps are derived from code, not executed; behavior findings have Preconditions / Steps / Expected / Actual; non-behavior findings have the one-line `No runtime repro`; no invented steps.
 - [ ] Post to PR: preview shown, no `LONG` lines left, user asked once and answered `y` before `--post`; never `gh api` directly, never `--submit` without the user typing "submit".
-- [ ] Report printed in chat verbatim from the file, followed by the file path — no separate prose version.
+- [ ] `review.md` printed in chat verbatim, followed by the folder path — no separate prose version.
 - [ ] Report is short: two-sentence summary, Checked list ≤ 8 bare names, one-line Ripple, one line per What / Why / Fix, repeated issues merged into one finding, Minor capped at 5, plain words.
 
 ## Final Confirmation
