@@ -191,7 +191,7 @@ function main(argv) {
       ]).flat();
       for (const c of cs) bodies.push(c.body);
     }
-    const posted = extractMarkers(bodies);
+    const posted = extractMarkers(bodies, doc.headSha);
 
     const result = buildReview(doc, diffRanges, posted, { submit: args.submit });
     printPreview(

@@ -3,7 +3,9 @@
 // pr-comments — pure functions: validate the findings JSON, map findings onto
 // the PR diff, and build the single review payload. No I/O here.
 
-const MARKER_RE = /<!--\s*bmad:(\d+)\s*-->/g;
+// Marker is scoped to the head SHA: a second review round on a new commit must
+// never treat round-one stickers (same finding ids) as "already posted".
+const MARKER_RE = /<!--\s*bmad:([0-9a-f]{7}):(\d+)\s*-->/gi;
 const MAX_COMMENT_CHARS = 220;
 const MAX_COMMENT_SENTENCES = 2;
 
@@ -104,14 +106,17 @@ function buildCommentText(finding) {
   };
 }
 
-function marker(id) {
-  return `<!-- bmad:${id} -->`;
+function marker(sha, id) {
+  return `<!-- bmad:${String(sha).slice(0, 7).toLowerCase()}:${id} -->`;
 }
 
-function extractMarkers(bodies) {
+function extractMarkers(bodies, sha) {
+  const want = String(sha).slice(0, 7).toLowerCase();
   const ids = new Set();
   for (const body of bodies) {
-    for (const m of String(body || '').matchAll(MARKER_RE)) ids.add(Number(m[1]));
+    for (const m of String(body || '').matchAll(MARKER_RE)) {
+      if (m[1].toLowerCase() === want) ids.add(Number(m[2]));
+    }
   }
   return ids;
 }
@@ -144,7 +149,12 @@ function buildReview(doc, diffRanges, posted, opts = {}) {
     const path = f.path ? String(f.path).replaceAll('\\', '/') : null;
     const attachable = path && Number.isInteger(f.line) && lineInDiff(diffRanges, path, f.line);
     if (attachable) {
-      const c = { path, line: f.line, side: 'RIGHT', body: `${text}\n${marker(f.id)}` };
+      const c = {
+        path,
+        line: f.line,
+        side: 'RIGHT',
+        body: `${text}\n${marker(doc.headSha, f.id)}`,
+      };
       if (
         Number.isInteger(f.startLine) &&
         f.startLine < f.line &&
@@ -176,7 +186,7 @@ function buildReview(doc, diffRanges, posted, opts = {}) {
     bodyLines.push('', 'Not tied to a single line:');
     for (const { f, text } of unattached) {
       const where = f.path ? `${f.path}: ` : '';
-      bodyLines.push(`- ${where}${text} ${marker(f.id)}`);
+      bodyLines.push(`- ${where}${text} ${marker(doc.headSha, f.id)}`);
     }
   }
 

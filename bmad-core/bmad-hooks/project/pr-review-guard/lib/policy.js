@@ -229,8 +229,17 @@ function checkScriptRun(tokens, readScript) {
  * @param {(p: string) => string|null} [readScript]  returns a scratch file's text, or null
  * @returns {{allow: boolean, reason?: string}}
  */
+// A single leading `cd <dir> &&` is tolerated: the Bash tool's cwd drifts between
+// calls and agents compensate with it. `cd` itself changes nothing. The part
+// after it is then checked as the real command; a second operator is rejected.
+const LEADING_CD_RE = /^cd\s+(?:"[^"]*"|'[^']*'|\S+)\s*&&\s*/;
+
+function stripLeadingCd(cmd) {
+  return cmd.replace(LEADING_CD_RE, '');
+}
+
 function checkBash(rawCommand, readScript) {
-  const cmd = String(rawCommand || '').trim();
+  const cmd = stripLeadingCd(String(rawCommand || '').trim());
   if (!cmd) return { allow: false, reason: 'empty command' };
 
   if (SHELL_OPERATOR_RE.test(stripQuoted(cmd))) {
@@ -320,7 +329,8 @@ function decide(toolName, toolInput, deps = {}) {
           'Write is allowed only for the findings file under bmad-docs/reviewer/ or a scratch script under bmad-docs/reviewer/.scratch/',
       };
     }
-    case 'Bash': {
+    case 'Bash':
+    case 'PowerShell': {
       return checkBash(input.command, deps.readScript);
     }
     default: {

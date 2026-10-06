@@ -2086,7 +2086,11 @@ class Installer {
         { event: 'SessionEnd', script: frictionSessionEnd },
         { event: 'SessionStart', script: frictionSessionStart },
         // PR review guard: hard read-only enforcement while *pr-review is active
-        { event: 'PreToolUse', script: prReviewGuard, matcher: 'Edit|MultiEdit|Write|Bash' },
+        {
+          event: 'PreToolUse',
+          script: prReviewGuard,
+          matcher: 'Edit|MultiEdit|Write|Bash|PowerShell',
+        },
       ];
 
       for (const { event, script, matcher } of projectHooks) {

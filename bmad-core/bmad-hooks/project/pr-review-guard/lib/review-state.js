@@ -9,14 +9,31 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-// Review START markers
+// Review START markers — several, because the agent can load the task in
+// different ways (seen in the wild: `cd … && cat .bmad-core/tasks/review-pr.md`
+// via Bash instead of the Read tool).
 const DIRECT_COMMAND_RE = /<command-name>\/?bmad:tasks:review-pr<\/command-name>/i;
+const USER_PR_REVIEW_RE = /(^|\n)\s*\*pr-review\b/i;
 const TASK_FILE_RE = /[\\/]tasks[\\/]review-pr\.md$/i;
+const TASK_FILE_IN_CMD_RE = /[\\/]tasks[\\/]review-pr\.md(\s|$|["'])/i;
 // Review END markers
-const EXIT_RE = /^\s*\*exit\b/i;
+const EXIT_RE = /(^|\n)\s*\*exit\b/i;
 const OTHER_COMMAND_RE =
   /<command-name>\/?bmad:(agents|tasks):(?!review-pr<)[^<]+<\/command-name>/i;
 const FINDINGS_FILE_RE = /(^|[\\/])bmad-docs[\\/]reviewer[\\/][^\\/]+\.md$/;
+const SHELL_TOOLS = new Set(['Bash', 'PowerShell']);
+
+// User message text, whether content is a plain string or an array of blocks.
+function userText(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('\n');
+  }
+  return '';
+}
 
 // Returns 'start' | 'end' | null for one transcript line.
 function classifyLine(line) {
@@ -27,12 +44,13 @@ function classifyLine(line) {
     return null;
   }
   if (obj.type === 'user') {
-    const c = obj.message && obj.message.content;
-    if (typeof c === 'string') {
-      if (DIRECT_COMMAND_RE.test(c)) return 'start';
-      if (OTHER_COMMAND_RE.test(c)) return 'end';
-      if (EXIT_RE.test(c)) return 'end';
-    }
+    if (obj.isMeta) return null; // injected agent/skill bodies, not the human
+    const c = userText(obj.message && obj.message.content);
+    if (!c) return null;
+    if (DIRECT_COMMAND_RE.test(c)) return 'start';
+    if (OTHER_COMMAND_RE.test(c)) return 'end';
+    if (EXIT_RE.test(c)) return 'end';
+    if (USER_PR_REVIEW_RE.test(c)) return 'start';
     return null;
   }
   if (obj.type === 'assistant') {
@@ -42,6 +60,11 @@ function classifyLine(line) {
       if (!block || block.type !== 'tool_use' || !block.input) continue;
       const fp = String(block.input.file_path || '').replaceAll('\\', '/');
       if (block.name === 'Read' && TASK_FILE_RE.test(fp)) return 'start';
+      if (
+        SHELL_TOOLS.has(block.name) &&
+        TASK_FILE_IN_CMD_RE.test(String(block.input.command || ''))
+      )
+        return 'start';
       if (block.name === 'Write' && FINDINGS_FILE_RE.test(fp)) return 'end';
     }
   }
