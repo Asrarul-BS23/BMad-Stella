@@ -34,7 +34,21 @@ A file: `bmad-docs/reviewer/{repo}-pr{number}-review-{date}.md`
 - **🔴 Blockers** — must fix
 - **🟡 Minor** — should fix
 
-Each finding: `File:LINE`, What, Why, Fix. Send the file to the PR author.
+Each finding: `File:LINE`, What, Why, Fix.
+
+## Post comments to the PR
+
+After the file is written, you are asked:
+
+```
+Post these N comments as a pending review on PR #123? (y/n)
+```
+
+You see every comment first: the file, the line, and the text. Each comment is one or two plain sentences, the problem only, no fix.
+
+`y` → a **pending** review is created. Only you can see it. Open the PR on GitHub → **Review changes** → edit or delete anything → **Submit review**. Nothing reaches the author until you press Submit.
+
+`n` → nothing is posted. The findings stay in your local file.
 
 ## Safety
 

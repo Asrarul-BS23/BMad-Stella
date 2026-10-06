@@ -24,6 +24,10 @@ class ClaudePermissionsManager {
       'Bash(node .bmad-core/utils/jira-attachments/index.js)',
       'Bash(node .bmad-core/utils/jira-attachments/index.js *)',
 
+      // PR comments helper (posts *pr-review findings as a pending review; one hard-coded endpoint)
+      'Bash(node .bmad-core/utils/pr-comments *)',
+      'Bash(node .bmad-core/utils/pr-comments/index.js *)',
+
       // Read operations - BMAD system files
       'Read(.bmad-core/**)',
       'Read(*/.bmad-core/**)',

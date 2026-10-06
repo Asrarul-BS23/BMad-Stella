@@ -112,7 +112,12 @@ function flagName(token) {
 // ---------------------------------------------------------------------------
 
 const SCRATCH_FILE_RE = /(^|[\\/])bmad-docs[\\/]reviewer[\\/]\.scratch[\\/][^\\/]+$/;
-const FINDINGS_FILE_RE = /(^|[\\/])bmad-docs[\\/]reviewer[\\/][^\\/]+\.md$/;
+// findings: the markdown report and its JSON sidecar (input for the pr-comments helper)
+const FINDINGS_FILE_RE = /(^|[\\/])bmad-docs[\\/]reviewer[\\/][^\\/]+\.(?:md|json)$/;
+const FINDINGS_JSON_RE = /(^|[\\/])bmad-docs[\\/]reviewer[\\/][^\\/]+\.json$/;
+// the only helper the review may run: posts findings as PR comments (one hard-coded endpoint)
+const PR_COMMENTS_HELPER_RE = /(^|[\\/])\.bmad-core[\\/]utils[\\/]pr-comments(?:[\\/]index\.js)?$/;
+const PR_COMMENTS_FLAGS = new Set(['--post', '--submit', '--allow-long', '--help', '-h']);
 
 function normalizePath(p) {
   return String(p || '').replaceAll('\\', '/');
@@ -236,6 +241,27 @@ function checkBash(rawCommand, readScript) {
   }
 
   const tokens = tokenize(cmd);
+
+  // `node .bmad-core/utils/pr-comments <bmad-docs/reviewer/x.json> [flags]` — checked before
+  // the scratch-script rule, which would otherwise reject a node invocation outside .scratch/.
+  if (
+    tokens[0] === 'node' &&
+    tokens.length >= 3 &&
+    PR_COMMENTS_HELPER_RE.test(normalizePath(unquote(tokens[1])))
+  ) {
+    if (!FINDINGS_JSON_RE.test(normalizePath(unquote(tokens[2])))) {
+      return {
+        allow: false,
+        reason: 'pr-comments takes a findings file under bmad-docs/reviewer/*.json',
+      };
+    }
+    for (const t of tokens.slice(3)) {
+      if (!PR_COMMENTS_FLAGS.has(unquote(t))) {
+        return { allow: false, reason: `option '${unquote(t)}' is not allowed with pr-comments` };
+      }
+    }
+    return { allow: true };
+  }
 
   const script = checkScriptRun(tokens, readScript);
   if (script) return script;

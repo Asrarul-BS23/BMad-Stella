@@ -9,7 +9,7 @@ Reviews a GitHub pull request against its JIRA ticket using 10 universal and 1 s
 Applies even when invoked directly, without the reviewer agent.
 
 - Shell commands — ONLY these, nothing else:
-  `gh auth status` · `gh pr view` · `gh pr diff` · `gh pr checks` · `git fetch origin pull/{N}/head` · `git cat-file -t` · `git show {sha}:{path}` · `git grep -n -e` · `git log`
+  `gh auth status` · `gh pr view` · `gh pr diff` · `gh pr checks` · `git fetch origin pull/{N}/head` · `git cat-file -t` · `git show {sha}:{path}` · `git grep -n -e` · `git log` · `node .bmad-core/utils/pr-comments` (Post to PR step only)
   Claude Code tools: `Read` / `Grep` / `Glob` on `.bmad-core/` and `bmad-docs/` only; `Write` only for the findings file under `bmad-docs/reviewer/`.
 - Verification scripts, when a check needs running code: pure computation only — math, dates, regex, string/JSON handling, or a copied pure function with sample inputs. Write them under `bmad-docs/reviewer/.scratch/` and run with `node <file>` / `python <file>`, or inline `node -e "…"` / `python -c "…"`. No `fs`, no network, no `os`/`subprocess`, no project build or tests, never run PR code that has side effects. The folder is wiped when the review ends.
 - NEVER, even if it looks harmless: `gh api`, any other `gh pr` subcommand, `git checkout` / `switch` / `add` / `commit` / `push` / `stash` / `reset`, `Edit` / `MultiEdit` on anything, `Write` outside `bmad-docs/reviewer/`, reading project source from the working tree.
@@ -81,13 +81,32 @@ Run `execute-checklist` with `pr-review-checklist.md`. On any FAIL, return to th
 
 ## Write Outputs
 
-Write `bmad-docs/reviewer/{repo}-pr{number}-review-{YYYY-MM-DD}.md`. Create the folder if missing. Never post to GitHub or JIRA.
+Write two files, same name, under `bmad-docs/reviewer/` (create the folder if missing):
+
+1. `{repo}-pr{number}-review-{YYYY-MM-DD}.md` — for people. Format below.
+2. `{repo}-pr{number}-review-{YYYY-MM-DD}.json` — for the `pr-comments` helper. Same findings as structured data:
+
+```json
+{
+  "pr": "{pr_url}", "owner": "{owner}", "repo": "{repo}", "number": {number},
+  "headSha": "{headRefOid}", "ticket": "{JIRA key}", "summary": "{the two-sentence summary}",
+  "findings": [
+    { "id": 1, "group": "blocker", "criterion": "Security",
+      "path": "src/File.cs", "startLine": null, "line": 123,
+      "what": "{one sentence}", "why": "{one clause}", "fix": "{one line}" }
+  ]
+}
+```
+
+`path` and `line` are `null` for a `(missing)` finding. `id` matches the number in the markdown. Never post to JIRA. Posting to GitHub happens only in **Post to PR** below, only after the user says yes.
 
 Rules: only findings the dev must fix — no cosmetic nits, no open questions, no theoretical concerns, no praise, no explaining what is fine. Every finding title is `` `File:LINE` `` (or `:START-END`) from the PR diff's new-file line numbers; something missing → `` `File` (missing) `` and say where it should go. Number findings continuously across groups. One blank line between findings. Omit a group heading when it has no findings.
 
 Keep it short — a long report is a second review job:
 
 - Summary: two sentences max. What / Why / Fix: one line each.
+- Checked, no issues: max 8 area names, no parentheses, no explanation.
+- Ripple check: one line, locations only. A ripple that needs a fix becomes a numbered finding.
 - Same issue in several places → one finding, all locations in the title.
 - Minor group over 5 → keep the 5 most useful, then one line: "N more minor, not listed."
 - Plain words the PR author understands without looking anything up.
@@ -129,3 +148,13 @@ Format:
 
 - What / Why / Fix
 ```
+
+## Post to PR
+
+After both files are written, offer to put the findings on the PR as line comments. The helper is the only way to post; never call `gh api` yourself.
+
+1. Preview: `node .bmad-core/utils/pr-comments {findings.json}` — prints one line per finding: where it will land and the exact comment text (`what — why`, no fix). Show it to the user as-is.
+2. Any line marked `LONG` → shorten `what`/`why` in the JSON and preview again. Comments must read in five seconds.
+3. Ask once: "Post these {N} comments as a pending review on PR #{number}? (y/n)". `n` or no answer → stop, say the findings stay local.
+4. `y` → `node .bmad-core/utils/pr-comments {findings.json} --post`. Pending = only the reviewer sees it until they press **Submit review** on GitHub. Relay the printed URL and that next step. Use `--submit` only if the user literally types "submit".
+5. Helper exit 5 (PR head changed) → tell the user to re-run `*pr-review`. Exit 4 (pending review already exists) → tell them to submit or cancel it on GitHub first. Never retry a failed post on your own.

@@ -31,7 +31,9 @@ The goal is dev-actionable output ready to write — not just a finished review.
 - [ ] Test coverage stated as `OK` or `MISSING — {exactly what}`.
 - [ ] Ripple check done with `git grep -e` at the head SHA; result stated.
 - [ ] Every finding has `File:LINE` from the diff's new-file numbers (or `File (missing)`), What / Why / Fix, grouped 🔴 Blockers / 🟡 Minor, numbered continuously. No nits, no open questions, no praise.
-- [ ] Report is short: two-sentence summary, one line per What / Why / Fix, repeated issues merged into one finding, Minor capped at 5, plain words.
+- [ ] Findings JSON written next to the markdown with matching ids, paths and lines; `fix` present in JSON but never in a posted comment.
+- [ ] Post to PR: preview shown, no `LONG` lines left, user asked once and answered `y` before `--post`; never `gh api` directly, never `--submit` without the user typing "submit".
+- [ ] Report is short: two-sentence summary, Checked list ≤ 8 bare names, one-line Ripple, one line per What / Why / Fix, repeated issues merged into one finding, Minor capped at 5, plain words.
 
 ## Final Confirmation
 
