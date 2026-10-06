@@ -59,6 +59,12 @@ const ALLOWED_COMMANDS = [
     ]),
   },
   {
+    // large-PR fallback: two commit ids are mandatory so the working tree is never read
+    name: 'git diff {base} {head}',
+    re: /^git diff [0-9a-fA-F]{7,40} [0-9a-fA-F]{7,40}(?:\s|$)/,
+    flags: new Set(['--name-only', '--stat', '--']),
+  },
+  {
     name: 'git log',
     re: /^git log(?:\s|$)/,
     flags: new Set([
@@ -75,7 +81,7 @@ const ALLOWED_COMMANDS = [
 ];
 
 const ALLOWED_SUMMARY =
-  'gh auth status · gh pr view · gh pr diff · gh pr checks · git fetch origin pull/N/head · git cat-file -t · git show {sha}:{path} · git grep -n -e · git log · node|python <bmad-docs/reviewer/.scratch/file> · node -e / python -c "<pure code>"';
+  'gh auth status · gh pr view · gh pr diff · gh pr checks · git fetch origin pull/N/head · git cat-file -t · git show {sha}:{path} · git grep -n -e · git log · git diff {base} {head} · node|python <bmad-docs/reviewer/.scratch/file> · node -e / python -c "<pure code>"';
 
 // Shell operators that turn one command into several, or redirect output.
 // Checked after quoted segments are removed so `-e "List<User>"` is not a false positive.

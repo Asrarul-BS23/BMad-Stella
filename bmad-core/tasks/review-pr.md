@@ -9,7 +9,7 @@ Reviews a GitHub pull request against its JIRA ticket using 10 universal and 1 s
 Applies even when invoked directly, without the reviewer agent.
 
 - Shell commands — ONLY these, nothing else:
-  `gh auth status` · `gh pr view` · `gh pr diff` · `gh pr checks` · `git fetch origin pull/{N}/head` · `git cat-file -t` · `git show {sha}:{path}` · `git grep -n -e` · `git log` · `node .bmad-core/utils/pr-comments` (Post to PR step only)
+  `gh auth status` · `gh pr view` · `gh pr diff` · `gh pr checks` · `git fetch origin pull/{N}/head` · `git cat-file -t` · `git show {sha}:{path}` · `git grep -n -e` · `git log` · `git diff {baseSha} {headSha}` (large-PR fallback only) · `node .bmad-core/utils/pr-comments` (Post to PR step only)
   Claude Code tools: `Read` / `Grep` / `Glob` on `.bmad-core/` and `bmad-docs/` only; `Write` only for the findings file under `bmad-docs/reviewer/`.
 - Verification scripts, when a check needs running code: pure computation only — math, dates, regex, string/JSON handling, or a copied pure function with sample inputs. Write them under `bmad-docs/reviewer/.scratch/` and run with `node <file>` / `python <file>`, or inline `node -e "…"` / `python -c "…"`. No `fs`, no network, no `os`/`subprocess`, no project build or tests, never run PR code that has side effects. The folder is wiped when the review ends.
 - NEVER, even if it looks harmless: `gh api`, any other `gh pr` subcommand, `git checkout` / `switch` / `add` / `commit` / `push` / `stash` / `reset`, `Edit` / `MultiEdit` on anything, `Write` outside `bmad-docs/reviewer/`, reading project source from the working tree.
@@ -39,8 +39,9 @@ Run in order. A command error → HALT and show the exact error, unless the step
    - Still thin → ask the user once, one message: "Ticket {KEY} has no {description / acceptance criteria}. Paste the expected behavior, or reply `proceed` to review against the PR title and description only." HALT until answered.
    - Never ask when the ticket is sufficient. Never ask a second question.
      Record the requirements source in the report header: `ticket`, `parent {KEY}`, `user-provided`, or `PR description`.
-4. `gh pr diff {pr_url}` — the change set. GitHub refuses diffs over 300 files / 20k lines → HALT: "PR too large for automated review; ask the author to split it." `gh pr checks {pr_url}` — exits non-zero when checks fail or are pending; that is a finding, not a HALT. HALT only if the command itself errors.
+4. `gh pr diff {pr_url}` — the change set. GitHub refuses diffs over 300 files / 20k lines (HTTP 406) → do not HALT; say "large PR, diff taken from local git" and use step 5b after step 5. `gh pr checks {pr_url}` — exits non-zero when checks fail or are pending; that is a finding, not a HALT. HALT only if the command itself errors.
 5. `git fetch origin pull/{number}/head`, then `git cat-file -t {headRefOid}` must print `commit`. Else HALT.
+   5b. Large-PR fallback only: `git diff {baseRefOid} {headRefOid} --name-only` → file list. Over 1000 files → HALT: "PR too large for automated review; ask the author to split it." Else review file by file with `git diff {baseRefOid} {headRefOid} -- {path}`. Both SHAs always; never `git diff` against the working tree or a branch name.
 6. On demand during review, always at the head SHA:
    - whole file: `git show {headRefOid}:{path}`
    - callers / duplicates / sibling patterns: `git grep -n -e "{term}" {headRefOid}` (`-e` always; a term starting with `-` must never be parsed as an option)

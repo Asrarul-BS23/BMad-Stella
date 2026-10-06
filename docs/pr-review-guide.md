@@ -54,12 +54,12 @@ While a review runs, a hook blocks every edit, write, and non-read-only command,
 
 ## If something goes wrong
 
-| Message                           | Do this                                                   |
-| --------------------------------- | --------------------------------------------------------- |
-| `gh: not logged in`               | `gh auth login`                                           |
-| Atlassian MCP not connected       | `/mcp` → Atlassian → authenticate                         |
-| Ticket not found                  | Paste the ticket key or URL when asked                    |
-| PR too large                      | Ask the author to split the PR                            |
-| PR head changed since the review  | Run `*pr-review` again                                    |
-| You already have a pending review | On GitHub: Submit or Cancel it, then post again           |
-| Permission prompt on `gh`/`git`   | Re-run the BMad installer and accept the permissions step |
+| Message                           | Do this                                                                            |
+| --------------------------------- | ---------------------------------------------------------------------------------- |
+| `gh: not logged in`               | `gh auth login`                                                                    |
+| Atlassian MCP not connected       | `/mcp` → Atlassian → authenticate                                                  |
+| Ticket not found                  | Paste the ticket key or URL when asked                                             |
+| PR too large                      | Over 300 files: reviewed from local git. Over 1000: ask the author to split the PR |
+| PR head changed since the review  | Run `*pr-review` again                                                             |
+| You already have a pending review | On GitHub: Submit or Cancel it, then post again                                    |
+| Permission prompt on `gh`/`git`   | Re-run the BMad installer and accept the permissions step                          |

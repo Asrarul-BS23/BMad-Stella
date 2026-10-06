@@ -139,6 +139,7 @@ class ClaudePermissionsManager {
       'Bash(git show *)',
       'Bash(git grep *)',
       'Bash(git log *)',
+      'Bash(git diff *)',
 
       // `cd` changes nothing by itself. Agents prefix commands with `cd <root> &&` when the
       // shell cwd drifts; Claude Code splits compound commands and checks each part, so
@@ -158,6 +159,7 @@ class ClaudePermissionsManager {
       'PowerShell(git show *)',
       'PowerShell(git grep *)',
       'PowerShell(git log *)',
+      'PowerShell(git diff *)',
       'PowerShell(node .bmad-core/utils/pr-comments *)',
       'PowerShell(node .bmad-core/utils/pr-comments/index.js *)',
       'PowerShell(node .bmad-core/utils/jira-attachments)',
