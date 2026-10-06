@@ -101,6 +101,8 @@ Write two files, same name, under `bmad-docs/reviewer/` (create the folder if mi
 
 `path` and `line` are `null` for a `(missing)` finding. `id` matches the number in the markdown. Never post to JIRA. Posting to GitHub happens only in **Post to PR** below, only after the user says yes.
 
+After both files are written, print the markdown report in chat exactly as written to the file, then one line with the file path. No separate prose summary, no re-wording — the file and the chat answer are the same text. Then continue to Post to PR.
+
 Rules: only findings the dev must fix — no cosmetic nits, no open questions, no theoretical concerns, no praise, no explaining what is fine. Every finding title is `` `File:LINE` `` (or `:START-END`) from the PR diff's new-file line numbers; something missing → `` `File` (missing) `` and say where it should go. Number findings continuously across groups. One blank line between findings. Omit a group heading when it has no findings.
 
 Keep it short — a long report is a second review job:
