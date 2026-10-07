@@ -33,6 +33,7 @@ Run in order. A command error → HALT and show the exact error, unless the step
 
 1. `gh auth status` — not logged in → HALT, tell user: `gh auth login`.
 2. `gh pr view {pr_url} --json number,title,body,author,state,isDraft,baseRefName,headRefName,headRefOid,baseRefOid,changedFiles,additions,deletions,url` — keep `number`, `headRefOid`, `baseRefOid`. `state` not `OPEN` → say so in one line and continue.
+   Already reviewed? If `bmad-docs/reviewer/{repo}-pr{number}/review.md` exists, read its `**Head:**` value. Same as `headRefOid` → stop here: say "PR #{number} already reviewed at `{sha7}` on {Reviewed date}; nothing changed on the PR", print `review.md` verbatim, and — only if it has no `**Comments:**` line — offer the Post to PR step. The user typing `again` → continue with a full review anyway. Different head → continue; the old files are overwritten in Write Outputs.
 3. JIRA key = first match of `[A-Z][A-Z0-9]+-\d+` in `title` (e.g. `LEADRSC-4699: gate signed-warrant PDF downloads` → `LEADRSC-4699`). None → ask the user for the key or URL, HALT until given. Fetch the ticket via Atlassian MCP: summary, description, acceptance criteria, comments (comments often override the description). Note the issue type (bug vs feature). This is what the PR is judged against. MCP failure → HALT: "Atlassian MCP not connected. Please reauthenticate (`/mcp`)." Retry once after the user confirms.
    Ticket is thin when it lacks either a description of what must change or acceptance criteria / clear expected behavior. Then, in order:
    - Parent ticket exists (`parent` field) → fetch it via Atlassian MCP and use its description + AC as the requirements.
@@ -82,7 +83,7 @@ Run `execute-checklist` with `pr-review-checklist.md`. On any FAIL, return to th
 
 ## Write Outputs
 
-Create one folder per review, `bmad-docs/reviewer/{repo}-pr{number}-{YYYY-MM-DD}/`, with three files:
+Create one folder per PR, `bmad-docs/reviewer/{repo}-pr{number}/`, with three files (a new commit overwrites all three; the date lives in the report header):
 
 1. `review.md` — the report, for people. Format below.
 2. `findings.json` — for the `pr-comments` helper. Same findings as structured data:
@@ -185,5 +186,6 @@ After both files are written, offer to put the findings on the PR as line commen
 1. Preview: `node .bmad-core/utils/pr-comments {folder}/findings.json` — prints one line per finding: where it will land and the exact comment text (`what — why`, no fix). Show it to the user as-is.
 2. Any line marked `LONG` → shorten `what`/`why` in the JSON and preview again. Comments must read in five seconds.
 3. Ask once: "Post these {N} comments as a pending review on PR #{number}? (y/n)". `n` or no answer → stop, say the findings stay local.
-4. `y` → `node .bmad-core/utils/pr-comments {folder}/findings.json --post`. Pending = only the reviewer sees it until they press **Submit review** on GitHub. Relay the printed URL and that next step. Use `--submit` only if the user literally types "submit".
+4. `y` → `node .bmad-core/utils/pr-comments {folder}/findings.json --post`. Pending = only the reviewer sees it until they press **Submit review** on GitHub. Relay the printed URL and that next step. Use `--submit` only if the user literally types "submit". On success the helper deletes `findings.json` and appends `**Comments:** posted {date} → {url}` to `review.md`; that line is the record that this round was posted.
 5. Helper exit 5 (PR head changed) → tell the user to re-run `*pr-review`. Exit 4 (pending review already exists) → tell them to submit or cancel it on GitHub first. Never retry a failed post on your own.
+6. `findings.json` missing and `review.md` has a `**Comments:**` line → already posted for this commit; say so, nothing to run. Missing without that line → the review was not completed; run `*pr-review` again.

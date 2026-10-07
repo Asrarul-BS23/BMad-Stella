@@ -28,11 +28,13 @@ Same result. The JIRA ticket is read from the PR title (e.g. `LEADRSC-4699: ...`
 
 ## What you get
 
-A folder `bmad-docs/reviewer/{repo}-pr{number}-{date}/` with:
+A folder `bmad-docs/reviewer/{repo}-pr{number}/` with:
 
 - `review.md` — the report, also shown in chat
 - `reproduce.md` — how to see each finding yourself (steps read from the code, not executed)
-- `findings.json` — used to post comments
+- `findings.json` — used to post comments; removed once they are posted
+
+Run it again on the same commit → no new review, the existing report is shown. New commit → fresh review, files overwritten.
 
 `review.md` has:
 
@@ -51,7 +53,7 @@ Post these N comments as a pending review on PR #123? (y/n)
 
 You see every comment first. Each is one or two plain sentences at the exact line: the problem only, no fix.
 
-- `y` → a **pending** review, visible only to you. On GitHub: **Review changes** → edit or delete anything → **Submit review**. Nothing reaches the author until you press Submit.
+- `y` → a **pending** review, visible only to you. `review.md` gets a `Comments: posted` line. On GitHub: **Review changes** → edit or delete anything → **Submit review**. Nothing reaches the author until you press Submit.
 - `n` → nothing is posted.
 
 ## Safety

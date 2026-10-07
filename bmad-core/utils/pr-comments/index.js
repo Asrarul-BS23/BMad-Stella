@@ -103,6 +103,22 @@ function usage() {
   ].join('\n');
 }
 
+function recordPosted(findingsFile, url) {
+  const dir = path.dirname(path.resolve(findingsFile));
+  const review = path.join(dir, 'review.md');
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    fs.appendFileSync(review, `\n**Comments:** posted ${today} → ${url}\n`);
+  } catch {
+    /* review.md missing — nothing to record on */
+  }
+  try {
+    fs.unlinkSync(findingsFile);
+  } catch {
+    /* already gone */
+  }
+}
+
 function findingsPathOk(file) {
   const p = path.resolve(file).replaceAll('\\', '/');
   return /\/bmad-docs\/reviewer\/(?!\.scratch\/)[^/]+\/findings\.json$/.test(p);
@@ -243,6 +259,9 @@ function main(argv) {
     }
 
     const url = created.html_url || doc.pr;
+    // Posted: the findings file has done its job. Remove it and leave the record in
+    // review.md so a re-run knows this commit's comments are already on the PR.
+    recordPosted(args.file, url);
     if (args.submit) {
       process.stdout.write(
         `Posted ${result.counts.lineComments} line comment(s) as a review: ${url}\n`,
