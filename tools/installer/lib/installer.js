@@ -2076,6 +2076,7 @@ class Installer {
       const expansionScript = path.join(bmadHooksDest, 'user-prompt-expansion.js');
       const frictionSessionEnd = path.join(bmadHooksDest, 'friction-logger', 'session-end.js');
       const frictionSessionStart = path.join(bmadHooksDest, 'friction-logger', 'session-start.js');
+      const prReviewGuard = path.join(bmadHooksDest, 'pr-review-guard', 'pre-tool-use.js');
       const nodeExec = `"${process.execPath}"`;
 
       const projectHooks = [
@@ -2084,9 +2085,15 @@ class Installer {
         // Friction logger hooks (self-contained under friction-logger/)
         { event: 'SessionEnd', script: frictionSessionEnd },
         { event: 'SessionStart', script: frictionSessionStart },
+        // PR review guard: hard read-only enforcement while *pr-review is active
+        {
+          event: 'PreToolUse',
+          script: prReviewGuard,
+          matcher: 'Edit|MultiEdit|Write|Bash|PowerShell',
+        },
       ];
 
-      for (const { event, script } of projectHooks) {
+      for (const { event, script, matcher } of projectHooks) {
         if (!Array.isArray(settings.hooks[event])) {
           settings.hooks[event] = [];
         }
@@ -2095,7 +2102,9 @@ class Installer {
           (e) => Array.isArray(e.hooks) && e.hooks[0]?.command === command,
         );
         if (!exists) {
-          settings.hooks[event].push({ hooks: [{ type: 'command', command }] });
+          const entry = { hooks: [{ type: 'command', command }] };
+          if (matcher) entry.matcher = matcher;
+          settings.hooks[event].push(entry);
         }
       }
 
@@ -2107,7 +2116,7 @@ class Installer {
       console.log(chalk.green(`  Hook scripts → ${bmadHooksDest}`));
       console.log(
         chalk.green(
-          '  settings.local.json updated (UserPromptSubmit + UserPromptExpansion + SessionEnd/SessionStart friction logger)',
+          '  settings.local.json updated (UserPromptSubmit + UserPromptExpansion + SessionEnd/SessionStart friction logger + PreToolUse pr-review guard)',
         ),
       );
       if (spinner) spinner.start();

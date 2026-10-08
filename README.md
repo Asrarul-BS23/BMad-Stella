@@ -70,6 +70,7 @@ npx bmad-stella install
 - 🔑 **[Atlassian Token Guide](docs/atlassian-token-guide.md)** - Create the JIRA/Confluence API token
 - 🧠 **[BMad Memory](docs/bmad-memory.md)** - How agents remember your project across sessions
 - 📋 **[Semantic Logger](docs/semantic-logger.md)** - Automatic friction reports per plan
+- 🔍 **[PR Review Guide](docs/pr-review-guide.md)** - Review a GitHub PR against its JIRA ticket in one command
 
 ### Understanding BMad-Stella
 

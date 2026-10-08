@@ -90,7 +90,10 @@ function main(rawStdin) {
         if (typeof fp !== 'string') continue;
         const match = fp.replaceAll('\\', '/').match(PLAN_PATH_RE);
         if (match) planFiles.add(match[1]);
-      } else if (block.name === 'Bash' && typeof block.input.command === 'string') {
+      } else if (
+        (block.name === 'Bash' || block.name === 'PowerShell') &&
+        typeof block.input.command === 'string'
+      ) {
         for (const m of block.input.command.matchAll(BASH_PLAN_RE)) planFiles.add(m[1]);
       }
     }
