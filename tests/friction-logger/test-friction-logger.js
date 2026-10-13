@@ -4,7 +4,7 @@
 // Ported from the v4-era scratch suite (tests/legacy-scratch/friction-logger) with v6
 // fixtures: _bmad/config.toml root, friction.json config, bmad-build session gate,
 // spec-*.md under implementation-artifacts, frontmatter status, logs under
-// _bmad-output/stella/logs. Runs entirely inside a temp project.
+// _bmad-output/stella/bmad-logs. Runs entirely inside a temp project.
 
 const fs = require('node:fs');
 const os = require('node:os');
@@ -15,7 +15,7 @@ const REPO = path.resolve(__dirname, '..', '..');
 const FL = path.join(REPO, 'stella', 'hooks', 'project', 'friction-logger');
 const ROOT = fs.mkdtempSync(path.join(os.tmpdir(), 'stella-t3-'));
 
-const LOGS = path.join(ROOT, '_bmad-output', 'stella', 'logs');
+const LOGS = path.join(ROOT, '_bmad-output', 'stella', 'bmad-logs');
 const SPECS = path.join(ROOT, '_bmad-output', 'implementation-artifacts');
 const CONFIG = path.join(ROOT, '_bmad', 'custom', 'stella', 'friction.json');
 
@@ -229,7 +229,7 @@ ok(
 ok(t.plans['AIL-1'].analysisAttempts === 0, 'tracker: new entry has analysisAttempts=0');
 ok(
   fs.existsSync(path.join(LOGS, '.hook-debug.log')),
-  'logs: debug log under _bmad-output/stella/logs',
+  'logs: debug log under _bmad-output/stella/bmad-logs',
 );
 ok(!fs.existsSync(path.join(ROOT, 'bmad-docs')), 'logs: no bmad-docs folder created');
 
@@ -403,7 +403,7 @@ const wait = new Promise((r) => {
   ok(
     fs.existsSync(path.join(LOGS, 'AIL-1', 'friction.md')) &&
       fs.existsSync(path.join(LOGS, 'AIL-1', 'friction.json')),
-    'worker: friction.md/json under _bmad-output/stella/logs/AIL-1',
+    'worker: friction.md/json under _bmad-output/stella/bmad-logs/AIL-1',
   );
   ok(
     /no Atlassian credentials \(_bmad-output\/stella\/\.bmad-tokens\/\.env\)/.test(
@@ -434,7 +434,7 @@ const wait = new Promise((r) => {
   });
   ok(
     ss.status === 0 &&
-      !fs.existsSync(path.join(emptyProj, '_bmad-output', 'stella', 'logs', '.fire-lock')),
+      !fs.existsSync(path.join(emptyProj, '_bmad-output', 'stella', 'bmad-logs', '.fire-lock')),
     'session-start: empty tracker -> no lock, exit 0',
   );
 

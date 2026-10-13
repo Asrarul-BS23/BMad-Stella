@@ -7,7 +7,7 @@ const path = require('node:path');
 
 const ROOT_MARKER = ['_bmad', 'config.toml']; // present in every v6 install
 const CONFIG_FILE = ['_bmad', 'custom', 'stella', 'friction.json']; // written by the installer
-const LOGS_DIR = ['_bmad-output', 'stella', 'logs'];
+const LOGS_DIR = ['_bmad-output', 'stella', 'bmad-logs'];
 const SPECS_DIR = ['_bmad-output', 'implementation-artifacts'];
 const TOKENS_ENV = ['_bmad-output', 'stella', '.bmad-tokens', '.env'];
 
