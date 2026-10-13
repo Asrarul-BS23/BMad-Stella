@@ -2,10 +2,6 @@
 
 Thank you for contributing to this project! This document outlines the process for contributing and some guidelines to follow.
 
-🆕 **New to GitHub or pull requests?** Check out our [beginner-friendly Pull Request Guide](docs/how-to-contribute-with-pull-requests.md) first!
-
-📋 **Before contributing**, please read our [Guiding Principles](docs/GUIDING-PRINCIPLES.md) to understand the BMad Method's core philosophy and architectural decisions.
-
 Also note, we use the discussions feature in GitHub to have a community to discuss potential ideas, uses, additions and enhancements.
 
 💬 **Discord Community**: Join our [Discord server](https://discord.gg/gk8jAdXWmj) for real-time discussions or search past discussions or ideas.
@@ -90,7 +86,7 @@ chmod +x tools/setup-hooks.sh
 
 Please only propose small granular commits! If its large or significant, please discuss in the discussions tab and open up an issue first. I do not want you to waste your time on a potentially very large PR to have it rejected because it is not aligned or deviates from other planned changes. Communicate and lets work together to build and improve this great community project!
 
-**Important**: All contributions must align with our [Guiding Principles](docs/GUIDING-PRINCIPLES.md). Key points:
+**Important**: All contributions must align with the project's guiding principles. Key points:
 
 - Keep dev agents lean - they need context for coding, not documentation
 - Web/planning agents can be larger with more complex tasks
