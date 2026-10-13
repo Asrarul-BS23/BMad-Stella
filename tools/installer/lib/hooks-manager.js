@@ -6,7 +6,8 @@ const fs = require('fs-extra');
 const chalk = require('chalk').default || require('chalk');
 const inquirer = require('inquirer').default || require('inquirer');
 const cjson = require('comment-json');
-const resourceLocator = require('./resource-locator');
+// User-level hook sources now live in the repo's stella/ folder (v6 layout).
+const USER_HOOKS_SOURCE_DIR = path.join(__dirname, '..', '..', '..', 'stella', 'hooks', 'user');
 
 // Each plugin is a subfolder of bmad-hooks/ with its own index.js and optional package.json
 const PLUGINS = [
@@ -51,7 +52,7 @@ class HooksManager {
   }
 
   getHooksSourceDir() {
-    return path.join(resourceLocator.getBmadCorePath(), 'bmad-hooks', 'user');
+    return USER_HOOKS_SOURCE_DIR;
   }
 
   getManifestPath() {

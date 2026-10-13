@@ -2,7 +2,7 @@ name: PR Validation
 
 on:
   pull_request:
-    branches: [main]
+    branches: [dev, v6]
     types: [opened, synchronize, reopened]
 
 jobs:
@@ -21,9 +21,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Run validation
-        run: npm run validate
 
       - name: Check formatting
         run: npm run format:check
@@ -46,7 +43,6 @@ jobs:
               body: `❌ **PR Validation Failed**
 
               This PR has validation errors that must be fixed before merging:
-              - Run \`npm run validate\` to check Stella agent/task/checklist configs in bmad-core/
               - Run \`npm run format:check\` to check formatting (fix with \`npm run format\`)
               - Run \`npm run lint\` to check linting issues (fix with \`npm run lint:fix\`)
 

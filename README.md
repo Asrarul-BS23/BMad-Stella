@@ -68,7 +68,6 @@ npx bmad-stella install
 - 💡 **[Best Practices](docs/stella-user-guide.md#best-practices)** - Tips for success with each agent
 - 🐛 **[Troubleshooting](docs/stella-user-guide.md#troubleshooting)** - Common issues and solutions
 - 🔑 **[Atlassian Token Guide](docs/atlassian-token-guide.md)** - Create the JIRA/Confluence API token
-- 🧠 **[BMad Memory](docs/bmad-memory.md)** - How agents remember your project across sessions
 - 📋 **[Semantic Logger](docs/semantic-logger.md)** - Automatic friction reports per plan
 - 🔍 **[PR Review Guide](docs/pr-review-guide.md)** - Review a GitHub PR against its JIRA ticket in one command
 
