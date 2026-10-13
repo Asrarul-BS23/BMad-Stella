@@ -2,9 +2,9 @@
 
 // pr-comments — post review findings as line comments on a GitHub PR.
 //
-//   node .bmad-core/utils/pr-comments <bmad-docs/reviewer/<folder>/findings.json>            preview only
-//   node .bmad-core/utils/pr-comments <findings.json> --post                 pending review (only you see it)
-//   node .bmad-core/utils/pr-comments <findings.json> --post --submit        posted as a "Comment" review
+//   node _bmad/custom/stella/utils/pr-comments <_bmad-output/stella/reviewer/<folder>/findings.json>   preview only
+//   node _bmad/custom/stella/utils/pr-comments <findings.json> --post            pending review (only you see it)
+//   node _bmad/custom/stella/utils/pr-comments <findings.json> --post --submit   posted as a "Comment" review
 //
 // Safety by construction:
 //   - exactly ONE write call exists in this file: POST /repos/{o}/{r}/pulls/{n}/reviews
@@ -93,7 +93,7 @@ function parseArgs(argv) {
 
 function usage() {
   return [
-    'Usage: node .bmad-core/utils/pr-comments <bmad-docs/reviewer/<folder>/findings.json> [--post] [--submit]',
+    'Usage: node _bmad/custom/stella/utils/pr-comments <_bmad-output/stella/reviewer/<folder>/findings.json> [--post] [--submit]',
     '',
     '  (no flag)   preview the comments, post nothing',
     '  --post      create a PENDING review on the PR (visible only to you until you press Submit)',
@@ -119,9 +119,11 @@ function recordPosted(findingsFile, url) {
   }
 }
 
+// Only a findings file inside a review folder under the v6 reviewer output is accepted:
+// _bmad-output/stella/reviewer/<review-folder>/findings.json (never .scratch/).
 function findingsPathOk(file) {
   const p = path.resolve(file).replaceAll('\\', '/');
-  return /\/bmad-docs\/reviewer\/(?!\.scratch\/)[^/]+\/findings\.json$/.test(p);
+  return /\/_bmad-output\/stella\/reviewer\/(?!\.scratch\/)[^/]+\/findings\.json$/.test(p);
 }
 
 function printPreview(result, doc, mode) {
@@ -155,7 +157,7 @@ function main(argv) {
   }
   if (!findingsPathOk(args.file)) {
     process.stderr.write(
-      'findings file must be bmad-docs/reviewer/<review-folder>/findings.json\n',
+      'findings file must be _bmad-output/stella/reviewer/<review-folder>/findings.json\n',
     );
     return EXIT.USAGE;
   }
