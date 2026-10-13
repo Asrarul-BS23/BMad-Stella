@@ -4,7 +4,6 @@ const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const fs = require('fs-extra');
 const chalk = require('chalk').default || require('chalk');
-const inquirer = require('inquirer').default || require('inquirer');
 const cjson = require('comment-json');
 // User-level hook sources now live in the repo's stella/ folder (v6 layout).
 const USER_HOOKS_SOURCE_DIR = path.join(__dirname, '..', '..', '..', 'stella', 'hooks', 'user');
@@ -134,65 +133,29 @@ class HooksManager {
   }
 
   /**
-   * Decide whether the user-level hooks need attention at all.
-   *   current   - installed, up to date, still registered -> stay silent
-   *   declined  - user said no to this exact version -> stay silent
-   *   outdated  - installed but plugin sources changed -> offer an update
-   *   missing   - never installed here -> offer a first-time setup
+   * Decide whether the user-level hooks need attention.
+   *   current   - installed, up to date, still registered -> nothing to do
+   *   outdated  - installed but sources or registration changed -> reinstall
+   *   missing   - never installed on this machine -> install
+   * Installation is silent (no prompt) — user decision, v6 migration.
    */
   async getHooksStatus() {
     const sourceState = await this.getSourceState();
-    const manifest = await this.readManifest();
-
-    if (!manifest || !manifest.plugins) {
-      // No manifest — either a first install, or hooks installed before manifests existed.
-      // Fall back to comparing the files actually on disk so an existing, current install
-      // is adopted silently instead of re-prompting.
-      const installedState = await this.getInstalledState();
-      const settings = await this.readUserSettings();
-      const adoptable =
-        Object.keys(sourceState).length > 0 &&
-        JSON.stringify(installedState) === JSON.stringify(sourceState) &&
-        PLUGINS.every(
-          (plugin) => !sourceState[plugin.name] || this.isPluginRegistered(settings, plugin),
-        );
-
-      if (adoptable) {
-        // Record it so later installs take the cheap path
-        try {
-          await this.writeManifest({
-            declined: false,
-            plugins: sourceState,
-            updatedAt: new Date().toISOString(),
-            adopted: true,
-          });
-        } catch {
-          // Non-fatal
-        }
-        return { status: 'current', sourceState };
-      }
-
-      return {
-        status: Object.keys(installedState).length > 0 ? 'outdated' : 'missing',
-        sourceState,
-      };
-    }
-
-    const sameVersion =
-      JSON.stringify(manifest.plugins) === JSON.stringify(sourceState) &&
-      Object.keys(sourceState).length > 0;
-
-    if (!sameVersion) return { status: 'outdated', sourceState, manifest };
-    if (manifest.declined) return { status: 'declined', sourceState, manifest };
-
-    // Same version — but the user may have stripped the entries out of settings.json by hand.
-    // That is a deliberate opt-out, not a reason to re-install.
+    const installedState = await this.getInstalledState();
     const settings = await this.readUserSettings();
+
+    const sameFiles =
+      Object.keys(sourceState).length > 0 &&
+      JSON.stringify(installedState) === JSON.stringify(sourceState);
     const registered = PLUGINS.every(
       (plugin) => !sourceState[plugin.name] || this.isPluginRegistered(settings, plugin),
     );
 
-    return { status: registered ? 'current' : 'declined', sourceState, manifest };
+    if (sameFiles && registered) return { status: 'current', sourceState };
+    return {
+      status: Object.keys(installedState).length > 0 ? 'outdated' : 'missing',
+      sourceState,
+    };
   }
 
   buildPluginCommand(pluginName) {
@@ -201,7 +164,7 @@ class HooksManager {
   }
 
   async _runNpmInstall(pluginDestDir, spinner) {
-    spinner.text = `Installing dependencies for ${path.basename(pluginDestDir)}...`;
+    if (spinner) spinner.text = `Installing dependencies for ${path.basename(pluginDestDir)}...`;
     return new Promise((resolve, reject) => {
       const proc = spawn('npm install --omit=dev', {
         cwd: pluginDestDir,
@@ -234,7 +197,7 @@ class HooksManager {
         continue;
       }
 
-      spinner.text = `Copying ${plugin.name}/ to ~/.claude/bmad-hooks/...`;
+      if (spinner) spinner.text = `Copying ${plugin.name}/ to ~/.claude/bmad-hooks/...`;
       await fs.copy(pluginSrcDir, pluginDestDir, { overwrite: true });
 
       // Seed counters.json from initial template if not present — never overwrite existing observations
@@ -371,81 +334,38 @@ class HooksManager {
   async setupCustomHooks(spinner) {
     const { status, sourceState } = await this.getHooksStatus();
 
-    // Notification hooks are installed once per user (~/.claude), while BMad is installed
-    // per project. Only ask when there is actually something to do.
-    if (status === 'current' || status === 'declined') {
-      if (spinner) {
-        spinner.text = 'Claude notification hooks already up to date — skipping.';
-      }
-      return;
+    // User-level hooks live in ~/.claude and are shared by every project on this machine.
+    if (status === 'current') {
+      if (spinner) spinner.text = 'User-level Claude hooks already up to date.';
+      return { status, changed: false };
     }
-
-    if (spinner) spinner.stop();
 
     const isUpdate = status === 'outdated';
-    const { setupHooks } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'setupHooks',
-        message: isUpdate
-          ? 'Claude notification hooks have been updated. Update them now?'
-          : 'Do you want to set up Notification from Claude events?',
-        default: true,
-      },
-    ]);
-
-    if (!setupHooks) {
-      console.log(chalk.yellow('⚠️  Skipping notification hooks setup.'));
-      // Remember the decline so the next project install does not re-ask for this same version
-      try {
-        await this.writeManifest({
-          declined: true,
-          plugins: sourceState,
-          updatedAt: new Date().toISOString(),
-        });
-      } catch {
-        // Non-fatal — worst case we ask again next time
-      }
-      if (spinner) spinner.start();
-      return;
-    }
-
     try {
-      if (spinner) spinner.start('Copying Claude notification hook scripts...');
-
+      if (spinner) spinner.text = 'Copying user-level Claude hook scripts...';
       await this.copyHookScripts(spinner);
 
-      if (spinner) spinner.text = 'Updating ~/.claude/settings.json with notification hooks...';
-
+      if (spinner) spinner.text = 'Registering user-level hooks in ~/.claude/settings.json...';
       const settings = await this.readUserSettings();
       this.mergeHooks(settings);
       await this.writeUserSettings(settings);
 
-      await this.writeManifest({
-        declined: false,
-        plugins: sourceState,
-        updatedAt: new Date().toISOString(),
-      });
-
-      if (spinner) spinner.stop();
+      await this.writeManifest({ plugins: sourceState, updatedAt: new Date().toISOString() });
 
       console.log(
         chalk.green(
-          isUpdate
-            ? '✓ Claude notification hooks updated!'
-            : '✓ Claude notification hooks configured!',
+          isUpdate ? '✓ User-level Claude hooks updated' : '✓ User-level Claude hooks installed',
         ),
       );
       console.log(chalk.green(`  Hook scripts → ${this.getHooksDestDir()}`));
-      console.log(chalk.green('  settings.json updated (PermissionRequest + Stop events)'));
-    } catch (error) {
-      if (spinner) spinner.stop();
-      console.log(chalk.yellow(`⚠️  Could not configure notification hooks: ${error.message}`));
       console.log(
-        chalk.dim('   You can set them up manually using the scripts in bmad-core/bmad-hooks/'),
+        chalk.green('  settings.json updated (PermissionRequest + Stop + SessionEnd events)'),
       );
-    } finally {
-      if (spinner) spinner.start();
+      return { status, changed: true };
+    } catch (error) {
+      console.log(chalk.yellow(`⚠️  Could not configure user-level hooks: ${error.message}`));
+      console.log(chalk.dim('   You can set them up manually from stella/hooks/user/'));
+      return { status, changed: false, error };
     }
   }
 }
