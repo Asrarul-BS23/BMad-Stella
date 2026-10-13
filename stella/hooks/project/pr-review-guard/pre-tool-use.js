@@ -1,21 +1,29 @@
 'use strict';
 
-// pr-review guard — PreToolUse hook (Edit | MultiEdit | Write | Bash).
-// While a PR review is active in this session, blocks anything outside the
-// read-only command set defined in bmad-core/tasks/review-pr.md. Runs in every
-// permission mode, so it holds even when prompts are auto-approved.
+// pr-review guard — PreToolUse hook (Edit | MultiEdit | Write | Bash | PowerShell).
+// While a `stella-pr-review` session is active, blocks anything outside the
+// read-only command set the review skill allows. Runs in every permission
+// mode, so it holds even when prompts are auto-approved.
+//
+// Outside a review it does nothing at all — a developer in a normal session
+// must never notice it exists (standing rule). Start/end detection lives in
+// lib/review-state.js; the allow/deny policy in lib/policy.js.
 //
 // Exit 0 = allow. Exit 2 = block; stderr is shown to the agent as the reason.
 // Fail-open by design: any internal error allows the call and logs it — a
 // broken hook must never lock a developer out of their own project.
+//
+// Kill switch (no uninstall needed): env STELLA_GUARD_OFF=1, or
+// _bmad/custom/stella/guard.json with {"enabled": false}.
 
 const fs = require('node:fs');
 const path = require('node:path');
 
 if (process.env.BMAD_HOOK_SUBPROCESS === '1') process.exit(0);
 
-let decide, ALLOWED_SUMMARY, reviewState, cleanupScratch;
+let decide, ALLOWED_SUMMARY, reviewState, cleanupScratch, paths;
 try {
+  paths = require('./lib/paths');
   ({ decide, ALLOWED_SUMMARY } = require('./lib/policy'));
   ({ reviewState, cleanupScratch } = require('./lib/review-state'));
 } catch {
@@ -25,7 +33,7 @@ try {
 function findBmadRoot(startDir) {
   let dir = path.resolve(startDir);
   for (;;) {
-    if (fs.existsSync(path.join(dir, '.bmad-core', 'core-config.yaml'))) return dir;
+    if (fs.existsSync(paths.rootMarker(dir))) return dir;
     const parent = path.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
@@ -34,15 +42,27 @@ function findBmadRoot(startDir) {
 
 function log(root, message, data) {
   try {
-    const dir = path.join(root, 'bmad-docs', 'bmad-logs');
+    const dir = paths.stateDir(root);
     fs.mkdirSync(dir, { recursive: true });
     const suffix = data === undefined ? '' : ' ' + JSON.stringify(data);
     fs.appendFileSync(
-      path.join(dir, '.hook-debug.log'),
+      path.join(dir, 'guard-debug.log'),
       `${new Date().toISOString()} [pr-guard] ${message}${suffix}\n`,
     );
   } catch {
     /* logging never throws */
+  }
+}
+
+// true when the guard is switched off for this machine or project
+function isDisabled(root) {
+  const env = String(process.env.STELLA_GUARD_OFF || '').toLowerCase();
+  if (env === '1' || env === 'true' || env === 'yes') return true;
+  try {
+    const cfg = JSON.parse(fs.readFileSync(paths.configFile(root), 'utf8'));
+    return cfg && cfg.enabled === false;
+  } catch {
+    return false; // missing or unreadable config = enabled
   }
 }
 
@@ -59,6 +79,7 @@ function main(raw) {
 
   const root = findBmadRoot(payload.cwd || process.cwd());
   if (!root) return 0;
+  if (isDisabled(root)) return 0;
 
   const state = reviewState(root, sessionId, transcriptPath);
   // Scratch sandbox lives only for the duration of a review.
@@ -77,15 +98,19 @@ function main(raw) {
   const verdict = decide(toolName, toolInput, { readScript });
   if (verdict.allow) return 0;
 
-  const detail = toolName === 'Bash' ? toolInput.command : toolInput.file_path || '';
+  const detail =
+    toolName === 'Bash' || toolName === 'PowerShell'
+      ? toolInput.command
+      : toolInput.file_path || '';
   log(root, `blocked ${toolName}`, {
     reason: verdict.reason,
     detail: String(detail).slice(0, 200),
   });
   process.stderr.write(
-    `pr-review is READ-ONLY — ${verdict.reason}.\n` +
+    `PR review active (stella-pr-review): edits are disabled — ${verdict.reason}.\n` +
       `Allowed shell commands: ${ALLOWED_SUMMARY}. ` +
-      `Write only to bmad-docs/reviewer/ (findings) or bmad-docs/reviewer/.scratch/ (pure verification scripts). No Edit/MultiEdit.\n`,
+      `Write only to ${paths.REVIEWER_LABEL}/ (findings) or ${paths.SCRATCH_LABEL}/ (pure verification scripts). No Edit/MultiEdit.\n` +
+      `To leave the review and edit again, type *exit.\n`,
   );
   return 2;
 }
