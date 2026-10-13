@@ -8,22 +8,29 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const paths = require('./paths');
 
-// Review START markers — several, because the agent can load the task in
-// different ways (seen in the wild: `cd … && cat .bmad-core/tasks/review-pr.md`
-// via Bash instead of the Read tool).
-const DIRECT_COMMAND_RE = /<command-name>\/?bmad:tasks:review-pr<\/command-name>/i;
-const USER_PR_REVIEW_RE = /(^|\n)\s*\*pr-review\b/i;
-const TASK_FILE_RE = /[\\/]tasks[\\/]review-pr\.md$/i;
-const TASK_FILE_IN_CMD_RE = /[\\/]tasks[\\/]review-pr\.md(\s|$|["'])/i;
+const REVIEW_SKILL = 'stella-pr-review';
+
+// Review START markers — exactly two (user decision, v6 migration):
+//   1. the user typed the skill command (Claude Code records it as
+//      <command-name>/stella-pr-review</command-name>, or as raw text)
+//   2. Claude Code launched the skill (a `Skill` tool call naming it)
+// A Read of the skill file, or the name in prose, is NOT a start.
+const COMMAND_TAG_RE = /<command-name>\/?stella-pr-review<\/command-name>/i;
+const COMMAND_TEXT_RE = /^\s*\/stella-pr-review(?:\s|$)/i;
+
 // Review END markers
 const EXIT_RE = /(^|\n)\s*\*exit\b/i;
-const OTHER_COMMAND_RE =
-  /<command-name>\/?bmad:(agents|tasks):(?!review-pr<)[^<]+<\/command-name>/i;
-// review ends when the report is written: bmad-docs/reviewer/<review-folder>/review.md
-const FINDINGS_FILE_RE =
-  /(^|[\\/])bmad-docs[\\/]reviewer[\\/](?!\.scratch[\\/])[^\\/]+[\\/]review\.md$/;
-const SHELL_TOOLS = new Set(['Bash', 'PowerShell']);
+// any other BMad / Stella skill command
+const OTHER_COMMAND_TAG_RE =
+  /<command-name>\/?(?:bmad|stella)-(?!pr-review<)[^<]+<\/command-name>/i;
+const OTHER_COMMAND_TEXT_RE = /^\s*\/(?:bmad|stella)-(?!pr-review(?:\s|$))\S+/i;
+const OTHER_SKILL_RE = /^(?:bmad|stella)-(?!pr-review$)/i;
+// review ends when the report is written: <reviewer>/<review-folder>/review.md
+const FINDINGS_FILE_RE = new RegExp(
+  `(^|${paths.SEP})${paths.REVIEWER_RE_PART}${paths.SEP}(?!\\.scratch${paths.SEP})[^\\\\/]+${paths.SEP}review\\.md$`,
+);
 
 // User message text, whether content is a plain string or an array of blocks.
 function userText(content) {
@@ -46,13 +53,12 @@ function classifyLine(line) {
     return null;
   }
   if (obj.type === 'user') {
-    if (obj.isMeta) return null; // injected agent/skill bodies, not the human
+    if (obj.isMeta) return null; // injected skill bodies, not the human
     const c = userText(obj.message && obj.message.content);
     if (!c) return null;
-    if (DIRECT_COMMAND_RE.test(c)) return 'start';
-    if (OTHER_COMMAND_RE.test(c)) return 'end';
+    if (COMMAND_TAG_RE.test(c) || COMMAND_TEXT_RE.test(c)) return 'start';
+    if (OTHER_COMMAND_TAG_RE.test(c) || OTHER_COMMAND_TEXT_RE.test(c)) return 'end';
     if (EXIT_RE.test(c)) return 'end';
-    if (USER_PR_REVIEW_RE.test(c)) return 'start';
     return null;
   }
   if (obj.type === 'assistant') {
@@ -60,13 +66,13 @@ function classifyLine(line) {
     if (!Array.isArray(content)) return null;
     for (const block of content) {
       if (!block || block.type !== 'tool_use' || !block.input) continue;
+      if (block.name === 'Skill') {
+        const skill = String(block.input.skill || '').trim();
+        if (skill.toLowerCase() === REVIEW_SKILL) return 'start';
+        if (OTHER_SKILL_RE.test(skill)) return 'end';
+        continue;
+      }
       const fp = String(block.input.file_path || '').replaceAll('\\', '/');
-      if (block.name === 'Read' && TASK_FILE_RE.test(fp)) return 'start';
-      if (
-        SHELL_TOOLS.has(block.name) &&
-        TASK_FILE_IN_CMD_RE.test(String(block.input.command || ''))
-      )
-        return 'start';
       if (block.name === 'Write' && FINDINGS_FILE_RE.test(fp)) return 'end';
     }
   }
@@ -75,7 +81,7 @@ function classifyLine(line) {
 
 function cachePath(root, sessionId) {
   const safe = String(sessionId).replaceAll(/[^A-Za-z0-9_-]/g, '_');
-  return path.join(root, 'bmad-docs', 'bmad-logs', '.pr-review-guard', `${safe}.json`);
+  return path.join(paths.stateDir(root), `${safe}.json`);
 }
 
 function readCache(file) {
@@ -100,7 +106,7 @@ function writeCache(file, cache) {
 }
 
 function scratchDir(root) {
-  return path.join(root, 'bmad-docs', 'reviewer', '.scratch');
+  return paths.scratchDir(root);
 }
 
 // Wipe the scratch sandbox. Called when a review starts (clean slate) and when
@@ -148,4 +154,12 @@ function isReviewActive(root, sessionId, transcriptPath) {
   return reviewState(root, sessionId, transcriptPath).active;
 }
 
-module.exports = { reviewState, isReviewActive, classifyLine, scratchDir, cleanupScratch };
+module.exports = {
+  reviewState,
+  isReviewActive,
+  classifyLine,
+  scratchDir,
+  cleanupScratch,
+  cachePath,
+  REVIEW_SKILL,
+};

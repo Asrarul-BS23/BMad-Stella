@@ -2,10 +2,13 @@
 
 // pr-review guard — pure allow/deny policy. No I/O of its own (a reader callback
 // is injected for script files), fully unit-testable.
-// Mirrors the Guard section of bmad-core/tasks/review-pr.md: while a PR review
+// Mirrors the Guard section of the stella-pr-review skill: while a PR review
 // is active, the agent may run ONLY the commands below, may write ONLY the
-// findings file or a scratch verification script, and may run a script ONLY if
+// findings files or a scratch verification script, and may run a script ONLY if
 // it is pure computation. Everything else is blocked before it executes.
+// All folder names come from ./paths — nothing is hardcoded here.
+
+const paths = require('./paths');
 
 // Flags accepted per command. Any other `-x` / `--xyz` token is rejected — this
 // is what stops `gh pr diff --web`, `git grep -O<cmd>`, `git log --output=<file>`.
@@ -80,8 +83,7 @@ const ALLOWED_COMMANDS = [
   },
 ];
 
-const ALLOWED_SUMMARY =
-  'gh auth status · gh pr view · gh pr diff · gh pr checks · git fetch origin pull/N/head · git cat-file -t · git show {sha}:{path} · git grep -n -e · git log · git diff {base} {head} · node|python <bmad-docs/reviewer/.scratch/file> · node -e / python -c "<pure code>"';
+const ALLOWED_SUMMARY = `gh auth status · gh pr view · gh pr diff · gh pr checks · git fetch origin pull/N/head · git cat-file -t · git show {sha}:{path} · git grep -n -e · git log · git diff {base} {head} · node|python <${paths.SCRATCH_LABEL}/file> · node -e / python -c "<pure code>" · node ${paths.HELPER_LABEL} <findings.json>`;
 
 // Shell operators that turn one command into several, or redirect output.
 // Checked after quoted segments are removed so `-e "List<User>"` is not a false positive.
@@ -117,14 +119,17 @@ function flagName(token) {
 // Scratch sandbox: verification scripts (pure computation only)
 // ---------------------------------------------------------------------------
 
-const SCRATCH_FILE_RE = /(^|[\\/])bmad-docs[\\/]reviewer[\\/]\.scratch[\\/][^\\/]+$/;
-// one folder per review: bmad-docs/reviewer/<repo>-pr<N>-<date>/{review.md,findings.json,reproduce.md}
-const FINDINGS_FILE_RE =
-  /(^|[\\/])bmad-docs[\\/]reviewer[\\/](?!\.scratch[\\/])[^\\/]+[\\/](?:review\.md|findings\.json|reproduce\.md)$/;
-const FINDINGS_JSON_RE =
-  /(^|[\\/])bmad-docs[\\/]reviewer[\\/](?!\.scratch[\\/])[^\\/]+[\\/]findings\.json$/;
+const { SEP, REVIEWER_RE_PART, HELPER_RE_PART } = paths;
+const SCRATCH_FILE_RE = new RegExp(`(^|${SEP})${REVIEWER_RE_PART}${SEP}\\.scratch${SEP}[^\\\\/]+$`);
+// one folder per PR: <reviewer>/<repo>-pr<N>/{review.md,findings.json,reproduce.md}
+const FINDINGS_FILE_RE = new RegExp(
+  `(^|${SEP})${REVIEWER_RE_PART}${SEP}(?!\\.scratch${SEP})[^\\\\/]+${SEP}(?:review\\.md|findings\\.json|reproduce\\.md)$`,
+);
+const FINDINGS_JSON_RE = new RegExp(
+  `(^|${SEP})${REVIEWER_RE_PART}${SEP}(?!\\.scratch${SEP})[^\\\\/]+${SEP}findings\\.json$`,
+);
 // the only helper the review may run: posts findings as PR comments (one hard-coded endpoint)
-const PR_COMMENTS_HELPER_RE = /(^|[\\/])\.bmad-core[\\/]utils[\\/]pr-comments(?:[\\/]index\.js)?$/;
+const PR_COMMENTS_HELPER_RE = new RegExp(`(^|${SEP})${HELPER_RE_PART}(?:${SEP}index\\.js)?$`);
 const PR_COMMENTS_FLAGS = new Set(['--post', '--submit', '--allow-long', '--help', '-h']);
 
 function normalizePath(p) {
@@ -214,7 +219,7 @@ function checkScriptRun(tokens, readScript) {
     if (!isScratchFile(file)) {
       return {
         allow: false,
-        reason: 'scripts may only be run from bmad-docs/reviewer/.scratch/',
+        reason: `scripts may only be run from ${paths.SCRATCH_LABEL}/`,
       };
     }
     const code = typeof readScript === 'function' ? readScript(file) : null;
@@ -227,7 +232,7 @@ function checkScriptRun(tokens, readScript) {
 
   return {
     allow: false,
-    reason: `${runtime} is allowed only as '${runtime} <bmad-docs/reviewer/.scratch/file>' or '${runtime} ${family === 'node' ? '-e' : '-c'} "<code>"' with no other arguments`,
+    reason: `${runtime} is allowed only as '${runtime} <${paths.SCRATCH_LABEL}/file>' or '${runtime} ${family === 'node' ? '-e' : '-c'} "<code>"' with no other arguments`,
   };
 }
 
@@ -259,7 +264,7 @@ function checkBash(rawCommand, readScript) {
 
   const tokens = tokenize(cmd);
 
-  // `node .bmad-core/utils/pr-comments <bmad-docs/reviewer/x.json> [flags]` — checked before
+  // `node <helper> <reviewer>/<folder>/findings.json [flags]` — checked before
   // the scratch-script rule, which would otherwise reject a node invocation outside .scratch/.
   if (
     tokens[0] === 'node' &&
@@ -269,7 +274,7 @@ function checkBash(rawCommand, readScript) {
     if (!FINDINGS_JSON_RE.test(normalizePath(unquote(tokens[2])))) {
       return {
         allow: false,
-        reason: 'pr-comments takes bmad-docs/reviewer/<review-folder>/findings.json',
+        reason: `pr-comments takes ${paths.REVIEWER_LABEL}/<review-folder>/findings.json`,
       };
     }
     for (const t of tokens.slice(3)) {
@@ -333,8 +338,7 @@ function decide(toolName, toolInput, deps = {}) {
       }
       return {
         allow: false,
-        reason:
-          'Write is allowed only for the findings file under bmad-docs/reviewer/ or a scratch script under bmad-docs/reviewer/.scratch/',
+        reason: `Write is allowed only for the findings files under ${paths.REVIEWER_LABEL}/<review-folder>/ or a scratch script under ${paths.SCRATCH_LABEL}/`,
       };
     }
     case 'Bash':
