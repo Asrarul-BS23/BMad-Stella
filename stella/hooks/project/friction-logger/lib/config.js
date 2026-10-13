@@ -1,14 +1,14 @@
 'use strict';
 
 const fs = require('node:fs');
-const path = require('node:path');
+const paths = require('./paths');
 
-// Minimal reader for the `logging:` block of {project}/.bmad-core/core-config.yaml.
-// Line-based on purpose — no YAML dependency (hooks are zero-dep). Falls back to
-// locked defaults when the file or block is absent.
+// Reader for _bmad/custom/stella/friction.json (written by the Stella installer).
+// JSON on purpose — hooks are zero-dependency and Node has no TOML parser.
+// Falls back to locked defaults when the file or a key is absent.
 
 const DEFAULTS = {
-  triggerStatuses: ['Ready for Review', 'Ready for Done'],
+  triggerStatuses: ['done'], // spec frontmatter `status:` values that make a plan fireable
   model: 'default', // 'default' = no --model flag on claude --print
   confluence: { enabled: false, logsPageUrl: '' }, // publishing is opt-in via installer
 };
@@ -19,42 +19,30 @@ function readLoggingConfig(cwd) {
     triggerStatuses: [...DEFAULTS.triggerStatuses],
     confluence: { ...DEFAULTS.confluence },
   };
-  let text;
+
+  let parsed;
   try {
-    text = fs.readFileSync(path.join(cwd, '.bmad-core', 'core-config.yaml'), 'utf8');
+    parsed = JSON.parse(fs.readFileSync(paths.configFile(cwd), 'utf8'));
   } catch {
     return config;
   }
+  if (!parsed || typeof parsed !== 'object') return config;
 
-  const block = text.match(/^logging:\s*\r?\n((?:[ \t]+.*\r?\n?)*)/m);
-  if (!block) return config;
-  const body = block[1];
-
-  const statuses = [];
-  const statusBlock = body.match(/triggerStatuses:\s*\r?\n((?:[ \t]+-[^\n]*\r?\n?)*)/);
-  if (statusBlock) {
-    for (const line of statusBlock[1].split(/\r?\n/)) {
-      const m = line.match(/-\s*(.+?)\s*$/);
-      if (m) statuses.push(m[1]);
-    }
+  if (Array.isArray(parsed.triggerStatuses)) {
+    const statuses = parsed.triggerStatuses
+      .filter((s) => typeof s === 'string' && s.trim())
+      .map((s) => s.trim());
+    if (statuses.length > 0) config.triggerStatuses = statuses;
   }
-  if (statuses.length > 0) config.triggerStatuses = statuses;
 
-  const model = body.match(/model:\s*(\S+)/);
-  if (model) config.model = model[1];
+  if (typeof parsed.model === 'string' && parsed.model.trim()) config.model = parsed.model.trim();
 
-  // confluence: sub-block (written by the installer; absent on local-only installs)
-  const confluenceBlock = body.match(/confluence:\s*\r?\n((?:[ \t]+[^\n]*\r?\n?)*)/);
-  if (confluenceBlock) {
-    const cBody = confluenceBlock[1];
-    const enabled = cBody.match(/enabled:\s*(\S+)/);
-    if (enabled) config.confluence.enabled = enabled[1] === 'true';
-    // Value may be inline (logsPageUrl: https://…) or a YAML block scalar
-    // (logsPageUrl: >-\n      https://…) — yaml.dump folds long strings.
-    const logsPageUrl = cBody.match(/logsPageUrl:[ \t]*(?:[>|][+-]?[ \t]*\r?\n[ \t]+(\S+)|(\S+))/);
-    if (logsPageUrl) {
-      const value = logsPageUrl[1] || logsPageUrl[2] || '';
-      config.confluence.logsPageUrl = value.replaceAll(/^['"]|['"]$/g, '');
+  if (parsed.confluence && typeof parsed.confluence === 'object') {
+    if (typeof parsed.confluence.enabled === 'boolean') {
+      config.confluence.enabled = parsed.confluence.enabled;
+    }
+    if (typeof parsed.confluence.logsPageUrl === 'string') {
+      config.confluence.logsPageUrl = parsed.confluence.logsPageUrl.trim();
     }
   }
 

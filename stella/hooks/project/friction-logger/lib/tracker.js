@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const paths = require('./paths');
 
 // plan-tracker.json — bookkeeping for the friction logger.
 // Shape (locked, no version field):
@@ -14,7 +15,7 @@ const path = require('node:path');
 const GROWTH_USER_THRESHOLD = 2; // toggle analyzed only when growth has MORE than this many user-type lines
 
 function trackerPath(cwd) {
-  return path.join(cwd, 'bmad-docs', 'bmad-logs', 'plan-tracker.json');
+  return path.join(paths.logsDir(cwd), 'plan-tracker.json');
 }
 
 function readTracker(cwd) {

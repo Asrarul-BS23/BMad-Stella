@@ -2,37 +2,21 @@
 
 const fs = require('node:fs');
 
-// Plan-file readers for the friction logger.
-// plan_id resolution order (locked): Plan ID field inside the file (canonical,
-// handles slug plans) -> filename JIRA-key prefix -> whole filename stem.
+// Spec-file readers for the friction logger (BMad v6 `spec-*.md`).
+// plan_id resolution order: JIRA key leading the spec slug -> whole slug.
+// bmad-build names specs `spec-{slug}.md` and leads the slug with the ticket id
+// when the intent carried one (e.g. spec-LEADRSC-4699-digest-delivery.md).
 
 const JIRA_KEY_RE = /^([A-Za-z][A-Za-z0-9]*-\d+)/;
 
 function resolvePlanId(planFileAbsPath, fileName) {
-  const fromFile = readPlanIdField(planFileAbsPath);
-  if (fromFile) return sanitizeId(fromFile);
-
-  const stem = fileName.replace(/\.md$/i, '');
+  const stem = fileName.replace(/\.md$/i, '').replace(/^spec-/i, '');
   const jira = stem.match(JIRA_KEY_RE);
   return sanitizeId(jira ? jira[1] : stem);
 }
 
-function readPlanIdField(planFileAbsPath) {
-  let text;
-  try {
-    text = fs.readFileSync(planFileAbsPath, 'utf8');
-  } catch {
-    return null;
-  }
-  // Template writes: "- **Plan ID:** AIL-518" under Task Information
-  const m = text.match(/\*\*Plan ID:?\*\*:?\s*([^\n*]+)/i);
-  if (!m) return null;
-  const value = m[1].trim();
-  return value.length > 0 && value.length <= 100 ? value : null;
-}
-
-// Status choices (5, post ca87424): Draft - Awaiting Review | Approved |
-// Ready for Review | Ready for Done | Blocked — Security
+// Frontmatter `status:` — draft | ready-for-dev | in-progress | in-review | done.
+// Reads only the leading YAML block; quotes are optional.
 function readStatus(planFileAbsPath) {
   let text;
   try {
@@ -40,7 +24,12 @@ function readStatus(planFileAbsPath) {
   } catch {
     return null;
   }
-  const m = text.match(/^##\s*Status\s*\r?\n+([^\n#]+)/m);
+  const normalized = text.replaceAll('\r\n', '\n');
+  if (!normalized.startsWith('---\n')) return null;
+  const end = normalized.indexOf('\n---', 4);
+  if (end === -1) return null;
+  const frontmatter = normalized.slice(4, end);
+  const m = frontmatter.match(/^status:[ \t]*['"]?([^'"\n#]+?)['"]?[ \t]*(?:#.*)?$/m);
   return m ? m[1].trim() : null;
 }
 

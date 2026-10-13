@@ -8,11 +8,16 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+// Deliberately the only lib loaded before the guarded requires: it is a
+// constants-only module, so it cannot fail in a way the emergency logger
+// would need to report.
+const paths = require('./lib/paths');
+
 const cwd = process.argv[2];
 if (!cwd) process.exit(0);
 
 function lockPath(dir) {
-  return path.join(dir, 'bmad-docs', 'bmad-logs', '.fire-lock');
+  return path.join(paths.logsDir(dir), '.fire-lock');
 }
 
 // Last-resort logger that depends on nothing but node:fs. Used when a lib
@@ -20,7 +25,7 @@ function lockPath(dir) {
 // otherwise such a crash would leave a stuck lock and zero trace.
 function emergencyLog(message) {
   try {
-    const logsDir = path.join(cwd, 'bmad-docs', 'bmad-logs');
+    const logsDir = paths.logsDir(cwd);
     fs.mkdirSync(logsDir, { recursive: true });
     fs.appendFileSync(
       path.join(logsDir, '.hook-debug.log'),
@@ -87,11 +92,11 @@ function evaluateGates(planId, entry, triggerStatuses) {
   if (entry.generationCount >= GENERATION_CAP) return 'generation-cap';
   if ((entry.analysisAttempts || 0) >= ANALYSIS_ATTEMPT_CAP) return 'analysis-cap';
 
-  // agent completeness: ({planner, dev} ⊆ union) OR quick-dev
+  // agent completeness: bmad-build runs planning AND implementation in one skill,
+  // so one tracked bmad-build session is enough (v4 needed planner + dev).
   const all = new Set();
   for (const s of entry.sessions) for (const a of s.agents || []) all.add(a);
-  const complete = (all.has('planner') && all.has('dev')) || all.has('quick-dev');
-  if (!complete) return `agents-incomplete [${[...all].join(',')}]`;
+  if (!all.has('bmad-build')) return `agents-incomplete [${[...all].join(',')}]`;
 
   const planFileAbs = path.join(cwd, entry.planFile);
   if (!fs.existsSync(planFileAbs)) return 'plan-file-missing';
@@ -154,7 +159,7 @@ async function analyzePlan(planId, entry, log) {
   };
 
   // write outputs (idempotent overwrite)
-  const outDir = path.join(cwd, 'bmad-docs', 'bmad-logs', planId);
+  const outDir = path.join(paths.logsDir(cwd), planId);
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(path.join(outDir, 'friction.json'), JSON.stringify(friction, null, 2));
   fs.writeFileSync(path.join(outDir, 'friction.md'), renderMarkdown(friction));
@@ -223,7 +228,7 @@ async function publishPending(confluenceConfig, log) {
     if (!entry.analyzed || entry.published) continue;
     if ((entry.publishAttempts || 0) >= PUBLISH_ATTEMPT_CAP) continue;
 
-    const frictionPath = path.join(cwd, 'bmad-docs', 'bmad-logs', planId, 'friction.json');
+    const frictionPath = path.join(paths.logsDir(cwd), planId, 'friction.json');
     let friction;
     try {
       friction = JSON.parse(fs.readFileSync(frictionPath, 'utf8'));
@@ -245,7 +250,7 @@ async function publishPending(confluenceConfig, log) {
       log(`publish: ${planId} -> Confluence page ${res.pageId}`);
     } else if (entry.publishAttempts >= PUBLISH_ATTEMPT_CAP) {
       log(
-        `publish: giving up on ${planId} after ${PUBLISH_ATTEMPT_CAP} attempts (${res.reason}) — report kept locally at bmad-docs/bmad-logs/${planId}/`,
+        `publish: giving up on ${planId} after ${PUBLISH_ATTEMPT_CAP} attempts (${res.reason}) — report kept locally at ${paths.LOGS_DIR_LABEL}/${planId}/`,
       );
     } else {
       log(

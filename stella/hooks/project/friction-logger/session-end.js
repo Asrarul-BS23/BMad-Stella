@@ -1,7 +1,7 @@
 'use strict';
 
 // Friction logger — HOOK 1 (SessionEnd): bookkeeping only. No LLM, no analysis.
-// Records which plan(s) this session worked on into bmad-docs/bmad-logs/plan-tracker.json.
+// Records which spec(s) this session worked on into the plan tracker under the Stella logs folder.
 // Generation happens later in session-start.js (hook 2).
 //
 // Self-contained by design: no imports from the memory feature's hook files.
@@ -11,23 +11,33 @@ const path = require('node:path');
 const { makeLogger, findBmadRoot } = require('./lib/state');
 const { resolvePlanId } = require('./lib/planfile');
 const { readTracker, writeTracker, upsertSession } = require('./lib/tracker');
+const paths = require('./lib/paths');
 
-// Keep in sync with bmad-core/agents/{planner,dev,quick-dev}.md.
-// The injected agent definition arrives as ONE transcript line, so both
-// markers co-occur on the same line — the pair-match kills false positives.
-const AGENT_MARKERS = [
-  { agent: 'planner', id: 'id: planner', name: 'name: Alex' },
-  { agent: 'dev', id: 'id: dev', name: 'name: Bob' },
-  { agent: 'quick-dev', id: 'id: quick-dev', name: 'name: Alice' },
-];
+// Only bmad-build sessions are tracked (user decision, v6 migration).
+// A session counts when the user typed the skill command, or when Claude Code
+// recorded a `Skill` tool call for it — the same two signals the PR review
+// guard uses. A mere mention of the name in prose never matches.
+const TRACKED_SKILL = 'bmad-build';
+const SKILL_COMMAND_RE = /^\s*\/bmad-build(?:\s|$)/i;
 
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit']);
-// Dedicated file tools carry the path in input.file_path (must END with the plan path).
-const PLAN_PATH_RE = /impl-plan\/([^/]+?\.md)$/;
-// Bash writes (heredoc, `cat >`, sed -i, …) carry the path somewhere inside
+// Dedicated file tools carry the path in input.file_path (must END with the spec path).
+const PLAN_PATH_RE = /implementation-artifacts\/(spec-[^/]+?\.md)$/i;
+// Bash/PowerShell writes (heredoc, `cat >`, sed -i, …) carry the path somewhere inside
 // input.command — any mention counts; the on-disk existence check below filters
 // out greps/reads that only name a file.
-const BASH_PLAN_RE = /impl-plan[\\/]([^\\/\s'"`)]+?\.md)/g;
+const BASH_PLAN_RE = /implementation-artifacts[\\/](spec-[^\\/\s'"`)]+?\.md)/gi;
+
+// Text of a user message — Claude Code stores either a string or an array of blocks.
+function userText(message) {
+  const content = message && message.content;
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .filter((block) => block && block.type === 'text' && typeof block.text === 'string')
+    .map((block) => block.text)
+    .join('\n');
+}
 
 function main(rawStdin) {
   // Recursion guard (shared convention with the memory feature, see commit a6831d7):
@@ -67,17 +77,18 @@ function main(rawStdin) {
   const endLine = lines.length;
 
   const agents = new Set();
-  const planFiles = new Set(); // file names written/edited under impl-plan/
+  const planFiles = new Set(); // spec file names written/edited under implementation-artifacts/
 
   for (const line of lines) {
-    for (const m of AGENT_MARKERS) {
-      if (line.includes(m.id) && line.includes(m.name)) agents.add(m.agent);
-    }
-    // tool_use Write/Edit/MultiEdit (file_path) or Bash (command) on impl-plan/*.md
     let obj;
     try {
       obj = JSON.parse(line);
     } catch {
+      continue;
+    }
+    // Session gate signal 1: the user typed /bmad-build
+    if (obj.type === 'user' && !obj.isMeta && SKILL_COMMAND_RE.test(userText(obj.message))) {
+      agents.add(TRACKED_SKILL);
       continue;
     }
     if (obj.type !== 'assistant') continue;
@@ -85,6 +96,12 @@ function main(rawStdin) {
     if (!Array.isArray(content)) continue;
     for (const block of content) {
       if (!block || block.type !== 'tool_use' || !block.input) continue;
+      // Session gate signal 2: Claude Code launched the skill
+      if (block.name === 'Skill' && block.input.skill === TRACKED_SKILL) {
+        agents.add(TRACKED_SKILL);
+        continue;
+      }
+      // tool_use Write/Edit/MultiEdit (file_path) or Bash/PowerShell (command) on spec-*.md
       if (WRITE_TOOLS.has(block.name)) {
         const fp = block.input.file_path;
         if (typeof fp !== 'string') continue;
@@ -99,14 +116,14 @@ function main(rawStdin) {
     }
   }
 
-  // Gate: planner / dev / quick-dev sessions only.
+  // Gate: bmad-build sessions only.
   if (agents.size === 0) {
-    log('session-end: no tracked agent in session — skip', { sessionId });
+    log('session-end: no bmad-build activation in session — skip', { sessionId });
     return;
   }
 
   if (planFiles.size === 0) {
-    log('session-end: no impl-plan file written/edited — skip', { sessionId, agents: [...agents] });
+    log('session-end: no spec file written/edited — skip', { sessionId, agents: [...agents] });
     return;
   }
 
@@ -114,9 +131,9 @@ function main(rawStdin) {
   const plans = [];
   for (const fileName of planFiles) {
     if (fileName.includes('{{') || fileName.includes('}}')) continue; // template placeholder leaked as text
-    const planFileRel = path.join('bmad-docs', 'impl-plan', fileName).replaceAll('\\', '/');
-    const planFileAbs = path.join(cwd, 'bmad-docs', 'impl-plan', fileName);
-    if (!fs.existsSync(planFileAbs)) continue; // a real plan must be a real file
+    const planFileRel = paths.specRel(fileName);
+    const planFileAbs = path.join(paths.specsDir(cwd), fileName);
+    if (!fs.existsSync(planFileAbs)) continue; // a real spec must be a real file
     const planId = resolvePlanId(planFileAbs, fileName);
     plans.push({ planId, planFileRel });
   }
