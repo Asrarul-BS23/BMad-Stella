@@ -12,6 +12,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { makeLogger, findBmadRoot } = require('./lib/state');
 const { readTracker } = require('./lib/tracker');
+const paths = require('./lib/paths');
 
 const STALE_LOCK_MS = 30 * 60 * 1000; // 30 min — crashed worker recovery
 
@@ -32,11 +33,11 @@ function main(rawStdin) {
   if (!cwd) return;
   const log = makeLogger(cwd);
 
-  const logsDir = path.join(cwd, 'bmad-docs', 'bmad-logs');
+  const logsDir = paths.logsDir(cwd);
   const lockFile = path.join(logsDir, '.fire-lock');
 
   // Quick pre-check: anything in the tracker at all? (avoids lock churn in
-  // projects that never used the planner/dev agents)
+  // projects that never ran bmad-build)
   const tracker = readTracker(cwd);
   if (Object.keys(tracker.plans).length === 0) return;
 

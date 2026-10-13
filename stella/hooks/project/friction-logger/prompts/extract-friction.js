@@ -21,9 +21,9 @@ NO → friction, log it:
 - external: tooling/environment failure (MCP down, missing config)
 
 # USING THE PLAN
-- PLANNER sessions: plan is the OUTPUT — never judge the planner against it. Reference = ticket/requirements + conversation. Friction the user corrected is SELF-ERASED in the final plan — find it in the conversation only.
-- DEV/QUICK-DEV sessions: plan's approved sections (Requirements, AC, Technical Approach, scope) are valid reference. A dev deviation from the plan is a friction SIGNAL, not automatically friction — ask WHY: dev deviated carelessly/ignored the plan → attribution: agent; dev HAD to deviate because the plan's approach was wrong or infeasible → attribution: agent+human (the plan was drafted by the planner agent AND approved by the human — both own the planning failure, surfaced by dev).
-- TEMPORAL: plan edits appear as [tool: Write/Edit …impl-plan…] lines in the timeline. Info added to the plan AFTER the agent's question = context-gap-missing → human, NOT context-ignored. Timeline unclear → judge from conversation, lower confidence.
+- BMAD-BUILD sessions run planning AND implementation in one session. While the spec is being written (clarify, plan, approval checkpoint) the spec is the OUTPUT — never judge the agent against it; reference = ticket/requirements + conversation. Friction the user corrected is SELF-ERASED in the approved spec — find it in the conversation only.
+- After approval (implement, review, present) the spec's frozen sections (Intent, Boundaries & Constraints, I/O Matrix, Tasks & Acceptance) are valid reference. A deviation from the spec is a friction SIGNAL, not automatically friction — ask WHY: deviated carelessly/ignored the spec → attribution: agent; HAD to deviate because the spec's approach was wrong or infeasible → attribution: agent+human (the spec was drafted by the agent AND approved by the human — both own the planning failure).
+- TEMPORAL: spec edits appear as [tool: Write/Edit …spec-*.md…] lines in the timeline. Info added to the plan AFTER the agent's question = context-gap-missing → human, NOT context-ignored. Timeline unclear → judge from conversation, lower confidence.
 
 # CLASSIFY (one value per axis)
 failure_mode → default attribution:
