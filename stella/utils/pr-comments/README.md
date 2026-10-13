@@ -3,9 +3,9 @@
 Posts `*pr-review` findings as line comments on a GitHub PR. Used by the reviewer agent after the findings file is written and the user says yes.
 
 ```
-node .bmad-core/utils/pr-comments <bmad-docs/reviewer/<folder>/findings.json>              preview, posts nothing
-node .bmad-core/utils/pr-comments <findings.json> --post                   pending review (only you see it)
-node .bmad-core/utils/pr-comments <findings.json> --post --submit          submitted as a "Comment" review
+node _bmad/custom/stella/utils/pr-comments <_bmad-output/stella/reviewer/<folder>/findings.json>              preview, posts nothing
+node _bmad/custom/stella/utils/pr-comments <findings.json> --post                   pending review (only you see it)
+node _bmad/custom/stella/utils/pr-comments <findings.json> --post --submit          submitted as a "Comment" review
 ```
 
 What it can do: create one review with line comments. Nothing else — no approve, no request-changes, no merge, no edits to the PR. One `POST …/pulls/{n}/reviews` call in the whole file.

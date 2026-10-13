@@ -4,7 +4,7 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { performance } = require('node:perf_hooks');
 
-const { resolveConfig, validateConfig, ENV_KEYS } = require('./lib/config');
+const { resolveConfig, validateConfig, ENV_KEYS, tokensEnvPath } = require('./lib/config');
 const { JiraClient, JiraError } = require('./lib/client');
 const { collectAdfMediaFromIssue, summarizeDescription, extractPlainText } = require('./lib/adf');
 const {
@@ -107,7 +107,7 @@ function printHelp() {
     'bmad-stella jira-attachments — fetch Jira text + attachments for a ticket',
     '',
     'Usage:',
-    '  node .bmad-core/utils/jira-attachments <TICKET-KEY | URL> [flags]',
+    '  node _bmad/custom/stella/utils/jira-attachments <TICKET-KEY | URL> [flags]',
     '',
     'Flags:',
     '  --self-test           Validate credentials without downloading',
@@ -405,7 +405,7 @@ async function main(argv) {
   const validation = validateConfig(config);
   if (!validation.ok) {
     logger.error(
-      `Missing credentials: ${validation.missing.join(', ')}. Set them as env vars or in ${path.join(config.projectRoot, 'bmad-docs', '.bmad-tokens', '.env')}.`,
+      `Missing credentials: ${validation.missing.join(', ')}. Set them as env vars or in ${tokensEnvPath(config.projectRoot)}.`,
     );
     return EXIT_CODES.CONFIG;
   }

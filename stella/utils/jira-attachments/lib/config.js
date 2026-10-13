@@ -10,8 +10,13 @@ const ENV_KEYS = Object.freeze({
   cacheDir: 'BMAD_JIRA_CACHE_DIR',
 });
 
+// BMad v6 layout (Stella): a project is the folder holding `_bmad/`; everything Stella
+// writes lives under `_bmad-output/stella/`.
+const ROOT_MARKER = '_bmad';
+const TOKENS_ENV = path.join('_bmad-output', 'stella', '.bmad-tokens', '.env');
+
 const DEFAULTS = Object.freeze({
-  cacheSubdir: path.join('bmad-docs', 'cache', 'jira'),
+  cacheSubdir: path.join('_bmad-output', 'stella', 'cache', 'jira'),
   concurrency: 5,
   requestTimeoutMs: 30_000,
   maxAttachmentBytes: 50 * 1024 * 1024,
@@ -42,9 +47,28 @@ function parseDotenv(contents) {
   return result;
 }
 
+// Walk up from `startDir` to the folder that holds `_bmad/`. Returns null outside a project.
+function findProjectRoot(startDir) {
+  let dir = path.resolve(startDir);
+  for (;;) {
+    try {
+      if (fs.statSync(path.join(dir, ROOT_MARKER)).isDirectory()) return dir;
+    } catch {
+      /* not here */
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+function tokensEnvPath(projectRoot) {
+  return path.join(projectRoot, TOKENS_ENV);
+}
+
 function loadDotenvIfPresent(projectRoot) {
-  // Tokens live in <projectRoot>/bmad-docs/.bmad-tokens/.env (kept in sync with the installer).
-  const envPath = path.join(projectRoot, 'bmad-docs', '.bmad-tokens', '.env');
+  // Tokens live in <projectRoot>/_bmad-output/stella/.bmad-tokens/.env (written by the installer).
+  const envPath = tokensEnvPath(projectRoot);
   try {
     const stat = fs.statSync(envPath);
     if (!stat.isFile()) return {};
@@ -80,7 +104,8 @@ function normalizeBaseUrl(raw) {
 }
 
 function resolveConfig({ projectRoot, cwd = process.cwd() } = {}) {
-  const root = projectRoot || cwd;
+  // Explicit --project-root wins; otherwise the nearest ancestor with `_bmad/`; else cwd.
+  const root = projectRoot || findProjectRoot(cwd) || cwd;
   const fileEnv = loadDotenvIfPresent(root);
   const merged = Object.assign(Object.create(null), fileEnv);
   for (const key of Object.keys(process.env)) {
@@ -125,7 +150,11 @@ function validateConfig(config) {
 module.exports = {
   ENV_KEYS,
   DEFAULTS,
+  ROOT_MARKER,
+  TOKENS_ENV,
   resolveConfig,
   validateConfig,
   parseDotenv,
+  findProjectRoot,
+  tokensEnvPath,
 };

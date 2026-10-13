@@ -15,14 +15,14 @@ No npm dependencies — the helper uses Node built-ins only, so it runs from any
 
 ## Configuration
 
-Credentials are loaded from environment variables, with fallback to `bmad-docs/.bmad-tokens/.env` (git-ignored). Precedence: process env > `.env` file.
+Credentials are loaded from environment variables, with fallback to `_bmad-output/stella/.bmad-tokens/.env` (git-ignored). Precedence: process env > `.env` file.
 
-| Variable              | Required | Description                                          |
-| --------------------- | -------- | ---------------------------------------------------- |
-| `JIRA_BASE_URL`       | yes      | e.g. `https://yourtenant.atlassian.net`              |
-| `JIRA_EMAIL`          | yes      | Atlassian account email                              |
-| `JIRA_API_TOKEN`      | yes      | API token (not a password)                           |
-| `BMAD_JIRA_CACHE_DIR` | no       | Override cache root (default `bmad-docs/cache/jira`) |
+| Variable              | Required | Description                                                    |
+| --------------------- | -------- | -------------------------------------------------------------- |
+| `JIRA_BASE_URL`       | yes      | e.g. `https://yourtenant.atlassian.net`                        |
+| `JIRA_EMAIL`          | yes      | Atlassian account email                                        |
+| `JIRA_API_TOKEN`      | yes      | API token (not a password)                                     |
+| `BMAD_JIRA_CACHE_DIR` | no       | Override cache root (default `_bmad-output/stella/cache/jira`) |
 
 The BMad-Stella installer prompts for and writes these during setup. Keep `.env` out of git — the repo template already ignores it.
 
@@ -30,22 +30,22 @@ The BMad-Stella installer prompts for and writes these during setup. Keep `.env`
 
 ```bash
 # Basic fetch
-node .bmad-core/utils/jira-attachments PROJ-123
+node _bmad/custom/stella/utils/jira-attachments PROJ-123
 
 # Accept a full URL
-node .bmad-core/utils/jira-attachments https://tenant.atlassian.net/browse/PROJ-123
+node _bmad/custom/stella/utils/jira-attachments https://tenant.atlassian.net/browse/PROJ-123
 
 # Verify credentials without downloading
-node .bmad-core/utils/jira-attachments --self-test
+node _bmad/custom/stella/utils/jira-attachments --self-test
 
 # Preview what would be fetched
-node .bmad-core/utils/jira-attachments PROJ-123 --dry-run
+node _bmad/custom/stella/utils/jira-attachments PROJ-123 --dry-run
 
 # Ignore cache and re-download
-node .bmad-core/utils/jira-attachments PROJ-123 --force-refresh
+node _bmad/custom/stella/utils/jira-attachments PROJ-123 --force-refresh
 
 # Delete cached attachments for a ticket (invoked by planner after plan approval)
-node .bmad-core/utils/jira-attachments PROJ-123 --purge
+node _bmad/custom/stella/utils/jira-attachments PROJ-123 --purge
 ```
 
 ## Output
@@ -56,7 +56,7 @@ node .bmad-core/utils/jira-attachments PROJ-123 --purge
 ```json
 {
   "ok": true,
-  "manifestPath": "bmad-docs/cache/jira/PROJ-123/manifest.json",
+  "manifestPath": "_bmad-output/stella/cache/jira/PROJ-123/manifest.json",
   "ticketKey": "PROJ-123",
   "attachmentCount": 3,
   "failedCount": 0,
@@ -85,7 +85,7 @@ node .bmad-core/utils/jira-attachments PROJ-123 --purge
     {
       "id": "12345",
       "filename": "mockup.png",
-      "localPath": "bmad-docs/cache/jira/PROJ-123/attachments/12345__mockup.png",
+      "localPath": "_bmad-output/stella/cache/jira/PROJ-123/attachments/12345__mockup.png",
       "mimeType": "image/png",
       "sizeBytes": 245678,
       "checksum": "sha256:abc...",
