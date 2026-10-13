@@ -155,11 +155,18 @@ function writeCounters(counters) {
   }
 }
 
+// A BMad v6 project is recognised by its `_bmad/` folder. Corrections are staged for the
+// memory job under _bmad-output/stella/memory/.state (created on demand).
 function findBmadMemoryStateDir(cwd) {
   if (!cwd) return null;
-  const stateDir = path.join(cwd, 'bmad-docs', 'memory', '.state');
-  if (fs.existsSync(stateDir)) return stateDir;
-  return null;
+  if (!fs.existsSync(path.join(cwd, '_bmad'))) return null;
+  const stateDir = path.join(cwd, '_bmad-output', 'stella', 'memory', '.state');
+  try {
+    fs.mkdirSync(stateDir, { recursive: true });
+  } catch {
+    return null;
+  }
+  return stateDir;
 }
 
 function hasKeywords(text) {
@@ -548,6 +555,11 @@ async function handleSessionEnd(data) {
 }
 
 // ---- Main ----
+
+module.exports = { findBmadMemoryStateDir };
+
+// Wire stdin only when executed as the hook, so tests can require the helpers above.
+if (require.main !== module) return;
 
 let raw = '';
 process.stdin.setEncoding('utf8');
