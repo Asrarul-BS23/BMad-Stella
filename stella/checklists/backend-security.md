@@ -2,7 +2,7 @@
 
 # Backend Security Checklist
 
-Execute this checklist against the backend files listed in the implementation plan's Dev Agent Record → File List.
+Execute this checklist against the backend files in the audit scope (the files the spec changed).
 
 [[LLM: INITIALIZATION INSTRUCTIONS - BACKEND SECURITY AUDIT
 
