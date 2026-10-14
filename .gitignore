@@ -23,7 +23,6 @@ web-bundles/
 Thumbs.db
 
 # Development tools and configs
-.prettierignore
 .prettierrc
 
 # IDE and editor configs
