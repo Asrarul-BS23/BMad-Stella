@@ -39,4 +39,34 @@ function ensure(root) {
   return { added, file };
 }
 
-module.exports = { ensure };
+/**
+ * Uninstall: drops our four lines and the header; everything else stays.
+ * @returns {{removed:string[], file:string}}
+ */
+function remove(root) {
+  const file = path.join(root, '.gitignore');
+  let text;
+  try {
+    text = fs.readFileSync(file, 'utf8');
+  } catch {
+    return { removed: [], file };
+  }
+  const ours = new Set(GITIGNORE_LINES.map(normalise));
+  const removed = [];
+  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  const kept = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (line.trim() === GITIGNORE_HEADER) continue;
+    if (ours.has(normalise(line)) && !line.trim().startsWith('#')) {
+      removed.push(line.trim());
+      continue;
+    }
+    kept.push(line);
+  }
+  if (removed.length === 0 && !text.includes(GITIGNORE_HEADER)) return { removed, file };
+  while (kept.length > 0 && kept.at(-1).trim() === '') kept.pop();
+  fs.writeFileSync(file, kept.length > 0 ? kept.join(eol) + eol : '');
+  return { removed, file };
+}
+
+module.exports = { ensure, remove };
