@@ -37,7 +37,7 @@ function main(rawStdin) {
   const lockFile = path.join(logsDir, '.fire-lock');
 
   // Quick pre-check: anything in the tracker at all? (avoids lock churn in
-  // projects that never ran bmad-build)
+  // projects that never ran stella-build)
   const tracker = readTracker(cwd);
   if (Object.keys(tracker.plans).length === 0) return;
 

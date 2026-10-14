@@ -13,12 +13,13 @@ const { resolvePlanId } = require('./lib/planfile');
 const { readTracker, writeTracker, upsertSession } = require('./lib/tracker');
 const paths = require('./lib/paths');
 
-// Only bmad-build sessions are tracked (user decision, v6 migration).
+// Only stella-build sessions are tracked (user decision, v6 migration). The
+// official bmad-build is installed too but is not Stella's workflow, so it is not tracked.
 // A session counts when the user typed the skill command, or when Claude Code
 // recorded a `Skill` tool call for it — the same two signals the PR review
 // guard uses. A mere mention of the name in prose never matches.
-const TRACKED_SKILL = 'bmad-build';
-const SKILL_COMMAND_RE = /^\s*\/bmad-build(?:\s|$)/i;
+const TRACKED_SKILL = 'stella-build';
+const SKILL_COMMAND_RE = /^\s*\/stella-build(?:\s|$)/i;
 
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit']);
 // Dedicated file tools carry the path in input.file_path (must END with the spec path).
@@ -86,7 +87,7 @@ function main(rawStdin) {
     } catch {
       continue;
     }
-    // Session gate signal 1: the user typed /bmad-build
+    // Session gate signal 1: the user typed /stella-build
     if (obj.type === 'user' && !obj.isMeta && SKILL_COMMAND_RE.test(userText(obj.message))) {
       agents.add(TRACKED_SKILL);
       continue;
@@ -116,9 +117,9 @@ function main(rawStdin) {
     }
   }
 
-  // Gate: bmad-build sessions only.
+  // Gate: stella-build sessions only.
   if (agents.size === 0) {
-    log('session-end: no bmad-build activation in session — skip', { sessionId });
+    log('session-end: no stella-build activation in session — skip', { sessionId });
     return;
   }
 
