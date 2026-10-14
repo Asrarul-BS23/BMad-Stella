@@ -92,11 +92,11 @@ function evaluateGates(planId, entry, triggerStatuses) {
   if (entry.generationCount >= GENERATION_CAP) return 'generation-cap';
   if ((entry.analysisAttempts || 0) >= ANALYSIS_ATTEMPT_CAP) return 'analysis-cap';
 
-  // agent completeness: bmad-build runs planning AND implementation in one skill,
-  // so one tracked bmad-build session is enough (v4 needed planner + dev).
+  // agent completeness: stella-build runs planning AND implementation in one skill,
+  // so one tracked stella-build session is enough (v4 needed planner + dev).
   const all = new Set();
   for (const s of entry.sessions) for (const a of s.agents || []) all.add(a);
-  if (!all.has('bmad-build')) return `agents-incomplete [${[...all].join(',')}]`;
+  if (!all.has('stella-build')) return `agents-incomplete [${[...all].join(',')}]`;
 
   const planFileAbs = path.join(cwd, entry.planFile);
   if (!fs.existsSync(planFileAbs)) return 'plan-file-missing';

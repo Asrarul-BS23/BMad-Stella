@@ -4,7 +4,7 @@ const fs = require('node:fs');
 
 // Spec-file readers for the friction logger (BMad v6 `spec-*.md`).
 // plan_id resolution order: JIRA key leading the spec slug -> whole slug.
-// bmad-build names specs `spec-{slug}.md` and leads the slug with the ticket id
+// stella-build (copy of bmad-build) names specs `spec-{slug}.md` and leads the slug with the ticket id
 // when the intent carried one (e.g. spec-LEADRSC-4699-digest-delivery.md).
 
 const JIRA_KEY_RE = /^([A-Za-z][A-Za-z0-9]*-\d+)/;

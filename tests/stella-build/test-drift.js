@@ -1,8 +1,9 @@
 'use strict';
 
-// Migration Task 6a — stella-build is a byte-for-byte copy of the official
-// bmad-build 6.12.2 skill. The pristine reference lives in tests/fixtures.
-// Task 6b extends this test with the agreed list of allowed differences.
+// Migration Task 6 — stella-build is a copy of the official bmad-build 6.12.2 skill.
+// The pristine reference lives in tests/fixtures. Every difference must be an agreed
+// one: ALLOWED below mirrors CHANGES.md line by line. A file not in ALLOWED must be
+// byte-identical; a file in ALLOWED may differ only on the lines its rule names.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -15,6 +16,12 @@ const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'bmad-build-6.12.2');
 // Files that exist on one side only, by design.
 const SKILL_ONLY = new Set(['CHANGES.md']);
 const FIXTURE_ONLY = new Set(['SOURCE.md']);
+
+// Agreed differences. Each rule: the fixture line must equal `from`, the skill line
+// must equal `to`, same line count, everything else identical.
+const ALLOWED = {
+  'SKILL.md': [{ line: 2, from: 'name: bmad-build', to: 'name: stella-build' }],
+};
 
 let fails = 0;
 let total = 0;
@@ -36,6 +43,7 @@ const listFiles = (dir, base = dir) => {
   return out.sort();
 };
 const sha = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const lines = (file) => fs.readFileSync(file, 'utf8').split('\n');
 
 ok(fs.existsSync(SKILL), 'stella/skills/stella-build exists');
 ok(fs.existsSync(FIXTURE), 'tests/fixtures/bmad-build-6.12.2 exists');
@@ -55,10 +63,38 @@ const extra = skillFiles.filter((f) => !fixtureFiles.includes(f));
 ok(missing.length === 0, `no official file missing from the skill (${missing.join(', ')})`);
 ok(extra.length === 0, `no unlisted extra file in the skill (${extra.join(', ')})`);
 
+// ---- unlisted files: byte-identical ----
 const drifted = fixtureFiles.filter(
-  (f) => skillFiles.includes(f) && sha(path.join(SKILL, f)) !== sha(path.join(FIXTURE, f)),
+  (f) =>
+    !ALLOWED[f] &&
+    skillFiles.includes(f) &&
+    sha(path.join(SKILL, f)) !== sha(path.join(FIXTURE, f)),
 );
-ok(drifted.length === 0, `every file identical to the fixture (${drifted.join(', ')})`);
+ok(drifted.length === 0, `every unlisted file identical to the fixture (${drifted.join(', ')})`);
+
+// ---- listed files: differ only on the agreed lines ----
+for (const [file, rules] of Object.entries(ALLOWED)) {
+  const a = lines(path.join(FIXTURE, file));
+  const b = lines(path.join(SKILL, file));
+  ok(a.length === b.length, `${file}: same line count as the fixture (${a.length} vs ${b.length})`);
+  const ruleLines = new Set(rules.map((r) => r.line));
+  const unexpected = [];
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    if (a[i] !== b[i] && !ruleLines.has(i + 1)) unexpected.push(i + 1);
+  }
+  ok(unexpected.length === 0, `${file}: no unlisted changed line (${unexpected.join(', ')})`);
+  for (const r of rules) {
+    ok(a[r.line - 1] === r.from, `${file}:${r.line} fixture reads "${r.from}"`);
+    ok(b[r.line - 1] === r.to, `${file}:${r.line} skill reads "${r.to}"`);
+  }
+}
+
+// ---- CHANGES.md names every listed file ----
+const changes = fs.readFileSync(path.join(SKILL, 'CHANGES.md'), 'utf8');
+for (const file of Object.keys(ALLOWED)) {
+  ok(changes.includes(`### ${file}`), `CHANGES.md has a section for ${file}`);
+}
+ok(!/none yet/.test(changes), 'CHANGES.md no longer says "none yet"');
 
 const crlf = [
   ...fixtureFiles.map((f) => path.join(FIXTURE, f)),

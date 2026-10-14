@@ -2,7 +2,7 @@
 
 // Migration Task 3 — friction logger on the BMad v6 layout.
 // Ported from the v4-era scratch suite (tests/legacy-scratch/friction-logger) with v6
-// fixtures: _bmad/config.toml root, friction.json config, bmad-build session gate,
+// fixtures: _bmad/config.toml root, friction.json config, stella-build session gate,
 // spec-*.md under implementation-artifacts, frontmatter status, logs under
 // _bmad-output/stella/bmad-logs. Runs entirely inside a temp project.
 
@@ -160,7 +160,7 @@ const writeTranscript = (name, lines) => {
 
 // ================= session-end gate + spec detection =================
 const T1 = writeTranscript('t-typed.jsonl', [
-  user('/bmad-build AIL-1 add the feature'),
+  user('/stella-build AIL-1 add the feature'),
   tool('Bash', {
     command:
       "cat > _bmad-output/implementation-artifacts/spec-AIL-1-test-feature.md <<'EOF'\n# x\nEOF",
@@ -168,17 +168,17 @@ const T1 = writeTranscript('t-typed.jsonl', [
 ]);
 const T2 = writeTranscript('t-skill.jsonl', [
   user('please build AIL-1'),
-  skill('bmad-build'),
+  skill('stella-build'),
   tool('Write', { file_path: SPEC.replaceAll('\\', '/') }),
 ]);
 const T3 = writeTranscript('t-ps.jsonl', [
-  userBlocks('/bmad-build'),
+  userBlocks('/stella-build'),
   tool('PowerShell', {
     command: 'Set-Content "_bmad-output\\implementation-artifacts\\spec-AIL-1-test-feature.md" x',
   }),
 ]);
 const T4 = writeTranscript('t-noise.jsonl', [
-  skill('bmad-build'),
+  skill('stella-build'),
   tool('Bash', { command: 'grep foo _bmad-output/implementation-artifacts/spec-NOPE-9-x.md' }),
 ]);
 const T5 = writeTranscript('t-other-skill.jsonl', [
@@ -187,16 +187,24 @@ const T5 = writeTranscript('t-other-skill.jsonl', [
   tool('Write', { file_path: SPEC.replaceAll('\\', '/') }),
 ]);
 const T6 = writeTranscript('t-mention.jsonl', [
-  user('what does bmad-build do? I read /bmad-build docs'),
-  agentText('bmad-build is a skill'),
-  tool('Read', { file_path: path.join(ROOT, '.claude', 'skills', 'bmad-build', 'SKILL.md') }),
+  user('what does stella-build do? I read /stella-build docs'),
+  agentText('stella-build is a skill'),
+  tool('Read', { file_path: path.join(ROOT, '.claude', 'skills', 'stella-build', 'SKILL.md') }),
   tool('Write', { file_path: SPEC.replaceAll('\\', '/') }),
 ]);
 const T7 = writeTranscript('t-meta.jsonl', [
-  user('/bmad-build', { isMeta: true }),
+  user('/stella-build', { isMeta: true }),
   tool('Write', { file_path: SPEC.replaceAll('\\', '/') }),
 ]);
-const T8 = writeTranscript('t-no-spec.jsonl', [user('/bmad-build'), agentText('nothing written')]);
+const T8 = writeTranscript('t-no-spec.jsonl', [
+  user('/stella-build'),
+  agentText('nothing written'),
+]);
+const T9 = writeTranscript('t-official.jsonl', [
+  user('/bmad-build AIL-1 add the feature'),
+  skill('bmad-build'),
+  tool('Write', { file_path: SPEC.replaceAll('\\', '/') }),
+]);
 
 runSessionEnd('s1-typed', T1);
 runSessionEnd('s2-skill', T2);
@@ -206,10 +214,11 @@ runSessionEnd('s5-other', T5);
 runSessionEnd('s6-mention', T6);
 runSessionEnd('s7-meta', T7);
 runSessionEnd('s8-nospec', T8);
+runSessionEnd('s9-official', T9);
 
 let t = trk();
 const sessions = (t.plans['AIL-1'] && t.plans['AIL-1'].sessions.map((s) => s.sessionId)) || [];
-ok(sessions.includes('s1-typed'), 'gate: typed /bmad-build + Bash heredoc write tracked');
+ok(sessions.includes('s1-typed'), 'gate: typed /stella-build + Bash heredoc write tracked');
 ok(sessions.includes('s2-skill'), 'gate: Skill tool call + Write tracked');
 ok(sessions.includes('s3-ps'), 'gate: user text as blocks + PowerShell write tracked');
 ok(sessions.length === 3, `gate: exactly 3 tracked sessions (got ${sessions.length})`);
@@ -217,14 +226,18 @@ ok(!t.plans['NOPE-9'], 'spec: Bash mention of a non-existent spec ignored');
 ok(!sessions.includes('s5-other'), 'gate: stella-pr-review session NOT tracked');
 ok(!sessions.includes('s6-mention'), 'gate: prose mention + Read of SKILL.md NOT tracked');
 ok(!sessions.includes('s7-meta'), 'gate: isMeta user line NOT a trigger');
-ok(!sessions.includes('s8-nospec'), 'gate: bmad-build without a spec write NOT tracked');
+ok(
+  !sessions.includes('s9-official'),
+  'gate: official /bmad-build session NOT tracked (stella-build only)',
+);
+ok(!sessions.includes('s8-nospec'), 'gate: stella-build without a spec write NOT tracked');
 ok(
   t.plans['AIL-1'].planFile === '_bmad-output/implementation-artifacts/spec-AIL-1-test-feature.md',
   'tracker: planFile stored as v6 relative path',
 );
 ok(
-  t.plans['AIL-1'].sessions.every((s) => s.agents.includes('bmad-build')),
-  'tracker: agents = [bmad-build]',
+  t.plans['AIL-1'].sessions.every((s) => s.agents.includes('stella-build')),
+  'tracker: agents = [stella-build]',
 );
 ok(t.plans['AIL-1'].analysisAttempts === 0, 'tracker: new entry has analysisAttempts=0');
 ok(
@@ -251,7 +264,7 @@ tracker.upsertSession(
   t,
   'AIL-1',
   '_bmad-output/implementation-artifacts/spec-AIL-1-test-feature.md',
-  { sessionId: 'brand-new', agents: new Set(['bmad-build']), transcript: T2, endLine: 3 },
+  { sessionId: 'brand-new', agents: new Set(['stella-build']), transcript: T2, endLine: 3 },
   0,
 );
 ok(
@@ -302,7 +315,7 @@ const wait = new Promise((r) => {
     );
     sess.push({
       sessionId: `sess${i}0000`,
-      agents: ['bmad-build'],
+      agents: ['stella-build'],
       transcript: p,
       endedAt: `2026-10-0${i + 1}T00:00:00Z`,
     });
@@ -345,14 +358,14 @@ const wait = new Promise((r) => {
     x.plans['AIL-1'].sessions = [
       {
         sessionId: 's1-typed',
-        agents: ['bmad-build'],
+        agents: ['stella-build'],
         transcript: T1,
         endedAt: '2026-10-13T00:00:00Z',
         endLine: 2,
       },
       {
         sessionId: 's2-skill',
-        agents: ['bmad-build'],
+        agents: ['stella-build'],
         transcript: T2,
         endedAt: '2026-10-13T00:01:00Z',
         endLine: 3,
