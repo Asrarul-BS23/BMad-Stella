@@ -20,6 +20,7 @@ const {
   OUTPUT_FOLDERS,
   FRICTION_DEFAULTS,
   GUARD_DEFAULTS,
+  COMMONJS_PACKAGE_JSON,
 } = require('./constants');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
@@ -60,6 +61,7 @@ function copyStellaFiles(root) {
     JSON.stringify(FRICTION_DEFAULTS, null, 2) + '\n',
   );
   fs.writeFileSync(path.join(dest, 'guard.json'), JSON.stringify(GUARD_DEFAULTS, null, 2) + '\n');
+  fs.writeFileSync(path.join(dest, 'package.json'), COMMONJS_PACKAGE_JSON); // helpers are CommonJS
   return dest;
 }
 
@@ -76,6 +78,7 @@ function copyHooks(root) {
   for (const hook of PROJECT_HOOKS) {
     copyDir(path.join(SRC.hooks, hook.name), rel(root, `${STELLA_HOOKS_DIR}/${hook.name}`));
   }
+  fs.writeFileSync(rel(root, `${STELLA_CLAUDE_DIR}/package.json`), COMMONJS_PACKAGE_JSON); // hooks are CommonJS
   return PROJECT_HOOKS.map((h) => h.name);
 }
 

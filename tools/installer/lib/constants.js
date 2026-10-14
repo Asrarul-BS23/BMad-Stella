@@ -91,6 +91,10 @@ const OUTPUT_FOLDERS = ['domain-knowledge', 'reviewer', 'bmad-logs', 'cache/jira
 const FRICTION_DEFAULTS = { triggerStatuses: ['done'] };
 const GUARD_DEFAULTS = { enabled: true };
 
+// Written next to our hooks and helpers so Node runs them as CommonJS even when
+// the host project's package.json declares "type": "module" (nearest package.json wins).
+const COMMONJS_PACKAGE_JSON = '{\n  "type": "commonjs"\n}\n';
+
 module.exports = {
   STELLA_CUSTOM_DIR,
   CLAUDE_DIR,
@@ -121,4 +125,5 @@ module.exports = {
   BMAD_INSTALL_FLAGS,
   USER_NAME_FALLBACK,
   MIN_NODE,
+  COMMONJS_PACKAGE_JSON,
 };

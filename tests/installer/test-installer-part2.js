@@ -187,6 +187,41 @@ const userHooks = async () => ({ status: 'current', changed: false });
   }
   ok(!exists(root, '.claude/stella/hooks/memory'), 'layer: memory hook NOT installed');
   ok(
+    JSON.parse(read(root, '.claude/stella/package.json')).type === 'commonjs' &&
+      JSON.parse(read(root, '_bmad/custom/stella/package.json')).type === 'commonjs',
+    'layer: commonjs package.json next to hooks and helpers',
+  );
+  // host project declares "type": "module" → our hooks must still run as CommonJS
+  fs.writeFileSync(path.join(root, 'package.json'), '{ "name": "host", "type": "module" }\n');
+  const hookRun = require('node:child_process').spawnSync(
+    process.execPath,
+    ['.claude/stella/hooks/pr-review-guard/pre-tool-use.js'],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      input: JSON.stringify({
+        session_id: 't',
+        tool_name: 'Bash',
+        tool_input: { command: 'ls' },
+        transcript_path: 'none',
+        cwd: root,
+      }),
+    },
+  );
+  ok(
+    hookRun.status === 0 && !/require is not defined/.test(hookRun.stderr),
+    `layer: guard hook runs in a "type": "module" project (${(hookRun.stderr || '').split('\n')[0]})`,
+  );
+  const helperRun = require('node:child_process').spawnSync(
+    process.execPath,
+    ['_bmad/custom/stella/utils/pr-comments', '--help'],
+    { cwd: root, encoding: 'utf8' },
+  );
+  ok(
+    !/require is not defined|ES module/.test(helperRun.stderr),
+    'layer: helper runs in a "type": "module" project',
+  );
+  ok(
     exists(root, '.claude/stella/hooks/friction-logger/lib/paths.js') &&
       exists(root, '.claude/stella/hooks/pr-review-guard/lib/policy.js'),
     'layer: hook libs copied',
