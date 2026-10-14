@@ -29,6 +29,8 @@ const MUST_EXIST = [
   'stella/skills/stella-security/SKILL.md',
   'stella/skills/stella-pr-review/SKILL.md',
   'stella/skills/stella-pr-review/checklist.md',
+  'stella/skills/stella-domain-expert/SKILL.md',
+  'stella/skills/stella-domain-expert/onboard.md',
   'stella/skills/stella-build/SKILL.md',
   'stella/skills/stella-build/CHANGES.md',
   'tests/fixtures/bmad-build-6.12.2/SKILL.md',
