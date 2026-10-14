@@ -413,21 +413,72 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
       'runner: git missing → stella-dev',
     );
     let spawned = null;
+    let written = '';
+    let clock = 1000;
     const status = runner.install('/proj', {
       projectName: 'SLS',
       userName: 'u',
+      spawn: (cmd, opts) => {
+        spawned = { cmd, opts };
+        clock += 48_000;
+        return { status: 0, stdout: 'banner\nlots of output', stderr: '' };
+      },
+      log: quiet,
+      write: (s) => (written += s),
+      now: () => clock,
+    });
+    ok(
+      status === 0 &&
+        spawned.cmd.startsWith('npx -y bmad-method@6.12.2 install') &&
+        spawned.opts.cwd === '/proj' &&
+        Array.isArray(spawned.opts.stdio) &&
+        spawned.opts.stdio[1] === 'pipe',
+      'runner: spawns npx in the project root, output captured by default',
+    );
+    ok(
+      written === 'Installing BMad 6.12.2 ... done (48s)\n',
+      `runner: quiet mode prints one line (${JSON.stringify(written)})`,
+    );
+
+    // failure → tail of the captured output, colours stripped
+    const logged = [];
+    written = '';
+    const failed = runner.install('/proj', {
+      projectName: 'SLS',
+      userName: 'u',
+      spawn: () => ({
+        status: 1,
+        stdout: 'step 1\n\u001B[31m✗ Could not write _bmad/config.toml: EACCES\u001B[0m\n',
+        stderr: '',
+      }),
+      log: (l) => logged.push(l),
+      write: (s) => (written += s),
+      now: () => 0,
+    });
+    ok(
+      failed === 1 &&
+        written.endsWith('failed (exit 1)\n') &&
+        logged.some((l) => l.includes('✗ Could not write _bmad/config.toml: EACCES')) &&
+        !logged.some((l) => l.includes('\u001B[')),
+      'runner: failure prints the output tail without colour codes',
+    );
+
+    // verbose → streamed as before
+    spawned = null;
+    runner.install('/proj', {
+      projectName: 'SLS',
+      userName: 'u',
+      verbose: true,
       spawn: (cmd, opts) => {
         spawned = { cmd, opts };
         return { status: 0 };
       },
       log: quiet,
     });
+    ok(spawned.opts.stdio === 'inherit', 'runner: --verbose streams BMad output');
     ok(
-      status === 0 &&
-        spawned.cmd.startsWith('npx -y bmad-method@6.12.2 install') &&
-        spawned.opts.cwd === '/proj' &&
-        spawned.opts.stdio === 'inherit',
-      'runner: spawns npx in the project root, output inherited',
+      runner.tail(Array.from({ length: 50 }, (_, i) => `l${i}`).join('\n')).length === 40,
+      'runner: tail keeps the last 40 lines',
     );
   }
 

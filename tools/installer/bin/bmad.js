@@ -25,12 +25,13 @@ program
   .description(
     `install BMad ${constants.BMAD_VERSION} with the Stella layer into the current directory`,
   )
-  .action(async () => {
+  .option('-v, --verbose', 'show the full BMad installer output')
+  .action(async (opts) => {
     const root = process.cwd();
     console.log(chalk.cyan(`BMad-Stella ${version} → BMad ${constants.BMAD_VERSION}`));
     console.log(chalk.dim(`Project folder: ${root}\n`));
     try {
-      const summary = await installer.install(root, { prompt });
+      const summary = await installer.install(root, { prompt, verbose: Boolean(opts.verbose) });
       console.log('\n' + chalk.green(installer.formatSummary(summary)));
     } catch (error) {
       fail(error);

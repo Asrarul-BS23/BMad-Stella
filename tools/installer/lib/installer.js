@@ -32,7 +32,8 @@ async function install(root, deps) {
   const {
     prompt,
     fetch,
-    runBmad = (r, o) => runner.install(r, o),
+    verbose = false,
+    runBmad = (r, o) => runner.install(r, { ...o, verbose, log }),
     userHooks = defaultUserHooks,
     log = console.log,
     env = process.env,

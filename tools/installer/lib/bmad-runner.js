@@ -1,10 +1,19 @@
 'use strict';
 
-// Step 7 — the official BMad install, pinned. Output streams to the terminal.
-// `spawn` and `run` are injectable for tests.
+// Step 7 — the official BMad install, pinned. By default BMad's own output is
+// captured and the terminal shows one line ("Installing BMad 6.12.2 ... done (48s)");
+// on failure the tail of that output is printed. `--verbose` streams everything.
+// `spawn`, `run`, `log` and `write` are injectable for tests.
 
 const { spawnSync } = require('node:child_process');
-const { BMAD_PACKAGE, BMAD_INSTALL_FLAGS, USER_NAME_FALLBACK } = require('./constants');
+const {
+  BMAD_VERSION,
+  BMAD_PACKAGE,
+  BMAD_INSTALL_FLAGS,
+  USER_NAME_FALLBACK,
+} = require('./constants');
+
+const TAIL_LINES = 40;
 
 const defaultRun = (cmd, args, opts = {}) => spawnSync(cmd, args, { encoding: 'utf8', ...opts });
 
@@ -63,16 +72,71 @@ function commandLine(args) {
   return ['npx', ...args.map(quoteArg)].join(' ');
 }
 
-/**
- * Runs the install in `root`. Returns the exit status.
- */
-function install(root, { projectName, userName, spawn = spawnSync, log = console.log } = {}) {
-  const args = buildArgs({ projectName, userName });
-  const cmd = commandLine(args);
-  log(`Running: ${cmd}`);
-  const r = spawn(cmd, { cwd: root, stdio: 'inherit', shell: true });
-  if (r.error) throw r.error;
-  return r.status ?? 1;
+/** Last TAIL_LINES non-empty lines of the captured output, ANSI colours stripped. */
+function tail(text) {
+  return (
+    String(text || '')
+      // eslint-disable-next-line no-control-regex
+      .replaceAll(/\u001B\[[\d;]*m/g, '')
+      .split(/\r?\n/)
+      .filter((l) => l.trim())
+      .slice(-TAIL_LINES)
+  );
 }
 
-module.exports = { install, buildArgs, commandLine, quoteArg, gitUserName };
+/**
+ * Runs the install in `root`. Returns the exit status.
+ * @param {object} opts projectName, userName, verbose, spawn, log, write, now
+ */
+function install(
+  root,
+  {
+    projectName,
+    userName,
+    verbose = false,
+    spawn = spawnSync,
+    log = console.log,
+    write = (s) => process.stdout.write(s),
+    now = Date.now,
+  } = {},
+) {
+  const args = buildArgs({ projectName, userName });
+  const cmd = commandLine(args);
+
+  if (verbose) {
+    log(`Running: ${cmd}`);
+    const r = spawn(cmd, { cwd: root, stdio: 'inherit', shell: true });
+    if (r.error) throw r.error;
+    return r.status ?? 1;
+  }
+
+  write(`Installing BMad ${BMAD_VERSION} ... `);
+  const started = now();
+  const r = spawn(cmd, {
+    cwd: root,
+    shell: true,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const seconds = Math.max(1, Math.round((now() - started) / 1000));
+  if (r.error) {
+    write(`failed (${r.error.message})\n`);
+    throw r.error;
+  }
+  const status = r.status ?? 1;
+  if (status === 0) {
+    write(`done (${seconds}s)\n`);
+    return 0;
+  }
+  write(`failed (exit ${status})\n`);
+  const lines = tail(`${r.stdout || ''}\n${r.stderr || ''}`);
+  if (lines.length > 0) {
+    log('--- last lines of BMad output ---');
+    for (const l of lines) log(`  ${l}`);
+    log('---');
+  }
+  return status;
+}
+
+module.exports = { install, buildArgs, commandLine, quoteArg, gitUserName, tail };
