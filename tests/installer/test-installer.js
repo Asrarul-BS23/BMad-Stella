@@ -471,7 +471,7 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
       encoding: 'utf8',
       cwd: tmp('bin'),
     });
-    ok(u.status === 1 && /Task 11/.test(u.stderr), 'bin: uninstall still a stub');
+    ok(u.status === 1 && /--yes/.test(u.stdout), 'bin: uninstall without a TTY needs --yes');
     const n = spawnSync(process.execPath, [BIN, 'install'], {
       encoding: 'utf8',
       cwd: tmp('bin2'),
@@ -487,6 +487,7 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
   // ================= end-to-end (opt-in) =================
   if (process.env.STELLA_INSTALL_E2E === '1') {
     const root = tmp('e2e');
+    const fakeHome = tmp('e2e-home');
     spawnSync('git', ['init', '-q'], { cwd: root });
     const r = spawnSync(process.execPath, [BIN, 'install'], {
       cwd: root,
@@ -497,6 +498,9 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
         JIRA_API_TOKEN: process.env.JIRA_API_TOKEN || 'tok-abcdefghijklmnop',
         BMAD_SKIP_JIRA_VERIFY: '1',
         STELLA_PROJECT: 'E2E',
+        // user-level hooks go to a throwaway home, never the real one
+        HOME: fakeHome,
+        USERPROFILE: fakeHome,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 600_000,

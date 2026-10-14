@@ -45,7 +45,64 @@ const USER_NAME_FALLBACK = 'stella-dev';
 
 const MIN_NODE = { major: 20, minor: 10 };
 
+// ---- Stella layer (Task 11) ----
+const STELLA_CUSTOM_DIR = `${BMAD_DIR}/custom/stella`; // checklists, utils, friction.json, guard.json
+const CLAUDE_DIR = '.claude';
+const CLAUDE_SKILLS_DIR = `${CLAUDE_DIR}/skills`;
+const STELLA_CLAUDE_DIR = `${CLAUDE_DIR}/stella`; // project hooks live in .claude/stella/hooks/
+const STELLA_HOOKS_DIR = `${STELLA_CLAUDE_DIR}/hooks`;
+const SETTINGS_LOCAL = `${CLAUDE_DIR}/settings.local.json`;
+
+const STELLA_SKILLS = [
+  'stella-build',
+  'caveman',
+  'stella-security',
+  'stella-pr-review',
+  'stella-domain-expert',
+];
+
+// Project-level hooks copied to .claude/stella/hooks/<name>/ and registered in
+// settings.local.json. The memory hook is deliberately absent (out of scope).
+const PROJECT_HOOKS = [
+  {
+    name: 'friction-logger',
+    events: {
+      SessionStart: { file: 'session-start.js' },
+      SessionEnd: { file: 'session-end.js' },
+    },
+  },
+  {
+    name: 'pr-review-guard',
+    events: {
+      PreToolUse: { file: 'pre-tool-use.js', matcher: 'Edit|MultiEdit|Write|Bash|PowerShell' },
+    },
+  },
+  {
+    name: 'personalization-inject',
+    events: {
+      UserPromptExpansion: { file: 'user-prompt-expansion.js' },
+    },
+  },
+];
+
+// Folders under _bmad-output/stella/ created when missing (never emptied).
+const OUTPUT_FOLDERS = ['domain-knowledge', 'reviewer', 'bmad-logs', 'cache/jira', 'memory/.state'];
+
+const FRICTION_DEFAULTS = { triggerStatuses: ['done'] };
+const GUARD_DEFAULTS = { enabled: true };
+
 module.exports = {
+  STELLA_CUSTOM_DIR,
+  CLAUDE_DIR,
+  CLAUDE_SKILLS_DIR,
+  STELLA_CLAUDE_DIR,
+  STELLA_HOOKS_DIR,
+  SETTINGS_LOCAL,
+  STELLA_SKILLS,
+  PROJECT_HOOKS,
+  OUTPUT_FOLDERS,
+  FRICTION_DEFAULTS,
+  GUARD_DEFAULTS,
   BMAD_VERSION,
   BMAD_PACKAGE,
   JIRA_BASE_URL,
