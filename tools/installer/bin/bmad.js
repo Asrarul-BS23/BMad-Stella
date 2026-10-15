@@ -2,7 +2,8 @@
 'use strict';
 
 // BMad-Stella v6 installer CLI. `install` and `uninstall` run in the current
-// directory (no install-dir question). The steps live in ../lib/installer.js.
+// directory (no install-dir question). The steps live in ../lib/installer.js,
+// the terminal look in ../lib/ui.js.
 
 const { program } = require('commander');
 const chalk = require('chalk').default || require('chalk');
@@ -11,12 +12,9 @@ const inquirer = require('inquirer').default || require('inquirer');
 const { version } = require('../../../package.json');
 const constants = require('../lib/constants');
 const installer = require('../lib/installer');
+const { createUi } = require('../lib/ui');
 
 const prompt = (questions) => inquirer.prompt(questions);
-const fail = (error) => {
-  console.log(chalk.red(`✗ ${error.message}`));
-  process.exit(1);
-};
 
 program.name('bmad-stella').version(version).description('BMad-Stella installer (v6)');
 
@@ -27,14 +25,12 @@ program
   )
   .option('-v, --verbose', 'show the full BMad installer output')
   .action(async (opts) => {
-    const root = process.cwd();
-    console.log(chalk.cyan(`BMad-Stella ${version} → BMad ${constants.BMAD_VERSION}`));
-    console.log(chalk.dim(`Project folder: ${root}\n`));
+    const ui = createUi({ version, bmadVersion: constants.BMAD_VERSION });
     try {
-      const summary = await installer.install(root, { prompt, verbose: Boolean(opts.verbose) });
-      console.log('\n' + chalk.green(installer.formatSummary(summary)));
+      await installer.install(process.cwd(), { prompt, ui, verbose: Boolean(opts.verbose) });
     } catch (error) {
-      fail(error);
+      ui.error(error.message);
+      process.exit(1);
     }
   });
 
@@ -45,7 +41,10 @@ program
   .action(async (opts) => {
     const root = process.cwd();
     if (!opts.yes && !process.stdin.isTTY) {
-      fail(new Error('No interactive terminal. Run `uninstall --yes` to skip the confirmation.'));
+      console.log(
+        chalk.red('✖ No interactive terminal. Run `uninstall --yes` to skip the confirmation.'),
+      );
+      process.exit(1);
     }
     try {
       const r = await installer.uninstall(root, { prompt, yes: Boolean(opts.yes) });
@@ -53,10 +52,11 @@ program
         console.log(chalk.dim('Nothing removed.'));
         return;
       }
-      console.log(chalk.green(`✓ BMad-Stella removed (${constants.OUTPUT_DIR}/ kept).`));
+      console.log(chalk.green(`✔ BMad-Stella removed (${constants.OUTPUT_DIR}/ kept).`));
       for (const item of r.removed) console.log(chalk.dim(`  - ${item}`));
     } catch (error) {
-      fail(error);
+      console.log(chalk.red(`✖ ${error.message}`));
+      process.exit(1);
     }
   });
 

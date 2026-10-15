@@ -45,6 +45,7 @@ const MUST_EXIST = [
   'tools/installer/lib/gitignore.js',
   'tools/installer/lib/stella-layer.js',
   'tools/installer/lib/installer.js',
+  'tools/installer/lib/ui.js',
   'tools/installer/lib/confluence-client.js',
   'tools/installer/lib/domain-knowledge-fetcher.js',
   'tools/installer/lib/jira-credentials-manager.js',

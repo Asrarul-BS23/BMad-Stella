@@ -19,26 +19,38 @@ function nodeOk(version) {
   return v.major > MIN_NODE.major || (v.major === MIN_NODE.major && v.minor >= MIN_NODE.minor);
 }
 
-function present(run, cmd) {
+/** First "x.y[.z]" in a tool's --version output, or null. */
+function versionOf(text) {
+  const m = /(\d+\.\d+(?:\.\d+)?)/.exec(String(text || ''));
+  return m ? m[1] : null;
+}
+
+/** @returns {{ok:boolean, version:string|null}} */
+function probe(run, cmd) {
   try {
     const r = run(cmd, ['--version']);
-    return Boolean(r && r.status === 0);
+    const ok = Boolean(r && r.status === 0);
+    return { ok, version: ok ? versionOf(r.stdout) : null };
   } catch {
-    return false;
+    return { ok: false, version: null };
   }
 }
 
 /**
- * @returns {{ok:boolean, errors:string[], warnings:string[], found:object}}
+ * @returns {{ok:boolean, errors:string[], warnings:string[], found:object, versions:object}}
  */
 function check({ run = defaultRun, nodeVersion = process.version } = {}) {
   const errors = [];
   const warnings = [];
-  const found = {
-    node: nodeOk(nodeVersion),
-    uv: present(run, 'uv'),
-    gh: present(run, 'gh'),
-    git: present(run, 'git'),
+  const uv = probe(run, 'uv');
+  const gh = probe(run, 'gh');
+  const git = probe(run, 'git');
+  const found = { node: nodeOk(nodeVersion), uv: uv.ok, gh: gh.ok, git: git.ok };
+  const versions = {
+    node: versionOf(nodeVersion),
+    uv: uv.version,
+    gh: gh.version,
+    git: git.version,
   };
   if (!found.node) {
     errors.push(
@@ -58,7 +70,7 @@ function check({ run = defaultRun, nodeVersion = process.version } = {}) {
   if (!found.git) {
     warnings.push('git not found. BMad records baselines and the review guard needs a repository.');
   }
-  return { ok: errors.length === 0, errors, warnings, found };
+  return { ok: errors.length === 0, errors, warnings, found, versions };
 }
 
-module.exports = { check, nodeOk, parseNode };
+module.exports = { check, nodeOk, parseNode, versionOf };

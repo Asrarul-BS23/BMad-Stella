@@ -148,7 +148,13 @@ async function run(
     if (v.status === 'auth')
       throw new Error(`JIRA credentials from the environment were rejected (${v.detail}).`);
     writeTokenFile(root, creds);
-    return { ...creds, verified: v.status === 'ok', written: true, source: 'env' };
+    return {
+      ...creds,
+      verified: v.status === 'ok',
+      displayName: v.displayName,
+      written: true,
+      source: 'env',
+    };
   }
 
   const existing = readTokenFile(root);
@@ -162,11 +168,17 @@ async function run(
       if (v.status === 'ok') {
         log(v.displayName ? `Verified (${v.displayName}).` : 'Verified.');
         writeTokenFile(root, existing); // normalises the file (base URL, header)
-        return { ...existing, verified: true, written: true, source: 'file' };
+        return {
+          ...existing,
+          verified: true,
+          displayName: v.displayName,
+          written: true,
+          source: 'file',
+        };
       }
       if (v.status === 'network') {
         log(`Could not reach JIRA to verify (${v.detail}). Keeping the saved credentials.`);
-        return { ...existing, verified: false, written: false, source: 'file' };
+        return { ...existing, verified: false, displayName: null, written: false, source: 'file' };
       }
       log(`Saved credentials no longer work (${v.detail}). Enter new ones.`);
     }
@@ -189,7 +201,13 @@ async function run(
           : `Could not reach JIRA to verify (${v.detail}). Saving anyway.`,
       );
       writeTokenFile(root, creds);
-      return { ...creds, verified: v.status === 'ok', written: true, source: 'prompt' };
+      return {
+        ...creds,
+        verified: v.status === 'ok',
+        displayName: v.displayName,
+        written: true,
+        source: 'prompt',
+      };
     }
     last = creds;
     log(`Authentication failed (${v.detail}). Attempt ${attempt}/${MAX_ATTEMPTS}.`);

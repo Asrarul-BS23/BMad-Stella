@@ -331,7 +331,8 @@ class HooksManager {
     }
   }
 
-  async setupCustomHooks(spinner) {
+  // `quiet` suppresses the console lines (the v6 installer prints its own step line).
+  async setupCustomHooks(spinner, { quiet = false } = {}) {
     const { status, sourceState } = await this.getHooksStatus();
 
     // User-level hooks live in ~/.claude and are shared by every project on this machine.
@@ -352,19 +353,23 @@ class HooksManager {
 
       await this.writeManifest({ plugins: sourceState, updatedAt: new Date().toISOString() });
 
-      console.log(
-        chalk.green(
-          isUpdate ? '✓ User-level Claude hooks updated' : '✓ User-level Claude hooks installed',
-        ),
-      );
-      console.log(chalk.green(`  Hook scripts → ${this.getHooksDestDir()}`));
-      console.log(
-        chalk.green('  settings.json updated (PermissionRequest + Stop + SessionEnd events)'),
-      );
+      if (!quiet) {
+        console.log(
+          chalk.green(
+            isUpdate ? '✓ User-level Claude hooks updated' : '✓ User-level Claude hooks installed',
+          ),
+        );
+        console.log(chalk.green(`  Hook scripts → ${this.getHooksDestDir()}`));
+        console.log(
+          chalk.green('  settings.json updated (PermissionRequest + Stop + SessionEnd events)'),
+        );
+      }
       return { status, changed: true };
     } catch (error) {
-      console.log(chalk.yellow(`⚠️  Could not configure user-level hooks: ${error.message}`));
-      console.log(chalk.dim('   You can set them up manually from stella/hooks/user/'));
+      if (!quiet) {
+        console.log(chalk.yellow(`⚠️  Could not configure user-level hooks: ${error.message}`));
+        console.log(chalk.dim('   You can set them up manually from stella/hooks/user/'));
+      }
       return { status, changed: false, error };
     }
   }

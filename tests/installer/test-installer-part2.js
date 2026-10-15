@@ -299,9 +299,8 @@ const userHooks = async () => ({ status: 'current', changed: false });
   );
   ok(sum.userHooks.status === 'current', 'user hooks: called');
   ok(
-    /Atlassian connector/.test(installer.formatSummary(sum)) &&
-      /\/stella-build/.test(installer.formatSummary(sum)),
-    'summary: connector reminder + next step',
+    /Atlassian must be connected/.test(sum.next) && !/stella-build/.test(sum.next),
+    'summary: Next text is the connector check only',
   );
   const tree1 = listTree(root);
 
