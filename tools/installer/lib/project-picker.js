@@ -115,13 +115,9 @@ async function run(
     return { ...picked, reused: false };
   }
 
+  // The list is shown on every run (user decision: no "use saved project?" question);
+  // a previous pick is only the highlighted default.
   const saved = readProjectJson(root);
-  if (saved) {
-    const { reuse } = await prompt([
-      { type: 'confirm', name: 'reuse', message: `Use project "${saved.name}"?`, default: true },
-    ]);
-    if (reuse) return { name: saved.name, pageId: saved.pageId || null, reused: true };
-  }
 
   let projects = [];
   try {
@@ -138,6 +134,7 @@ async function run(
         name: 'choice',
         message: 'Select your project:',
         choices: [...projects.map((p) => p.name), OTHER_PROJECT],
+        default: saved && projects.some((p) => p.name === saved.name) ? saved.name : undefined,
         pageSize: 20,
       },
     ]);

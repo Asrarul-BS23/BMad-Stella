@@ -266,26 +266,29 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
       'picker: project.json written',
     );
 
-    // re-run: use saved? yes
-    s = scripted([true]);
-    r = await picker.run(root, creds, {
-      prompt: s.prompt,
-      fetch: async () => {
-        throw new Error('must not fetch');
+    // re-run: the list is shown again (no "use saved?" question); saved pick is the default
+    let seenDefault = null;
+    s = {
+      asked: [],
+      prompt: async (qs) => {
+        seenDefault = qs[0].default;
+        s.asked.push(qs[0].name);
+        return { choice: 'SLS' };
       },
-      log: quiet,
-    });
-    ok(
-      r.name === 'TEC' && r.reused && s.asked.join(',') === 'reuse',
-      'picker: re-run reuse y → no fetch',
-    );
-
-    // re-run: use saved? no → list → Other → name
+    };
     urls.length = 0;
-    s = scripted([false, 'Other', 'MyProj']);
     r = await picker.run(root, creds, { prompt: s.prompt, fetch: fetchPages, log: quiet });
     ok(
-      r.name === 'MyProj' && r.pageId === null && s.asked.join(',') === 'reuse,choice,name',
+      r.name === 'SLS' && s.asked.join(',') === 'choice' && seenDefault === 'TEC',
+      'picker: re-run shows the list again with the saved pick as default',
+    );
+
+    // re-run → list → Other → name
+    urls.length = 0;
+    s = scripted(['Other', 'MyProj']);
+    r = await picker.run(root, creds, { prompt: s.prompt, fetch: fetchPages, log: quiet });
+    ok(
+      r.name === 'MyProj' && r.pageId === null && s.asked.join(',') === 'choice,name',
       'picker: Other → name asked, no page id',
     );
     ok(

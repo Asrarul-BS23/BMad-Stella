@@ -311,7 +311,7 @@ const userHooks = async () => ({ status: 'current', changed: false });
     path.join(root, '_bmad', 'custom', 'stella', 'friction.json'),
     '{"triggerStatuses":["in-review"]}',
   );
-  s = scripted([true, true]);
+  s = scripted([true, 'LEADRSC']);
   sum = await installer.install(root, {
     prompt: s.prompt,
     fetch: fetchMock,
@@ -322,8 +322,8 @@ const userHooks = async () => ({ status: 'current', changed: false });
     isTTY: true,
   });
   ok(
-    sum.rerun && s.asked.join(',') === 'reuse,reuse',
-    're-run: detected, only the two "use as is?" questions',
+    sum.rerun && s.asked.join(',') === 'reuse,choice',
+    're-run: detected; credentials reuse question + project list (always shown)',
   );
   ok(
     sum.removed.includes('_bmad') &&
@@ -399,7 +399,7 @@ const userHooks = async () => ({ status: 'current', changed: false });
   );
 
   // ================= 4. install again =================
-  s = scripted([true, true]);
+  s = scripted([true, 'LEADRSC']);
   sum = await installer.install(root, {
     prompt: s.prompt,
     fetch: fetchMock,
@@ -410,8 +410,8 @@ const userHooks = async () => ({ status: 'current', changed: false });
     isTTY: true,
   });
   ok(
-    !sum.rerun && s.asked.join(',') === 'reuse,reuse',
-    'reinstall: not a re-run (no _bmad), saved creds + project reused',
+    !sum.rerun && s.asked.join(',') === 'reuse,choice',
+    'reinstall: not a re-run (no _bmad), saved creds reused, project picked again',
   );
   const tree4 = listTree(root).filter((f) => f !== '_bmad-output/stella/reviewer/keep.md');
   ok(tree4.join('\n') === tree1.join('\n'), 'reinstall: tree identical to the first install');

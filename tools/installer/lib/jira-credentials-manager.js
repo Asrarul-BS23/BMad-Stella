@@ -159,14 +159,12 @@ async function run(
 
   const existing = readTokenFile(root);
   if (existing) {
-    log(`JIRA credentials found for ${existing.email}.`);
     const { reuse } = await prompt([
       { type: 'confirm', name: 'reuse', message: 'Use them as is?', default: true },
     ]);
     if (reuse) {
       const v = await verify(existing, { fetch });
       if (v.status === 'ok') {
-        log(v.displayName ? `Verified (${v.displayName}).` : 'Verified.');
         writeTokenFile(root, existing); // normalises the file (base URL, header)
         return {
           ...existing,
@@ -193,13 +191,8 @@ async function run(
     const creds = { email: answers.email, token: answers.token };
     const v = await verify(creds, { fetch });
     if (v.status === 'ok' || v.status === 'network') {
-      log(
-        v.status === 'ok'
-          ? v.displayName
-            ? `Verified (${v.displayName}).`
-            : 'Verified.'
-          : `Could not reach JIRA to verify (${v.detail}). Saving anyway.`,
-      );
+      if (v.status === 'network')
+        log(`Could not reach JIRA to verify (${v.detail}). Saving anyway.`);
       writeTokenFile(root, creds);
       return {
         ...creds,

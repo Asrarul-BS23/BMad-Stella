@@ -12,9 +12,9 @@ const inquirer = require('inquirer').default || require('inquirer');
 const { version } = require('../../../package.json');
 const constants = require('../lib/constants');
 const installer = require('../lib/installer');
-const { createUi } = require('../lib/ui');
+const { createUi, styleQuestions } = require('../lib/ui');
 
-const prompt = (questions) => inquirer.prompt(questions);
+const prompt = (questions) => inquirer.prompt(styleQuestions(questions));
 
 program.name('bmad-stella').version(version).description('BMad-Stella installer (v6)');
 
@@ -29,7 +29,7 @@ program
     try {
       await installer.install(process.cwd(), { prompt, ui, verbose: Boolean(opts.verbose) });
     } catch (error) {
-      ui.error(error.message);
+      ui.failed(error.message);
       process.exit(1);
     }
   });

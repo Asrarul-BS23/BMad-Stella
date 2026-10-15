@@ -1,8 +1,8 @@
 'use strict';
 
-// Installer terminal look (stepper): boxes line up, every step settles to one line,
-// the Next panel carries only the connector sentence (no command hints), and the
-// silent twin prints nothing.
+// Installer terminal look (tree design): header with right-aligned BMad version,
+// `◆ Label … n/5` step lines, `│ ✓/▲/↻` rows, right-aligned timings, `└ Ready.`,
+// the Next panel with the connector text only, and the silent twin.
 
 const { Writable } = require('node:stream');
 const path = require('node:path');
@@ -22,7 +22,7 @@ const ok = (c, m) => {
 };
 const strip = (s) => s.replaceAll(/\u001B\[[\d;]*m/g, ''); // eslint-disable-line no-control-regex
 
-const capture = () => {
+const capture = (columns = 82) => {
   let out = '';
   const stream = new Writable({
     write(chunk, enc, cb) {
@@ -31,70 +31,122 @@ const capture = () => {
     },
   });
   stream.isTTY = false;
-  stream.columns = 100;
+  stream.columns = columns;
   return { stream, text: () => strip(out) };
 };
 
-// ---- box ----
-const b = ui.box(['short', 'a much longer line that sets the width of the box here'], {
-  title: 'Next',
-});
-ok(b.length === 4 && new Set(b.map((l) => [...l].length)).size === 1, 'box: all lines same width');
+// ---- helpers ----
+ok(strip(ui.justify('left', 'right', 20)).length === 20, 'justify: fills to the width');
 ok(
-  b[0].startsWith('╭─ Next ') && b.at(-1).startsWith('╰') && b[1].startsWith('│  short'),
-  'box: title, body, bottom',
+  ui.justify('a'.repeat(30), 'b', 20).endsWith('  b'),
+  'justify: keeps a two-space gap when too long',
 );
-ok([...ui.box(['x'])[0]].length === 48, 'box: minimum width applies');
+const p = ui.panel('Next: connect Atlassian', ['line one', 'line two'], 60).map(strip);
+ok(
+  p.length === 5 && new Set(p.map((l) => [...l].length)).size === 1,
+  'panel: five rows, same width',
+);
+ok(
+  p[1].includes('◆ Next: connect Atlassian') && p[2].includes('  line one'),
+  'panel: title + indented text',
+);
+ok(
+  ui.stepTitle(4, '6.12.2') === 'BMad 6.12.2' && ui.stepTitle(5) === 'Stella layer',
+  'stepTitle: BMad carries the version',
+);
 
-// ---- steps ----
-ok(
-  ui.stepLabel(4, '6.12.2').startsWith('[4/5] BMad 6.12.2'),
-  'step: BMad label carries the version',
-);
-ok(
-  ui.stepLabel(1, '6.12.2').length === ui.stepLabel(5, '6.12.2').length,
-  'step: labels padded to one width',
-);
-
+// ---- full render ----
 const c = capture();
 const u = ui.createUi({ version: '2.0.0', bmadVersion: '6.12.2', stream: c.stream });
+ok(u.width === 80, 'width: columns minus margin, capped');
 u.header('C:\\proj');
-u.done(2, 'dev@stella.com (Ash)');
-const s = u.spin(4, 'installing…');
-s.update('still installing…');
-s.succeed('installed (12s)');
-u.dim('removed .bmad-core');
-u.warn('gh not found');
-u.spin(5, 'x').fail('boom');
+u.step(1);
+const s1 = u.spin('checking…');
+s1.succeed('node 24.12.0   uv 0.12.23');
+u.line('info', 'Existing install found — re-installing (_bmad-output is kept)');
+u.gap();
+u.step(2);
+u.line('ok', 'Signed in as Ash');
+u.gap();
+u.step(4);
+const s4 = u.spin('installing…');
+s4.update('still…');
+s4.succeed('Installed', '12s');
+u.gap();
+u.step(5);
+u.spin('x').fail('boom');
+u.line('warn', 'Domain docs skipped — domain-knowledge/ already has files');
+u.cont('delete the folder and re-run to refresh');
+u.line('note', '.gitignore  added _bmad/');
+u.end('SLS is set up in proj');
 u.next();
 const t = c.text();
+const lines = t.split('\n');
+
 ok(
-  /BMad-Stella 2\.0\.0 {2}· {2}BMad 6\.12\.2/.test(t) && /C:\\proj/.test(t),
-  'ui: header shows version and folder',
+  /✦ BMad·Stella {2}v2\.0\.0 +powered by BMad 6\.12\.2$/m.test(t) && /^ {2}C:\\proj$/m.test(t),
+  'header: name, version, right-aligned BMad version, folder',
 );
-ok(/\[2\/5\] JIRA\s+✔ dev@stella\.com \(Ash\)/.test(t), 'ui: done line');
-ok(/\[4\/5\] BMad 6\.12\.2\s+✔ installed \(12s\)/.test(t), 'ui: spinner settles to ✔');
-ok(/\[5\/5\] Stella layer\s+✖ boom/.test(t), 'ui: spinner fail line');
-ok(/removed \.bmad-core/.test(t) && /! gh not found/.test(t), 'ui: dim and warn lines');
 ok(
-  /╭─ Next/.test(t) &&
-    /Check your Claude account connectors:/.test(t) &&
-    /Atlassian must be connected\./.test(t),
-  'ui: Next panel text',
+  lines.some((l) => /^◆ Checks +1\/5$/.test(l) && l.length === 80),
+  'step: ◆ label with right-aligned 1/5 at the width',
 );
-ok(!/stella-build|\/bmad|Settings → Connectors/.test(t), 'ui: no command hints in the output');
+ok(
+  /^◆ BMad 6\.12\.2 +4\/5$/m.test(t) && /^◆ Stella layer +5\/5$/m.test(t),
+  'step: BMad and Stella layer titles',
+);
+ok(/^│ ✓ node 24\.12\.0 {3}uv 0\.12\.23$/m.test(t), 'spin: settles to a ✓ row');
+ok(
+  lines.some((l) => /^│ ✓ Installed +12s$/.test(l) && l.length === 80),
+  'spin: right-aligned timing',
+);
+ok(
+  /^│ ↻ Existing install found/m.test(t) && /^│ ✓ Signed in as Ash$/m.test(t),
+  'rows: info and ok marks',
+);
+ok(/^│ ✗ boom$/m.test(t), 'spin: fail row');
+ok(
+  /^│ ▲ Domain docs skipped — domain-knowledge\/ already has files\n│ {3}delete the folder and re-run to refresh$/m.test(
+    t,
+  ),
+  'rows: warn + continuation',
+);
+ok(/^│ {3}\.gitignore {2}added _bmad\/$/m.test(t), 'rows: note row without a mark');
+ok((t.match(/^│$/gm) || []).length === 3, 'gap: bare │ rows between steps');
+ok(/^└ Ready\. {2}SLS is set up in proj$/m.test(t), 'end: Ready line');
+ok(
+  /┌─+┐\n│ ◆ Next: connect Atlassian +│\n│ {3}Check your Claude account connectors\. Atlassian must be +│\n│ {3}connected before agents can read or update JIRA\. +│\n└─+┘/.test(
+    t,
+  ),
+  'next: panel with the connector text',
+);
+ok(!/stella-build|\/bmad|Settings → Connectors/.test(t), 'no command hints anywhere');
 ok(
   ui.NEXT_TEXT.join(' ') === installer.NEXT_TEXT.join(' '),
-  'ui: installer exposes the same Next text',
+  'installer exposes the same Next text',
+);
+
+// ---- questions ----
+const styled = ui.styleQuestions([{ type: 'confirm', name: 'x', message: 'Use them as is?' }]);
+ok(
+  strip(styled[0].prefix) === '│ ◇' &&
+    strip(styled[0].message) === 'Use them as is?' &&
+    styled[0].name === 'x',
+  'questions: rendered as │ ◇ rows, fields kept',
 );
 
 // ---- silent twin ----
 const silent = ui.silentUi();
 silent.header('x');
-silent.done(1, 'y');
-silent.spin(1, 'z').succeed('w');
+silent.step(1);
+silent.line('ok', 'y');
+silent.spin('z').succeed('w', '1s');
+silent.cont('c');
+silent.gap();
+silent.end('e');
+silent.failed('f');
 silent.next();
-ok(typeof silent.spin(2, 'a').fail === 'function', 'silent ui: full surface, no output');
+ok(typeof silent.spin('a').fail === 'function', 'silent ui: full surface, no output');
 
 // ---- layer detail / notes ----
 const sum = {
@@ -111,20 +163,31 @@ const sum = {
   created: [],
 };
 ok(
-  installer.layerDetail(sum) === '5 skills · 3 hooks · permissions · 2 domain pages · user hooks',
+  installer.layerDetail(sum) === '5 skills   3 hooks   permissions   2 domain pages   user hooks',
   'detail: full line',
 );
 ok(
-  installer.layerNotes(sum).join('|') ===
-    '.gitignore: added _bmad/|domain docs → _bmad-output\\stella\\domain-knowledge',
+  installer
+    .layerNotes(sum)
+    .map((n) => n.text)
+    .join('|') === '.gitignore  added _bmad/|Domain docs → _bmad-output\\stella\\domain-knowledge',
   'notes: gitignore + domain folder',
 );
-sum.domainDocs = { status: 'skipped', reason: 'Other' };
+sum.domainDocs = {
+  status: 'skipped',
+  reason: 'domain-knowledge already has files (delete the folder and re-run to refresh)',
+};
 sum.userHooks = { status: 'error' };
+const notes = installer.layerNotes(sum);
 ok(
-  installer.layerDetail(sum) === '5 skills · 3 hooks · permissions' &&
-    /skipped: Other/.test(installer.layerNotes(sum).join('|')),
-  'detail/notes: skipped docs, failed user hooks left out',
+  installer.layerDetail(sum) === '5 skills   3 hooks   permissions',
+  'detail: skipped docs + failed user hooks left out',
+);
+ok(
+  notes[1].kind === 'warn' &&
+    notes[1].text === 'Domain docs skipped — domain-knowledge already has files' &&
+    notes[1].cont === 'delete the folder and re-run to refresh',
+  'notes: skipped reason split into warn + continuation',
 );
 
 console.log(`installer ui: ${total - fails}/${total} passed${fails ? ` — ${fails} FAILED` : ''}`);

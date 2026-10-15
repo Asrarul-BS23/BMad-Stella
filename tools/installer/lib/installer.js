@@ -43,7 +43,7 @@ async function install(root, deps) {
     now = Date.now,
   } = deps;
   const summary = { root, warnings: [], removed: [], created: [] };
-  const log = (text) => ui.dim(text);
+  const note = (text) => ui.line('note', text);
 
   if (!isTTY) {
     const missing = ['JIRA_EMAIL', 'JIRA_API_TOKEN', 'STELLA_PROJECT'].filter((k) => !env[k]);
@@ -57,7 +57,8 @@ async function install(root, deps) {
   ui.header(root);
 
   // 1. preflight
-  const s1 = ui.spin(1, 'checking node, uv, gh, git…');
+  ui.step(1);
+  const s1 = ui.spin('checking node, uv, gh, git…');
   const pf = preflight.check();
   summary.warnings.push(...pf.warnings);
   if (!pf.ok) {
@@ -68,67 +69,77 @@ async function install(root, deps) {
     ['node', 'uv', 'gh', 'git']
       .filter((t) => pf.found[t])
       .map((t) => (pf.versions[t] ? `${t} ${pf.versions[t]}` : t))
-      .join(' · '),
+      .join('   '),
   );
-  for (const w of pf.warnings) ui.warn(w);
+  for (const w of pf.warnings) ui.line('warn', w);
 
   // 2. re-run detection
   summary.rerun = cleaner.isRerun(root);
-  if (summary.rerun) ui.dim('existing install found: re-installing, _bmad-output is kept');
+  if (summary.rerun)
+    ui.line('info', 'Existing install found — re-installing (_bmad-output is kept)');
+  ui.gap();
 
-  // 3 + 4. credentials (prompts first, then the settled line)
-  const creds = await jira.run(root, { prompt, fetch, log, env });
+  // 3 + 4. credentials (inquirer lines render inside the tree)
+  ui.step(2);
+  const creds = await jira.run(root, { prompt, fetch, log: note, env });
   summary.credentials = {
     email: creds.email,
     verified: creds.verified,
     source: creds.source,
     displayName: creds.displayName || null,
   };
-  ui.done(
-    2,
+  ui.line(
+    'ok',
     creds.verified
-      ? `${creds.email}${creds.displayName ? ` (${creds.displayName})` : ''}`
+      ? `Signed in as ${creds.displayName || creds.email}`
       : `${creds.email} (not verified)`,
   );
+  ui.gap();
 
   // 5. project
-  const project = await picker.run(root, creds, { prompt, fetch, log, env });
+  ui.step(3);
+  const project = await picker.run(root, creds, { prompt, fetch, log: note, env });
   summary.project = project;
-  ui.done(3, `${project.name}${project.pageId ? '' : ' (no Confluence page)'}`);
+  ui.line('ok', `${project.name}${project.pageId ? '' : ' (no Confluence page)'}`);
 
   // 6. clean (v4 leftovers; on re-run also _bmad/ and the Stella parts of .claude/)
   summary.removed.push(...cleaner.clean(root, { rerun: summary.rerun }).removed);
   if (summary.rerun) summary.removed.push(...layer.removeStellaClaudeParts(root));
-  if (summary.rerun) ui.dim('removed the previous install (_bmad, Stella skills, .claude/stella)');
+  if (summary.rerun)
+    ui.line('ok', 'Removed previous install  _bmad · Stella skills · .claude/stella');
   else if (summary.removed.length > 0)
-    ui.dim(`removed v4 leftovers: ${summary.removed.join(', ')}`);
+    ui.line('ok', `Removed v4 leftovers  ${summary.removed.join(' · ')}`);
+  ui.gap();
 
   // 7. BMad (spinner unless --verbose streams BMad's own output)
+  ui.step(4);
   const started = now();
   const tail = [];
-  const s4 = verbose ? null : ui.spin(4, 'installing…');
+  const s4 = verbose ? null : ui.spin('installing…');
   const status = await runBmad(root, {
     projectName: project.name,
     userName: runner.gitUserName({ cwd: root }),
     verbose,
     write: () => {},
-    log: verbose ? (t) => ui.dim(t) : (t) => tail.push(t),
+    log: verbose ? note : (t) => tail.push(t),
   });
-  const took = seconds(now() - started);
+  const took = `${seconds(now() - started)}s`;
   if (status !== 0) {
     if (s4) s4.fail(`exit ${status}`);
-    else ui.fail(4, `exit ${status}`);
-    for (const t of tail) ui.dim(t);
+    else ui.line('fail', `exit ${status}`);
+    for (const t of tail) ui.cont(t);
     throw new Error(`BMad install exited with code ${status}. Nothing else was changed.`);
   }
-  if (s4) s4.succeed(`installed (${took}s)`);
-  else ui.done(4, `installed (${took}s)`);
+  if (s4) s4.succeed('Installed', took);
+  else ui.line('ok', 'Installed', took);
+  ui.gap();
 
   // 8. gitignore
   summary.gitignoreAdded = gitignore.ensure(root).added;
 
   // 9-13. Stella layer
-  const s5 = ui.spin(5, 'copying skills, hooks and helpers…');
+  ui.step(5);
+  const s5 = ui.spin('copying skills, hooks and helpers…');
   layer.copyStellaFiles(root);
   summary.skills = layer.copySkills(root);
   summary.hooks = layer.copyHooks(root);
@@ -137,7 +148,7 @@ async function install(root, deps) {
 
   // 14. domain docs
   s5.update('fetching domain docs…');
-  summary.domainDocs = await domain.fetchDomainDocs(root, { project, creds, fetch, log });
+  summary.domainDocs = await domain.fetchDomainDocs(root, { project, creds, fetch, log: note });
 
   // 15. user-level hooks, silent and never fatal
   s5.update('user-level hooks…');
@@ -154,15 +165,21 @@ async function install(root, deps) {
     summary.warnings.push(`User-level hooks not installed: ${error.message}`);
   }
   s5.succeed(layerDetail(summary));
-  for (const t of layerNotes(summary)) ui.dim(t);
-  for (const w of summary.warnings.filter((w) => !pf.warnings.includes(w))) ui.warn(w);
+  for (const n of layerNotes(summary)) {
+    if (n.kind === 'warn') {
+      ui.line('warn', n.text);
+      if (n.cont) ui.cont(n.cont);
+    } else ui.line('note', n.text);
+  }
+  for (const w of summary.warnings.filter((w) => !pf.warnings.includes(w))) ui.line('warn', w);
 
   summary.next = NEXT_TEXT.join(' ');
+  ui.end(`${project.name} is set up in ${path.basename(root)}`);
   ui.next();
   return summary;
 }
 
-/** The one-line detail of step 5. */
+/** The ✓ line of step 5. */
 function layerDetail(s) {
   const d = s.domainDocs;
   const parts = [
@@ -172,18 +189,32 @@ function layerDetail(s) {
     d.status === 'fetched' ? `${d.files.length} domain pages` : null,
     s.userHooks && s.userHooks.status && s.userHooks.status !== 'error' ? 'user hooks' : null,
   ];
-  return parts.filter(Boolean).join(' · ');
+  return parts.filter(Boolean).join('   ');
 }
 
-/** Dim lines under step 5: only what is new or skipped. */
+/** "already has files (delete …)" → warn + how-to continuation; other reasons stay whole. */
+function skippedNote(reason) {
+  const howTo = /\((delete[^)]*)\)$/.exec(reason);
+  return {
+    kind: 'warn',
+    text: `Domain docs skipped — ${howTo ? reason.slice(0, howTo.index).trim() : reason}`,
+    cont: howTo ? howTo[1] : null,
+  };
+}
+
+/** Lines under step 5: only what is new, skipped or failed. */
 function layerNotes(s) {
   const d = s.domainDocs;
   return [
-    s.gitignoreAdded.length > 0 ? `.gitignore: added ${s.gitignoreAdded.join(', ')}` : null,
-    d.status === 'fetched' ? `domain docs → ${path.relative(s.root, d.dir)}` : null,
-    d.status === 'skipped' ? `domain docs skipped: ${d.reason}` : null,
-    d.status === 'failed' ? `domain docs failed: ${d.reason}` : null,
-    s.created.length > 0 ? `created ${s.created.join(', ')}` : null,
+    s.gitignoreAdded.length > 0
+      ? { kind: 'note', text: `.gitignore  added ${s.gitignoreAdded.join(', ')}` }
+      : null,
+    d.status === 'fetched'
+      ? { kind: 'note', text: `Domain docs → ${path.relative(s.root, d.dir)}` }
+      : null,
+    d.status === 'skipped' ? skippedNote(d.reason) : null,
+    d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
+    s.created.length > 0 ? { kind: 'note', text: `created ${s.created.join(', ')}` } : null,
   ].filter(Boolean);
 }
 
