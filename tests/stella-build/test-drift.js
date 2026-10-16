@@ -3,7 +3,9 @@
 // Migration Task 6 — stella-build is a copy of the official bmad-build 6.12.2 skill.
 // The pristine reference lives in tests/fixtures. Every difference must be an agreed
 // one: ALLOWED below mirrors CHANGES.md line by line. A file not in ALLOWED must be
-// byte-identical; a file in ALLOWED may differ only on the lines its rule names.
+// byte-identical; a file in ALLOWED must equal the fixture with exactly the listed
+// rules applied — each rule replaces one fixture line (`from`) with `to`: a string,
+// an array of lines, or null to delete the line.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -17,10 +19,80 @@ const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'bmad-build-6.12.2');
 const SKILL_ONLY = new Set(['CHANGES.md']);
 const FIXTURE_ONLY = new Set(['SOURCE.md']);
 
-// Agreed differences. Each rule: the fixture line must equal `from`, the skill line
-// must equal `to`, same line count, everything else identical.
+const NO_COMMIT =
+  'Do not commit, push or open a pull request. The developer reviews the working tree and commits by hand before the next ticket.';
+
 const ALLOWED = {
   'SKILL.md': [{ line: 2, from: 'name: bmad-build', to: 'name: stella-build' }],
+
+  // Task 6b-2 — settings only; every official key keeps its place.
+  'customize.toml': [
+    {
+      line: 17,
+      from: 'activation_steps_prepend = []',
+      to: [
+        'activation_steps_prepend = [',
+        '  """',
+        'Jira intent (Stella). Look at what the user passed with the skill invocation.',
+        '- A Jira issue key (pattern `ABC-123`) or a Jira issue URL: set `{jira_key}` to the key. Fetch the issue through the Atlassian connector: summary, description, acceptance criteria, comments, linked issues. If the connector is unavailable or not authorized, HALT with: Atlassian connector not connected. Connect it in your Claude account settings, or paste the ticket text. Then run `node _bmad/custom/stella/utils/jira-attachments {jira_key}` and read its stdout JSON; open the manifest it names and read every image attachment, and the text of other attachments where relevant. If the helper fails, say so in one line and continue with the issue text. The fetched issue plus attachments are the intent for step 01. When the spec file is created, add `jira_key: {jira_key}` to its frontmatter.',
+        '- A path to an existing spec file: read `jira_key` from its frontmatter if present, say nothing, continue as normal.',
+        '- Anything else: say nothing, continue as normal.',
+        '""",',
+        ']',
+      ],
+    },
+    {
+      line: 27,
+      from: 'persistent_facts = []',
+      to: [
+        'persistent_facts = [',
+        '  "file:project-context/project.md",',
+        '  "file:project-context/architecture.md",',
+        '  "For the version-control check in step 01 and the diff in step 03, ignore changes to `.gitignore` and `project-context/`. A tree where only those differ counts as clean, and those paths are left out of the review diff.",',
+        '  "Caveman full (`.claude/skills/caveman/SKILL.md`) for chat, the spec body and the Jira comment. Exact, never compressed: frontmatter, headings, paths, symbols, commands, code, error text, ticket keys, and order or condition words in a step. Code, tests, diff and deferred-work file: normal language.",',
+        ']',
+      ],
+    },
+    {
+      line: 32,
+      from: 'on_complete = ""',
+      to: [
+        'on_complete = """',
+        'Jira comment (Stella). If `{jira_key}` is empty, do nothing. Otherwise compose a short comment in caveman: what changed, how it was verified, the review result, anything deferred, the spec path. Show it in chat and ask: Post to {jira_key}? (y/n). On y, add it as a comment on the issue through the Atlassian connector. On n, or if the connector is unavailable, say so in one line and stop. Never change status, assignee, labels or attachments.',
+        '"""',
+      ],
+    },
+  ],
+
+  // Task 6b-2 — git read-only: no commit, no hash, no PR offer.
+  'step-05-present.md': [
+    { line: 19, from: '### Commit and Complete', to: '### Complete' },
+    {
+      line: 21,
+      from: 'If version control is available and the tree is dirty, create a local commit with a conventional message derived from the spec title.',
+      to: NO_COMMIT,
+    },
+    { line: 31, from: '- The commit hash, if one was created.', to: null },
+    {
+      line: 35,
+      from: 'Offer applicable next actions in one short line: when version control and a remote are available, create a pull request (and push first if needed); use `bmad-walkthrough`; or make another change.',
+      to: 'Offer applicable next actions in one short line: use `bmad-walkthrough`; or make another change.',
+    },
+  ],
+  'step-oneshot.md': [
+    { line: 81, from: '### Commit', to: '### Complete' },
+    {
+      line: 83,
+      from: 'If git is available and there are uncommitted changes, commit with a conventional message based on the Intent. If git is not available, skip.',
+      to: NO_COMMIT,
+    },
+    { line: 93, from: '- Commit hash, if you made one.', to: null },
+    {
+      line: 97,
+      from: 'Offer next steps in one line: create a PR (push first if needed) when git and a remote exist; use `bmad-walkthrough`; or make another change.',
+      to: 'Offer next steps in one line: use `bmad-walkthrough`; or make another change.',
+    },
+  ],
 };
 
 let fails = 0;
@@ -72,22 +144,53 @@ const drifted = fixtureFiles.filter(
 );
 ok(drifted.length === 0, `every unlisted file identical to the fixture (${drifted.join(', ')})`);
 
-// ---- listed files: differ only on the agreed lines ----
+// ---- listed files: fixture + rules === skill, nothing else ----
 for (const [file, rules] of Object.entries(ALLOWED)) {
   const a = lines(path.join(FIXTURE, file));
   const b = lines(path.join(SKILL, file));
-  ok(a.length === b.length, `${file}: same line count as the fixture (${a.length} vs ${b.length})`);
-  const ruleLines = new Set(rules.map((r) => r.line));
-  const unexpected = [];
-  for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    if (a[i] !== b[i] && !ruleLines.has(i + 1)) unexpected.push(i + 1);
+  const byLine = new Map(rules.map((r) => [r.line, r]));
+  const expected = [];
+  for (const [i, text] of a.entries()) {
+    const r = byLine.get(i + 1);
+    if (!r) {
+      expected.push(text);
+      continue;
+    }
+    ok(text === r.from, `${file}:${r.line} fixture reads "${r.from.slice(0, 60)}"`);
+    if (r.to === null) continue;
+    expected.push(...(Array.isArray(r.to) ? r.to : [r.to]));
   }
-  ok(unexpected.length === 0, `${file}: no unlisted changed line (${unexpected.join(', ')})`);
-  for (const r of rules) {
-    ok(a[r.line - 1] === r.from, `${file}:${r.line} fixture reads "${r.from}"`);
-    ok(b[r.line - 1] === r.to, `${file}:${r.line} skill reads "${r.to}"`);
-  }
+  const firstDiff = expected.findIndex((l, i) => l !== b[i]);
+  ok(
+    expected.length === b.length && firstDiff === -1,
+    `${file}: equals the fixture with only the agreed changes applied (first difference at skill line ${
+      firstDiff === -1 ? b.length + 1 : firstDiff + 1
+    })`,
+  );
 }
+
+// ---- the git prohibition and the Stella settings are really in place ----
+const step05 = fs.readFileSync(path.join(SKILL, 'step-05-present.md'), 'utf8');
+const oneshot = fs.readFileSync(path.join(SKILL, 'step-oneshot.md'), 'utf8');
+for (const [name, text] of [
+  ['step-05', step05],
+  ['oneshot', oneshot],
+]) {
+  ok(
+    !/create a local commit|commit with a conventional|pull request \(|create a PR/.test(text),
+    `${name}: no commit or PR instruction left`,
+  );
+  ok(text.includes(NO_COMMIT), `${name}: carries the no-commit sentence`);
+  ok(!/commit hash/i.test(text), `${name}: no commit hash in the summary`);
+}
+const toml = fs.readFileSync(path.join(SKILL, 'customize.toml'), 'utf8');
+ok(/^activation_steps_append = \[\]$/m.test(toml), 'toml: activation_steps_append untouched');
+ok(/^open_spec = ""$/m.test(toml), 'toml: open_spec untouched');
+ok(
+  (toml.match(/^\[\[workflow\.review_layers\]\]$/gm) || []).length === 3,
+  'toml: three review layers, none added',
+);
+ok(!/stella-security/.test(toml), 'toml: no security review layer (skipped by decision)');
 
 // ---- CHANGES.md names every listed file ----
 const changes = fs.readFileSync(path.join(SKILL, 'CHANGES.md'), 'utf8');

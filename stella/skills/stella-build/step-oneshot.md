@@ -78,9 +78,9 @@ Update `{spec_file}`:
 
 If `{story_key}` is not empty and `{{.implementation_artifacts}}/sprint-status.yaml` exists, read `[[bmad-snapshot:sync-sprint-status.md]]` with `{target_status}` = `review`.
 
-### Commit
+### Complete
 
-If git is available and there are uncommitted changes, commit with a conventional message based on the Intent. If git is not available, skip.
+Do not commit, push or open a pull request. The developer reviews the working tree and commits by hand before the next ticket.
 
 ### Present
 
@@ -90,11 +90,10 @@ Give the user a short summary — one or two sentences:
 
 - What changed.
 - Review result, including anything deferred.
-- Commit hash, if you made one.
 
 Do not list files, repeat the spec, or walk through what you did unless asked.
 
-Offer next steps in one line: create a PR (push first if needed) when git and a remote exist; use `bmad-walkthrough`; or make another change.
+Offer next steps in one line: use `bmad-walkthrough`; or make another change.
 
 Stop and wait for the user.
 

@@ -16,9 +16,9 @@ Change `{spec_file}` status to `done` in the frontmatter.
 
 If `{story_key}` is not empty and `{{.implementation_artifacts}}/sprint-status.yaml` exists, read `[[bmad-snapshot:sync-sprint-status.md]]` with `{target_status}` = `review`.
 
-### Commit and Complete
+### Complete
 
-If version control is available and the tree is dirty, create a local commit with a conventional message derived from the spec title.
+Do not commit, push or open a pull request. The developer reviews the working tree and commits by hand before the next ticket.
 
 {workflow.open_spec}
 
@@ -28,11 +28,10 @@ Display a very short completion summary — one or two sentences — including:
 
 - What changed.
 - The verification and review result, including whether anything was deferred.
-- The commit hash, if one was created.
 
 Do not list changed files, repeat details from the spec, or narrate the process unless the user asks.
 
-Offer applicable next actions in one short line: when version control and a remote are available, create a pull request (and push first if needed); use `bmad-walkthrough`; or make another change.
+Offer applicable next actions in one short line: use `bmad-walkthrough`; or make another change.
 
 Workflow complete.
 
