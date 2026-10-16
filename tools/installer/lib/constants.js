@@ -59,6 +59,7 @@ const STELLA_SKILLS = [
   'stella-security',
   'stella-pr-review',
   'stella-domain-expert',
+  'stella-project-context',
 ];
 
 // Project-level hooks copied to .claude/stella/hooks/<name>/ and registered in
