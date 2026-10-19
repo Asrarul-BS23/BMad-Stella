@@ -82,9 +82,12 @@ function copyHooks(root) {
   return PROJECT_HOOKS.map((h) => h.name);
 }
 
-// Hook commands are relative to the project root (Claude Code runs hooks there),
-// so settings.local.json is not tied to one machine.
-const hookCommand = (hook, file) => `node "${STELLA_HOOKS_DIR}/${hook.name}/${file}"`;
+// Hook commands are anchored to ${CLAUDE_PROJECT_DIR} (the folder Claude Code was
+// started in). Hooks run in the session's *current* directory, which follows every
+// `cd` the Bash tool makes, so a relative path fails with MODULE_NOT_FOUND from any
+// subfolder and the guard is silently skipped. The variable keeps the file portable.
+const hookCommand = (hook, file) =>
+  `node "\${CLAUDE_PROJECT_DIR}/${STELLA_HOOKS_DIR}/${hook.name}/${file}"`;
 const isOurHookEntry = (entry) => {
   const cmd = entry && Array.isArray(entry.hooks) && entry.hooks[0] && entry.hooks[0].command;
   return typeof cmd === 'string' && cmd.includes(`${STELLA_HOOKS_DIR}/`);

@@ -235,8 +235,20 @@ const userHooks = async () => ({ status: 'current', changed: false });
     'settings: guard registered with matcher',
   );
   ok(
-    guardEntry.hooks[0].command === 'node ".claude/stella/hooks/pr-review-guard/pre-tool-use.js"',
-    'settings: hook command relative to the project root',
+    guardEntry.hooks[0].command ===
+      'node "${CLAUDE_PROJECT_DIR}/.claude/stella/hooks/pr-review-guard/pre-tool-use.js"',
+    'settings: hook command anchored to CLAUDE_PROJECT_DIR',
+  );
+  // Hooks run in the session's current directory (follows `cd`), so every command
+  // must be anchored; a relative path fails from any subfolder.
+  const ourCommands = Object.values(settings.hooks)
+    .flat()
+    .map((e) => e.hooks[0].command)
+    .filter((c) => c.includes('.claude/stella/hooks/'));
+  ok(ourCommands.length === 4, `settings: four Stella hook commands (${ourCommands.length})`);
+  ok(
+    ourCommands.every((c) => c.startsWith('node "${CLAUDE_PROJECT_DIR}/.claude/stella/hooks/')),
+    'settings: no Stella hook command is a relative path',
   );
   ok(
     settings.hooks.SessionStart.some((e) => e.hooks[0].command === 'node my-own-hook.js'),
