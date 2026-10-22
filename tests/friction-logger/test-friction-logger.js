@@ -205,8 +205,22 @@ const T9 = writeTranscript('t-official.jsonl', [
   skill('bmad-build'),
   tool('Write', { file_path: SPEC.replaceAll('\\', '/') }),
 ]);
+// Real shape of a typed slash command in a Claude Code transcript (pilot, 2026-10-22):
+// the message is the command tags, not the raw "/stella-build …" text.
+const TAGGED = (name, args) =>
+  `<command-message>${name}</command-message>\n<command-name>/${name}</command-name>\n<command-args>${args}</command-args>`;
+const T10 = writeTranscript('t-tagged.jsonl', [
+  user(TAGGED('stella-build', 'https://stellaint.atlassian.net/browse/AIL-1')),
+  tool('Write', { file_path: SPEC.replaceAll('\\', '/') }),
+]);
+const T11 = writeTranscript('t-tagged-official.jsonl', [
+  user(TAGGED('bmad-build', 'AIL-1 add the feature')),
+  tool('Write', { file_path: SPEC.replaceAll('\\', '/') }),
+]);
 
 runSessionEnd('s1-typed', T1);
+runSessionEnd('s10-tagged', T10);
+runSessionEnd('s11-tagged-official', T11);
 runSessionEnd('s2-skill', T2);
 runSessionEnd('s3-ps', T3);
 runSessionEnd('s4-noise', T4);
@@ -221,7 +235,12 @@ const sessions = (t.plans['AIL-1'] && t.plans['AIL-1'].sessions.map((s) => s.ses
 ok(sessions.includes('s1-typed'), 'gate: typed /stella-build + Bash heredoc write tracked');
 ok(sessions.includes('s2-skill'), 'gate: Skill tool call + Write tracked');
 ok(sessions.includes('s3-ps'), 'gate: user text as blocks + PowerShell write tracked');
-ok(sessions.length === 3, `gate: exactly 3 tracked sessions (got ${sessions.length})`);
+ok(sessions.includes('s10-tagged'), 'gate: <command-name>/stella-build</command-name> tracked');
+ok(
+  !sessions.includes('s11-tagged-official'),
+  'gate: <command-name>/bmad-build</command-name> NOT tracked',
+);
+ok(sessions.length === 4, `gate: exactly 4 tracked sessions (got ${sessions.length})`);
 ok(!t.plans['NOPE-9'], 'spec: Bash mention of a non-existent spec ignored');
 ok(!sessions.includes('s5-other'), 'gate: stella-pr-review session NOT tracked');
 ok(!sessions.includes('s6-mention'), 'gate: prose mention + Read of SKILL.md NOT tracked');

@@ -20,6 +20,13 @@ const paths = require('./lib/paths');
 // guard uses. A mere mention of the name in prose never matches.
 const TRACKED_SKILL = 'stella-build';
 const SKILL_COMMAND_RE = /^\s*\/stella-build(?:\s|$)/i;
+// Claude Code records a typed slash command not as the raw text but as
+//   <command-message>stella-build</command-message>
+//   <command-name>/stella-build</command-name>
+//   <command-args>…</command-args>
+// so the tag form is the one real sessions carry (pilot finding, 2026-10-22).
+const SKILL_COMMAND_TAG_RE = /<command-name>\s*\/stella-build\s*<\/command-name>/i;
+const isSkillCommand = (text) => SKILL_COMMAND_RE.test(text) || SKILL_COMMAND_TAG_RE.test(text);
 
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit']);
 // Dedicated file tools carry the path in input.file_path (must END with the spec path).
@@ -88,7 +95,7 @@ function main(rawStdin) {
       continue;
     }
     // Session gate signal 1: the user typed /stella-build
-    if (obj.type === 'user' && !obj.isMeta && SKILL_COMMAND_RE.test(userText(obj.message))) {
+    if (obj.type === 'user' && !obj.isMeta && isSkillCommand(userText(obj.message))) {
       agents.add(TRACKED_SKILL);
       continue;
     }
