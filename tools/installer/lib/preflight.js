@@ -5,6 +5,7 @@
 
 const { spawnSync } = require('node:child_process');
 const { MIN_NODE } = require('./constants');
+const { probePython } = require('./tool-installer');
 
 const defaultRun = (cmd, args) => spawnSync(cmd, args, { encoding: 'utf8' });
 
@@ -39,16 +40,22 @@ function probe(run, cmd) {
 /**
  * @returns {{ok:boolean, errors:string[], warnings:string[], found:object, versions:object}}
  */
-function check({ run = defaultRun, nodeVersion = process.version } = {}) {
+function check({
+  run = defaultRun,
+  nodeVersion = process.version,
+  platform = process.platform,
+} = {}) {
   const errors = [];
   const warnings = [];
   const uv = probe(run, 'uv');
+  const python = probePython(run, platform); // 3.11+ only; missing is not an error (uv provides one)
   const gh = probe(run, 'gh');
   const git = probe(run, 'git');
-  const found = { node: nodeOk(nodeVersion), uv: uv.ok, gh: gh.ok, git: git.ok };
+  const found = { node: nodeOk(nodeVersion), uv: uv.ok, python: python.ok, gh: gh.ok, git: git.ok };
   const versions = {
     node: versionOf(nodeVersion),
     uv: uv.version,
+    python: python.version,
     gh: gh.version,
     git: git.version,
   };

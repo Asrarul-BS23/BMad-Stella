@@ -63,8 +63,10 @@ ok(
   'allow: claude.ai Atlassian connector tools',
 );
 ok(
-  !allow.some((r) => r.startsWith('mcp__atlassian__')),
-  'allow: old project-level Atlassian MCP names gone',
+  allow.includes('mcp__atlassian__getJiraIssue') &&
+    allow.includes('mcp__atlassian__addCommentToJiraIssue') &&
+    allow.filter((r) => r.startsWith('mcp__atlassian__')).length === 6,
+  'allow: per-project Atlassian MCP names (registered by the installer) allowed too',
 );
 
 // ---- twins ----

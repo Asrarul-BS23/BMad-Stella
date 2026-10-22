@@ -18,6 +18,14 @@ class ClaudePermissionsManager {
       'mcp__claude_ai_Atlassian__getConfluencePage',
       'mcp__claude_ai_Atlassian__getConfluencePageDescendants',
       'mcp__claude_ai_Atlassian__fetch',
+      // Atlassian — the same server registered per project by the installer
+      // (`claude mcp add atlassian …`, local scope); same tools, other prefix.
+      'mcp__atlassian__getJiraIssue',
+      'mcp__atlassian__searchJiraIssuesUsingJql',
+      'mcp__atlassian__addCommentToJiraIssue',
+      'mcp__atlassian__getConfluencePage',
+      'mcp__atlassian__getConfluencePageDescendants',
+      'mcp__atlassian__fetch',
 
       'WebFetch(domain:stellaint.atlassian.net)',
 

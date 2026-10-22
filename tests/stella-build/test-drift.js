@@ -34,7 +34,7 @@ const ALLOWED = {
         'activation_steps_prepend = [',
         '  """',
         'Jira intent (Stella). Look at what the user passed with the skill invocation.',
-        '- A Jira issue key (pattern `ABC-123`) or a Jira issue URL: set `{jira_key}` to the key. Fetch the issue through the Atlassian connector: summary, description, acceptance criteria, comments, linked issues. If the connector is unavailable or not authorized, HALT with: Atlassian connector not connected. Connect it in your Claude account settings, or paste the ticket text. Then run `node _bmad/custom/stella/utils/jira-attachments {jira_key}` and read its stdout JSON; open the manifest it names and read every image attachment, and the text of other attachments where relevant. If the helper fails, say so in one line and continue with the issue text. The fetched issue plus attachments are the intent for step 01. When the spec file is created, add `jira_key: {jira_key}` to its frontmatter.',
+        '- A Jira issue key (pattern `ABC-123`) or a Jira issue URL: set `{jira_key}` to the key. Fetch the issue through the Atlassian MCP server (`atlassian`): summary, description, acceptance criteria, comments, linked issues. If the server is unavailable or not authenticated, HALT with: Atlassian MCP not connected. In Claude Code run /mcp, pick atlassian and log in, or paste the ticket text. Then run `node _bmad/custom/stella/utils/jira-attachments {jira_key}` and read its stdout JSON; open the manifest it names and read every image attachment, and the text of other attachments where relevant. If the helper fails, say so in one line and continue with the issue text. The fetched issue plus attachments are the intent for step 01. When the spec file is created, add `jira_key: {jira_key}` to its frontmatter.',
         '- A path to an existing spec file: read `jira_key` from its frontmatter if present, say nothing, continue as normal.',
         '- Anything else: say nothing, continue as normal.',
         '""",',
@@ -58,7 +58,7 @@ const ALLOWED = {
       from: 'on_complete = ""',
       to: [
         'on_complete = """',
-        'Jira comment (Stella). If `{jira_key}` is empty, do nothing. Otherwise compose a short comment in caveman: what changed, how it was verified, the review result, anything deferred, the spec path. Show it in chat and ask: Post to {jira_key}? (y/n). On y, add it as a comment on the issue through the Atlassian connector. On n, or if the connector is unavailable, say so in one line and stop. Never change status, assignee, labels or attachments.',
+        'Jira comment (Stella). If `{jira_key}` is empty, do nothing. Otherwise compose a short comment in caveman: what changed, how it was verified, the review result, anything deferred, the spec path. Show it in chat and ask: Post to {jira_key}? (y/n). On y, add it as a comment on the issue through the Atlassian MCP server. On n, or if the connector is unavailable, say so in one line and stop. Never change status, assignee, labels or attachments.',
         '"""',
       ],
     },

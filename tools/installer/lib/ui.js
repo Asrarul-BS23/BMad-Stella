@@ -23,10 +23,10 @@ const TOTAL = STEP_LABELS.length;
 const MIN_WIDTH = 64;
 const MAX_WIDTH = 96;
 
-const NEXT_TITLE = 'Next: connect Atlassian';
+const NEXT_TITLE = 'Next: log in to Atlassian once';
 const NEXT_TEXT = [
-  'Check your Claude account connectors. Atlassian must be',
-  'connected before agents can read or update JIRA.',
+  'Open Claude Code in this folder, run /mcp, pick atlassian',
+  'and finish the browser login.',
 ];
 
 const MARK = {

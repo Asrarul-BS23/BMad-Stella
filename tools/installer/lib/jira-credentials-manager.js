@@ -9,7 +9,12 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { JIRA_BASE_URL, TOKEN_ENV_FILE, TOKEN_HELP_URL } = require('./constants');
+const {
+  JIRA_BASE_URL,
+  TOKEN_ENV_FILE,
+  LEGACY_TOKEN_ENV_FILE,
+  TOKEN_HELP_URL,
+} = require('./constants');
 
 // eslint-disable-next-line n/no-unsupported-features/node-builtins
 const defaultFetch = (...args) => globalThis.fetch(...args);
@@ -37,18 +42,33 @@ function parseDotenv(contents) {
 }
 
 const tokenFilePath = (root) => path.join(root, ...TOKEN_ENV_FILE.split('/'));
+const legacyTokenFilePath = (root) => path.join(root, ...LEGACY_TOKEN_ENV_FILE.split('/'));
 
-/** @returns {{email:string, token:string}|null} */
-function readTokenFile(root) {
-  let contents;
+function readDotenvFile(file) {
   try {
-    contents = fs.readFileSync(tokenFilePath(root), 'utf8');
+    return parseDotenv(fs.readFileSync(file, 'utf8'));
   } catch {
     return null;
   }
-  const env = parseDotenv(contents);
-  if (!env.JIRA_EMAIL || !env.JIRA_API_TOKEN) return null;
+}
+
+/** @returns {{email:string, token:string}|null} */
+function readTokenFile(root) {
+  const env = readDotenvFile(tokenFilePath(root));
+  if (!env || !env.JIRA_EMAIL || !env.JIRA_API_TOKEN) return null;
   return { email: env.JIRA_EMAIL, token: env.JIRA_API_TOKEN };
+}
+
+/**
+ * The v4 file (bmad-docs/.bmad-tokens/.env). Either value may be missing.
+ * @returns {{email:string|null, token:string|null}|null}
+ */
+function readLegacyTokenFile(root) {
+  const env = readDotenvFile(legacyTokenFilePath(root));
+  if (!env) return null;
+  const email = (env.JIRA_EMAIL || '').trim() || null;
+  const token = (env.JIRA_API_TOKEN || '').trim() || null;
+  return email || token ? { email, token } : null;
 }
 
 function quote(value) {
@@ -182,13 +202,46 @@ async function run(
     }
   }
 
+  // Upgrade from v4: bmad-docs/.bmad-tokens/.env carries the same keys. A pair that
+  // still verifies is carried over silently; otherwise only the token is asked and
+  // the old email is kept. A network error counts as "not verified" here, so nothing
+  // unverified is carried over.
+  let legacyEmail = null;
+  if (!existing) {
+    const legacy = readLegacyTokenFile(root);
+    if (legacy) {
+      legacyEmail = legacy.email;
+      if (legacy.email && legacy.token) {
+        const pair = { email: legacy.email, token: legacy.token };
+        const v = await verify(pair, { fetch });
+        if (v.status === 'ok') {
+          writeTokenFile(root, pair);
+          return {
+            ...pair,
+            verified: true,
+            displayName: v.displayName,
+            written: true,
+            source: 'legacy',
+          };
+        }
+      }
+    }
+  }
+
   let last = null;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const answers = await prompt([
-      emailQuestion((last && last.email) || (existing && existing.email) || undefined),
-      tokenQuestion(),
-    ]);
-    const creds = { email: answers.email, token: answers.token };
+    const keepLegacyEmail = Boolean(legacyEmail && !last);
+    const answers = await prompt(
+      keepLegacyEmail
+        ? [tokenQuestion()]
+        : [
+            emailQuestion(
+              (last && last.email) || (existing && existing.email) || legacyEmail || undefined,
+            ),
+            tokenQuestion(),
+          ],
+    );
+    const creds = { email: keepLegacyEmail ? legacyEmail : answers.email, token: answers.token };
     const v = await verify(creds, { fetch });
     if (v.status === 'ok' || v.status === 'network') {
       if (v.status === 'network')
@@ -208,4 +261,13 @@ async function run(
   throw new Error(`JIRA credentials could not be verified after ${MAX_ATTEMPTS} attempts.`);
 }
 
-module.exports = { run, verify, readTokenFile, writeTokenFile, tokenFilePath, parseDotenv };
+module.exports = {
+  run,
+  verify,
+  readTokenFile,
+  readLegacyTokenFile,
+  writeTokenFile,
+  tokenFilePath,
+  legacyTokenFilePath,
+  parseDotenv,
+};
