@@ -324,8 +324,8 @@ const userHooks = async () => ({ status: 'current', changed: false });
   );
   ok(sum.userHooks.status === 'current', 'user hooks: called');
   ok(
-    /run \/mcp, pick atlassian/.test(sum.next) && !/stella-build/.test(sum.next),
-    'summary: Next text is the one-time /mcp login only',
+    /run \/mcp to check/.test(sum.next) && !/stella-build/.test(sum.next),
+    'summary: Next text is the /mcp check only',
   );
   ok(
     sum.mcp.status === 'registered' && mcpCalls.some(([k, r]) => k === 'register' && r === root),

@@ -23,10 +23,10 @@ const TOTAL = STEP_LABELS.length;
 const MIN_WIDTH = 64;
 const MAX_WIDTH = 96;
 
-const NEXT_TITLE = 'Next: log in to Atlassian once';
+const NEXT_TITLE = 'Next: check Atlassian in Claude Code';
 const NEXT_TEXT = [
-  'Open Claude Code in this folder, run /mcp, pick atlassian',
-  'and finish the browser login.',
+  'Open Claude Code in this folder and run /mcp to check',
+  'that atlassian is authenticated.',
 ];
 
 const MARK = {

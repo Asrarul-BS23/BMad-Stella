@@ -219,10 +219,7 @@ for (const tool of [
 }
 
 // ---- Next panel text ----
-ok(
-  /run \/mcp, pick atlassian/.test(installer.NEXT_TEXT.join(' ')),
-  'next: tells the one-time /mcp login',
-);
+ok(/run \/mcp to check/.test(installer.NEXT_TEXT.join(' ')), 'next: tells the one-time /mcp login');
 ok(!/connector/i.test(installer.NEXT_TEXT.join(' ')), 'next: no connector wording left');
 
 console.log(`mcp registrar: ${total - fails}/${total} passed${fails ? ` — ${fails} FAILED` : ''}`);

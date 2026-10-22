@@ -115,10 +115,10 @@ ok(/^│ {3}\.gitignore {2}added _bmad\/$/m.test(t), 'rows: note row without a m
 ok((t.match(/^│$/gm) || []).length === 3, 'gap: bare │ rows between steps');
 ok(/^└ Ready\. {2}SLS is set up in proj$/m.test(t), 'end: Ready line');
 ok(
-  /┌─+┐\n│ ◆ Next: log in to Atlassian once +│\n│ {3}Open Claude Code in this folder, run \/mcp, pick atlassian +│\n│ {3}and finish the browser login\. +│\n└─+┘/.test(
+  /┌─+┐\n│ ◆ Next: check Atlassian in Claude Code +│\n│ {3}Open Claude Code in this folder and run \/mcp to check +│\n│ {3}that atlassian is authenticated\. +│\n└─+┘/.test(
     t,
   ),
-  'next: panel with the one-time /mcp login text',
+  'next: panel with the /mcp check text',
 );
 ok(!/stella-build|\/bmad|Settings → Connectors/.test(t), 'no command hints anywhere');
 ok(
