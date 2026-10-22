@@ -22,6 +22,8 @@ const BMAD_DIR = '_bmad';
 const OUTPUT_DIR = '_bmad-output';
 const STELLA_OUTPUT_DIR = `${OUTPUT_DIR}/stella`;
 const TOKEN_ENV_FILE = `${STELLA_OUTPUT_DIR}/.bmad-tokens/.env`;
+// v4 kept the same keys here; read once on upgrade, then removed with bmad-docs/.
+const LEGACY_TOKEN_ENV_FILE = 'bmad-docs/.bmad-tokens/.env';
 const PROJECT_JSON_FILE = `${STELLA_OUTPUT_DIR}/project.json`;
 
 // Lines the installer guarantees in .gitignore (each on its own line, added once).
@@ -44,6 +46,20 @@ const BMAD_INSTALL_FLAGS = {
 const USER_NAME_FALLBACK = 'stella-dev';
 
 const MIN_NODE = { major: 20, minor: 10 };
+// BMad's render scripts declare `requires-python >= 3.11`. When no such Python is
+// on PATH the installer adds a uv-managed one (system Python untouched).
+const MIN_PYTHON = { major: 3, minor: 11 };
+const PYTHON_INSTALL_VERSION = '3.12';
+const UV_INSTALL_URL = 'https://docs.astral.sh/uv/getting-started/installation/';
+
+// Atlassian's official remote MCP server, registered per project in Claude Code's
+// local scope (as v4 did). The dev logs in once via /mcp in Claude Code.
+const ATLASSIAN_MCP = {
+  name: 'atlassian',
+  transport: 'http',
+  url: 'https://mcp.atlassian.com/v1/mcp',
+};
+const STALE_ATLASSIAN_MCP_URLS = ['https://mcp.atlassian.com/v1/sse']; // retired 2026-06-30
 
 // ---- Stella layer (Task 11) ----
 const STELLA_CUSTOM_DIR = `${BMAD_DIR}/custom/stella`; // checklists, utils, friction.json, guard.json
@@ -119,6 +135,7 @@ module.exports = {
   OUTPUT_DIR,
   STELLA_OUTPUT_DIR,
   TOKEN_ENV_FILE,
+  LEGACY_TOKEN_ENV_FILE,
   PROJECT_JSON_FILE,
   GITIGNORE_LINES,
   GITIGNORE_HEADER,
@@ -126,5 +143,10 @@ module.exports = {
   BMAD_INSTALL_FLAGS,
   USER_NAME_FALLBACK,
   MIN_NODE,
+  MIN_PYTHON,
+  PYTHON_INSTALL_VERSION,
+  UV_INSTALL_URL,
+  ATLASSIAN_MCP,
+  STALE_ATLASSIAN_MCP_URLS,
   COMMONJS_PACKAGE_JSON,
 };

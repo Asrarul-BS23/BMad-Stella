@@ -115,10 +115,10 @@ ok(/^│ {3}\.gitignore {2}added _bmad\/$/m.test(t), 'rows: note row without a m
 ok((t.match(/^│$/gm) || []).length === 3, 'gap: bare │ rows between steps');
 ok(/^└ Ready\. {2}SLS is set up in proj$/m.test(t), 'end: Ready line');
 ok(
-  /┌─+┐\n│ ◆ Next: connect Atlassian +│\n│ {3}Check your Claude account connectors\. Atlassian must be +│\n│ {3}connected before agents can read or update JIRA\. +│\n└─+┘/.test(
+  /┌─+┐\n│ ◆ Next: log in to Atlassian once +│\n│ {3}Open Claude Code in this folder, run \/mcp, pick atlassian +│\n│ {3}and finish the browser login\. +│\n└─+┘/.test(
     t,
   ),
-  'next: panel with the connector text',
+  'next: panel with the one-time /mcp login text',
 );
 ok(!/stella-build|\/bmad|Settings → Connectors/.test(t), 'no command hints anywhere');
 ok(

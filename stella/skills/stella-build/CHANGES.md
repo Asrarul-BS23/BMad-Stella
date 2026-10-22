@@ -15,9 +15,9 @@ Rule: copy exactly, change only where a requirement demands it. Settings go in `
 
 Three official keys filled, nothing else touched. The `_bmad/custom/stella-build.toml` override file is never created; these are the defaults. (Task 6b-2, 2026-10-16)
 
-- Line 17 `activation_steps_prepend`: one step, the Jira intent. A Jira key or URL becomes `{jira_key}`; the issue is fetched through the Atlassian connector (HALT with a connect message when it is unavailable), attachments and images through `_bmad/custom/stella/utils/jira-attachments`, and the result is the intent for step 01; `jira_key` is written into the spec frontmatter. A spec path or raw text changes nothing and prints nothing.
+- Line 17 `activation_steps_prepend`: one step, the Jira intent. A Jira key or URL becomes `{jira_key}`; the issue is fetched through the Atlassian MCP server (HALT with a /mcp login message when it is unavailable), attachments and images through `_bmad/custom/stella/utils/jira-attachments`, and the result is the intent for step 01; `jira_key` is written into the spec frontmatter. A spec path or raw text changes nothing and prints nothing.
 - Line 27 `persistent_facts`: four entries. `file:project-context/project.md` and `file:project-context/architecture.md` (the lead-made context from `stella-project-context`; missing files load nothing). The clean-tree allow-list: `.gitignore` and `project-context/` do not count as dirty in step 01 and are left out of the step 03 diff. Caveman full for chat, spec body and Jira comment, with the exact-list of what is never compressed; code, tests, diff and deferred-work file stay normal.
-- Line 32 `on_complete`: with a `{jira_key}`, compose a short caveman comment, show it, ask y/n, post through the Atlassian connector; never change status, assignee, labels or attachments. Without a key, nothing.
+- Line 32 `on_complete`: with a `{jira_key}`, compose a short caveman comment, show it, ask y/n, post through the Atlassian MCP server; never change status, assignee, labels or attachments. Without a key, nothing.
 
 Skipped by decision: a fourth security review layer. Security stays with `/stella-security`.
 
