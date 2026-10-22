@@ -132,7 +132,9 @@ async function install(root, deps) {
   ui.line(
     'ok',
     creds.verified
-      ? `Signed in as ${creds.displayName || creds.email}`
+      ? `Signed in as ${creds.displayName || creds.email}${
+          creds.source === 'legacy' ? '  (credentials carried over from the previous install)' : ''
+        }`
       : `${creds.email} (not verified)`,
   );
   ui.gap();

@@ -213,6 +213,108 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     );
   }
 
+  // ================= JIRA credentials carried over from a v4 install =================
+  {
+    const fetchOk = async () => jsonRes(200, { displayName: 'Ash' });
+    const fetch401 = async () => jsonRes(401, {});
+    const fetchDown = async () => {
+      throw new Error('ECONNREFUSED');
+    };
+    const legacyRoot = (name, lines) => {
+      const root = tmp(name);
+      const file = jira.legacyTokenFilePath(root);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, lines.join('\n') + '\n');
+      return root;
+    };
+    ok(jira.readLegacyTokenFile(tmp('legacy-none')) === null, 'legacy: no v4 file → null');
+
+    // valid pair → carried over, nothing asked, v6 file written
+    let root = legacyRoot('legacy-ok', [
+      'JIRA_BASE_URL=https://stellaint.atlassian.net',
+      'JIRA_EMAIL=old@stella.com',
+      'JIRA_API_TOKEN=old-token-1234567890',
+    ]);
+    let s = scripted([]);
+    let r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
+    ok(
+      r.source === 'legacy' && r.verified && r.email === 'old@stella.com' && s.asked.length === 0,
+      'legacy: valid pair → carried over silently',
+    );
+    ok(
+      jira.readTokenFile(root).token === 'old-token-1234567890',
+      'legacy: v6 token file written from the v4 values',
+    );
+    s = scripted([true]);
+    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
+    ok(r.source === 'file', 'legacy: next run reads the v6 file, not bmad-docs');
+
+    // invalid token → only the token is asked, email kept
+    root = legacyRoot('legacy-401', ['JIRA_EMAIL=old@stella.com', 'JIRA_API_TOKEN=expired']);
+    s = scripted(['new-token-1234567890']);
+    let calls = 0;
+    r = await jira.run(root, {
+      prompt: s.prompt,
+      fetch: async () => (++calls === 1 ? fetch401() : fetchOk()),
+      log: quiet,
+      env: {},
+    });
+    ok(
+      s.asked.join(',') === 'token' && r.email === 'old@stella.com' && r.source === 'prompt',
+      'legacy: invalid token → token asked only, email kept',
+    );
+    ok(r.verified && r.written, 'legacy: new token verified and written');
+
+    // email only → token asked, email kept
+    root = legacyRoot('legacy-email', ['JIRA_EMAIL=old@stella.com']);
+    s = scripted(['new-token-1234567890']);
+    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
+    ok(
+      s.asked.join(',') === 'token' && r.email === 'old@stella.com',
+      'legacy: email only → token asked, email kept',
+    );
+
+    // network down while verifying the old pair → nothing carried over, token asked
+    root = legacyRoot('legacy-down', [
+      'JIRA_EMAIL=old@stella.com',
+      'JIRA_API_TOKEN=maybe-ok-1234567890',
+    ]);
+    s = scripted(['new-token-1234567890']);
+    r = await jira.run(root, { prompt: s.prompt, fetch: fetchDown, log: quiet, env: {} });
+    ok(
+      s.asked.join(',') === 'token' && r.source === 'prompt' && !r.verified,
+      'legacy: unverifiable pair is not carried over',
+    );
+
+    // wrong new token after a legacy email → second attempt asks email too
+    root = legacyRoot('legacy-retry', ['JIRA_EMAIL=old@stella.com']);
+    s = scripted(['bad-token-1234567890', 'new@stella.com', 'good-token-1234567890']);
+    calls = 0;
+    r = await jira.run(root, {
+      prompt: s.prompt,
+      fetch: async () => (++calls === 1 ? fetch401() : fetchOk()),
+      log: quiet,
+      env: {},
+    });
+    ok(
+      s.asked.join(',') === 'token,email,token' && r.email === 'new@stella.com',
+      'legacy: failed attempt → email asked again, old email as default',
+    );
+
+    // a v6 file wins over the v4 file
+    root = legacyRoot('legacy-both', [
+      'JIRA_EMAIL=old@stella.com',
+      'JIRA_API_TOKEN=old-1234567890',
+    ]);
+    jira.writeTokenFile(root, { email: 'v6@stella.com', token: 'v6-token-1234567890' });
+    s = scripted([true]);
+    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
+    ok(
+      r.source === 'file' && r.email === 'v6@stella.com' && s.asked.join(',') === 'reuse',
+      'legacy: existing v6 file takes precedence',
+    );
+  }
+
   // ================= project picker =================
   {
     ok(picker.projectNameFromTitle('P-LEADRSC') === 'LEADRSC', 'picker: prefix stripped');
