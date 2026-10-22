@@ -8,6 +8,7 @@
 const path = require('node:path');
 const constants = require('./constants');
 const preflight = require('./preflight');
+const toolInstaller = require('./tool-installer');
 const jira = require('./jira-credentials-manager');
 const picker = require('./project-picker');
 const cleaner = require('./cleaner');
@@ -37,6 +38,8 @@ async function install(root, deps) {
     verbose = false,
     runBmad = (r, o) => runner.install(r, o),
     userHooks = defaultUserHooks,
+    check = preflight.check,
+    tools = toolInstaller,
     ui = silentUi(),
     env = process.env,
     isTTY = Boolean(process.stdin.isTTY),
@@ -56,22 +59,60 @@ async function install(root, deps) {
 
   ui.header(root);
 
-  // 1. preflight
+  // 1. preflight; uv and Python are installed when missing (silent, user-level)
   ui.step(1);
-  const s1 = ui.spin('checking node, uv, gh, git…');
-  const pf = preflight.check();
-  summary.warnings.push(...pf.warnings);
+  const s1 = ui.spin('checking node, uv, python, gh, git…');
+  let pf = check();
+  if (!pf.found.node) {
+    s1.fail(pf.errors[0]);
+    throw new Error(pf.errors.join('\n'));
+  }
+  const installed = {};
+  const earlyWarnings = [];
+  if (!pf.found.uv) {
+    s1.update('installing uv…');
+    const r = tools.ensureUv();
+    if (r.status === 'failed') {
+      s1.fail(`uv could not be installed — ${r.detail}`);
+      throw new Error(
+        `uv could not be installed (${r.detail}). Install it from ${constants.UV_INSTALL_URL} and re-run.`,
+      );
+    }
+    if (r.status === 'installed') installed.uv = true;
+  }
+  if (!pf.found.python) {
+    s1.update(`installing python ${constants.PYTHON_INSTALL_VERSION} for uv…`);
+    const r = tools.ensurePython();
+    if (r.status === 'installed') installed.python = true;
+    else if (r.status !== 'present')
+      earlyWarnings.push(
+        `Python ${constants.PYTHON_INSTALL_VERSION} was not installed (${r.detail}). uv will download one on first use.`,
+      );
+  }
+  if (installed.uv || installed.python) pf = check();
+  summary.tools = { installed: Object.keys(installed) };
+  earlyWarnings.push(...pf.warnings);
+  summary.warnings.push(...earlyWarnings);
   if (!pf.ok) {
     s1.fail(pf.errors[0]);
     throw new Error(pf.errors.join('\n'));
   }
   s1.succeed(
-    ['node', 'uv', 'gh', 'git']
+    ['node', 'uv', 'python', 'gh', 'git']
       .filter((t) => pf.found[t])
-      .map((t) => (pf.versions[t] ? `${t} ${pf.versions[t]}` : t))
+      .map((t) => {
+        const v = pf.versions[t] ? `${t} ${pf.versions[t]}` : t;
+        if (!installed[t]) return v;
+        return `${v} (installed${t === 'python' ? ' for uv' : ''})`;
+      })
       .join('   '),
   );
-  for (const w of pf.warnings) ui.line('warn', w);
+  if (installed.uv)
+    ui.line(
+      'note',
+      'uv was installed to ~/.local/bin — new terminals see it after you reopen them',
+    );
+  for (const w of earlyWarnings) ui.line('warn', w);
 
   // 2. re-run detection
   summary.rerun = cleaner.isRerun(root);
@@ -171,7 +212,7 @@ async function install(root, deps) {
       if (n.cont) ui.cont(n.cont);
     } else ui.line('note', n.text);
   }
-  for (const w of summary.warnings.filter((w) => !pf.warnings.includes(w))) ui.line('warn', w);
+  for (const w of summary.warnings.filter((w) => !earlyWarnings.includes(w))) ui.line('warn', w);
 
   summary.next = NEXT_TEXT.join(' ');
   ui.end(`${project.name} is set up in ${path.basename(root)}`);

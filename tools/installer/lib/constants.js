@@ -44,6 +44,11 @@ const BMAD_INSTALL_FLAGS = {
 const USER_NAME_FALLBACK = 'stella-dev';
 
 const MIN_NODE = { major: 20, minor: 10 };
+// BMad's render scripts declare `requires-python >= 3.11`. When no such Python is
+// on PATH the installer adds a uv-managed one (system Python untouched).
+const MIN_PYTHON = { major: 3, minor: 11 };
+const PYTHON_INSTALL_VERSION = '3.12';
+const UV_INSTALL_URL = 'https://docs.astral.sh/uv/getting-started/installation/';
 
 // ---- Stella layer (Task 11) ----
 const STELLA_CUSTOM_DIR = `${BMAD_DIR}/custom/stella`; // checklists, utils, friction.json, guard.json
@@ -126,5 +131,8 @@ module.exports = {
   BMAD_INSTALL_FLAGS,
   USER_NAME_FALLBACK,
   MIN_NODE,
+  MIN_PYTHON,
+  PYTHON_INSTALL_VERSION,
+  UV_INSTALL_URL,
   COMMONJS_PACKAGE_JSON,
 };
