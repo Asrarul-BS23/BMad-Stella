@@ -42,5 +42,5 @@ Chat and the spec are in caveman style. Code, tests and the diff are normal.
 
 - Project context from `project-context/` is loaded on every run when the lead has created it: [project-context.md](project-context.md).
 - A dirty `.gitignore` or `project-context/` does not count as a dirty tree.
-- No Atlassian connector: the run stops and asks you to connect it or paste the ticket text.
+- Not logged in to Atlassian: the run stops and asks you to run `/mcp` and log in, or paste the ticket text.
 - The official `/bmad-build` is also installed. Use `/stella-build` for Stella projects; it is the one that posts to Jira and never commits.

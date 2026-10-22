@@ -38,7 +38,7 @@ Two questions (Atlassian credentials, project), about a minute. Details: [docs/i
 
 ## Requirements
 
-Node 20.10+, Python 3.11+, `uv`, `git`. `gh` for PR review. Claude Code with the Atlassian connector connected.
+Node 20.10+, `git`, Claude Code. `gh` for PR review. uv and Python are installed for you if missing.
 
 ## License
 
