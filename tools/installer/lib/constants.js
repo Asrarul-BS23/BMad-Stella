@@ -52,6 +52,15 @@ const MIN_PYTHON = { major: 3, minor: 11 };
 const PYTHON_INSTALL_VERSION = '3.12';
 const UV_INSTALL_URL = 'https://docs.astral.sh/uv/getting-started/installation/';
 
+// Atlassian's official remote MCP server, registered per project in Claude Code's
+// local scope (as v4 did). The dev logs in once via /mcp in Claude Code.
+const ATLASSIAN_MCP = {
+  name: 'atlassian',
+  transport: 'http',
+  url: 'https://mcp.atlassian.com/v1/mcp',
+};
+const STALE_ATLASSIAN_MCP_URLS = ['https://mcp.atlassian.com/v1/sse']; // retired 2026-06-30
+
 // ---- Stella layer (Task 11) ----
 const STELLA_CUSTOM_DIR = `${BMAD_DIR}/custom/stella`; // checklists, utils, friction.json, guard.json
 const CLAUDE_DIR = '.claude';
@@ -137,5 +146,7 @@ module.exports = {
   MIN_PYTHON,
   PYTHON_INSTALL_VERSION,
   UV_INSTALL_URL,
+  ATLASSIAN_MCP,
+  STALE_ATLASSIAN_MCP_URLS,
   COMMONJS_PACKAGE_JSON,
 };

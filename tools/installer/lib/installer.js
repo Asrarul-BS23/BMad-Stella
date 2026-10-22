@@ -9,6 +9,7 @@ const path = require('node:path');
 const constants = require('./constants');
 const preflight = require('./preflight');
 const toolInstaller = require('./tool-installer');
+const mcpRegistrar = require('./mcp-registrar');
 const jira = require('./jira-credentials-manager');
 const picker = require('./project-picker');
 const cleaner = require('./cleaner');
@@ -40,6 +41,7 @@ async function install(root, deps) {
     userHooks = defaultUserHooks,
     check = preflight.check,
     tools = toolInstaller,
+    mcp = mcpRegistrar,
     ui = silentUi(),
     env = process.env,
     isTTY = Boolean(process.stdin.isTTY),
@@ -189,6 +191,10 @@ async function install(root, deps) {
   summary.settings = layer.registerSettings(root);
   summary.created.push(...layer.ensureOutputFolders(root));
 
+  // Atlassian MCP in Claude Code's local scope (silent; login happens later via /mcp)
+  s5.update('registering Atlassian MCP…');
+  summary.mcp = mcp.register(root);
+
   // 14. domain docs
   s5.update('fetching domain docs…');
   summary.domainDocs = await domain.fetchDomainDocs(root, { project, creds, fetch, log: note });
@@ -229,10 +235,25 @@ function layerDetail(s) {
     `${s.skills.length} skills`,
     `${s.hooks.length} hooks`,
     'permissions',
+    mcpOk(s.mcp) ? 'Atlassian MCP' : null,
     d.status === 'fetched' ? `${d.files.length} domain pages` : null,
     s.userHooks && s.userHooks.status && s.userHooks.status !== 'error' ? 'user hooks' : null,
   ];
   return parts.filter(Boolean).join('   ');
+}
+
+const mcpOk = (m) => Boolean(m && ['registered', 'replaced', 'present'].includes(m.status));
+
+/** Warn line when the Atlassian MCP could not be registered; null when it was. */
+function mcpNote(m) {
+  if (!m || mcpOk(m)) return null;
+  if (m.status === 'no-cli')
+    return {
+      kind: 'warn',
+      text: 'Atlassian MCP not registered — claude command not found',
+      cont: 'install the Claude Code CLI and re-run',
+    };
+  return { kind: 'warn', text: `Atlassian MCP not registered — ${m.detail}`, cont: null };
 }
 
 /** "already has files (delete …)" → warn + how-to continuation; other reasons stay whole. */
@@ -257,6 +278,7 @@ function layerNotes(s) {
       : null,
     d.status === 'skipped' ? skippedNote(d.reason) : null,
     d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
+    mcpNote(s.mcp),
     s.created.length > 0 ? { kind: 'note', text: `created ${s.created.join(', ')}` } : null,
   ].filter(Boolean);
 }
@@ -265,7 +287,7 @@ function layerNotes(s) {
  * Removes everything the installer put in place except _bmad-output/.
  * @returns {Promise<{removed:string[], aborted:boolean}>}
  */
-async function uninstall(root, { prompt, yes = false } = {}) {
+async function uninstall(root, { prompt, yes = false, mcp = mcpRegistrar } = {}) {
   if (!yes) {
     const { confirm } = await prompt([
       {
@@ -279,11 +301,13 @@ async function uninstall(root, { prompt, yes = false } = {}) {
   }
   const settingsTouched = layer.unregisterSettings(root);
   const gi = gitignore.remove(root);
+  const m = mcp.unregister(root);
   const removed = [
     ...cleaner.clean(root, { rerun: true }).removed,
     ...layer.removeStellaClaudeParts(root),
     ...layer.removeBmadSkills(root),
     settingsTouched ? `${constants.SETTINGS_LOCAL} (our entries)` : null,
+    m.status === 'removed' ? 'Atlassian MCP (Claude Code local scope)' : null,
     gi.removed.length > 0 ? `.gitignore (${gi.removed.join(', ')})` : null,
   ].filter(Boolean);
   return { removed, aborted: false };

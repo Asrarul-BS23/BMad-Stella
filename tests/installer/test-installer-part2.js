@@ -13,6 +13,18 @@ const REPO = path.resolve(__dirname, '..', '..');
 const LIB = path.join(REPO, 'tools', 'installer', 'lib');
 const C = require(path.join(LIB, 'constants.js'));
 const installer = require(path.join(LIB, 'installer.js'));
+// Never touch the real ~/.claude.json from tests.
+const mcpCalls = [];
+const mcpMock = {
+  register: (root) => {
+    mcpCalls.push(['register', root]);
+    return { status: 'registered', url: C.ATLASSIAN_MCP.url, detail: null };
+  },
+  unregister: (root) => {
+    mcpCalls.push(['unregister', root]);
+    return { status: 'removed', detail: null };
+  },
+};
 const layer = require(path.join(LIB, 'stella-layer.js'));
 const domain = require(path.join(LIB, 'domain-knowledge-fetcher.js'));
 const gitignore = require(path.join(LIB, 'gitignore.js'));
@@ -135,6 +147,7 @@ const userHooks = async () => ({ status: 'current', changed: false });
   // ================= 1. fresh install =================
   let s = scripted(['dev@stella.com', 'tok-abcdefghijklmnop', 'LEADRSC']);
   let sum = await installer.install(root, {
+    mcp: mcpMock,
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -311,9 +324,14 @@ const userHooks = async () => ({ status: 'current', changed: false });
   );
   ok(sum.userHooks.status === 'current', 'user hooks: called');
   ok(
-    /Atlassian must be connected/.test(sum.next) && !/stella-build/.test(sum.next),
-    'summary: Next text is the connector check only',
+    /run \/mcp, pick atlassian/.test(sum.next) && !/stella-build/.test(sum.next),
+    'summary: Next text is the one-time /mcp login only',
   );
+  ok(
+    sum.mcp.status === 'registered' && mcpCalls.some(([k, r]) => k === 'register' && r === root),
+    'mcp: Atlassian MCP registered for the project root',
+  );
+  ok(/Atlassian MCP/.test(installer.layerDetail(sum)), 'mcp: ✓ line names Atlassian MCP');
   const tree1 = listTree(root);
 
   // ================= 2. re-run =================
@@ -325,6 +343,7 @@ const userHooks = async () => ({ status: 'current', changed: false });
   );
   s = scripted([true, 'LEADRSC']);
   sum = await installer.install(root, {
+    mcp: mcpMock,
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -371,10 +390,10 @@ const userHooks = async () => ({ status: 'current', changed: false });
 
   // ================= 3. uninstall =================
   s = scripted([false]);
-  let u = await installer.uninstall(root, { prompt: s.prompt });
+  let u = await installer.uninstall(root, { prompt: s.prompt, mcp: mcpMock });
   ok(u.aborted && exists(root, '_bmad/config.toml'), 'uninstall: "n" → nothing removed');
   s = scripted([true]);
-  u = await installer.uninstall(root, { prompt: s.prompt });
+  u = await installer.uninstall(root, { prompt: s.prompt, mcp: mcpMock });
   ok(
     !u.aborted && !exists(root, '_bmad') && !exists(root, '.claude/stella'),
     'uninstall: _bmad and .claude/stella gone',
@@ -413,6 +432,7 @@ const userHooks = async () => ({ status: 'current', changed: false });
   // ================= 4. install again =================
   s = scripted([true, 'LEADRSC']);
   sum = await installer.install(root, {
+    mcp: mcpMock,
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -451,6 +471,7 @@ const userHooks = async () => ({ status: 'current', changed: false });
   let threw = null;
   try {
     await installer.install(tmp('ni'), {
+      mcp: mcpMock,
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: fakeBmad,
@@ -470,6 +491,7 @@ const userHooks = async () => ({ status: 'current', changed: false });
   threw = null;
   try {
     await installer.install(failRoot, {
+      mcp: mcpMock,
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: async () => 2,
