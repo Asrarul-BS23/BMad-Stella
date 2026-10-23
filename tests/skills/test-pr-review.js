@@ -33,7 +33,7 @@ ok(fm !== null, 'frontmatter present');
 ok(fm && /^name:\s*stella-pr-review\s*$/m.test(fm[1]), 'frontmatter name = stella-pr-review');
 ok(fm && /^description:/m.test(fm[1]), 'description present');
 const V4 =
-  /bmad-docs|\.bmad-core|bmad-core|devLoadAlwaysFiles|core-config|domainKnowledge\.location|execute-checklist|Atlassian MCP|\/mcp|\*pr-review|Morgan|reviewer agent|review-pr\.md|pr-review-checklist/i;
+  /bmad-docs|\.bmad-core|bmad-core|devLoadAlwaysFiles|core-config|domainKnowledge\.location|execute-checklist|\*pr-review|Morgan|reviewer agent|review-pr\.md|pr-review-checklist/i;
 ok(!V4.test(skill), 'skill: no v4 strings');
 ok(!V4.test(checklist), 'checklist: no v4 strings');
 ok(!skill.includes('\r\n') && !checklist.includes('\r\n'), 'LF line endings');
@@ -55,9 +55,12 @@ ok(
 ok(/AGENTS\.md/.test(skill), 'skill: context from AGENTS.md');
 ok(/_bmad-output\/stella\/domain-knowledge\//.test(skill), 'skill: domain knowledge folder');
 ok(
-  /claude\.ai Atlassian connector/.test(skill) && /Settings → Connectors/.test(skill),
-  'skill: connector + settings hint',
+  /node _bmad\/custom\/stella\/utils\/jira-attachments \{KEY\}/.test(skill) &&
+    /Exit 20: print its `message`, then fetch the ticket through the Atlassian MCP/.test(skill) &&
+    !/Settings → Connectors/.test(skill),
+  'skill: ticket via the token helper first, MCP as fallback, no connector hint',
 );
+ok(/`parent` in the manifest/.test(skill), 'skill: parent ticket read from the helper manifest');
 ok(/read `checklist\.md` next to this skill/i.test(skill), 'skill: checklist evaluated inline');
 
 // ---- every command the Guard section allows is accepted by the policy ----

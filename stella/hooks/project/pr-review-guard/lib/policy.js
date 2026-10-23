@@ -119,7 +119,7 @@ function flagName(token) {
 // Scratch sandbox: verification scripts (pure computation only)
 // ---------------------------------------------------------------------------
 
-const { SEP, REVIEWER_RE_PART, HELPER_RE_PART } = paths;
+const { SEP, REVIEWER_RE_PART, HELPER_RE_PART, JIRA_FETCH_HELPER_RE_PART } = paths;
 const SCRATCH_FILE_RE = new RegExp(`(^|${SEP})${REVIEWER_RE_PART}${SEP}\\.scratch${SEP}[^\\\\/]+$`);
 // one folder per PR: <reviewer>/<repo>-pr<N>/{review.md,findings.json,reproduce.md}
 const FINDINGS_FILE_RE = new RegExp(
@@ -131,6 +131,11 @@ const FINDINGS_JSON_RE = new RegExp(
 // the only helper the review may run: posts findings as PR comments (one hard-coded endpoint)
 const PR_COMMENTS_HELPER_RE = new RegExp(`(^|${SEP})${HELPER_RE_PART}(?:${SEP}index\\.js)?$`);
 const PR_COMMENTS_FLAGS = new Set(['--post', '--submit', '--allow-long', '--help', '-h']);
+// read-only ticket fetch: `node <jira-attachments helper> <ISSUE-KEY>`, key only, no flags
+const JIRA_FETCH_HELPER_RE = new RegExp(
+  `(^|${SEP})${JIRA_FETCH_HELPER_RE_PART}(?:${SEP}index\\.js)?$`,
+);
+const ISSUE_KEY_RE = /^[A-Z][A-Z0-9]+-\d+$/i;
 
 function normalizePath(p) {
   return String(p || '').replaceAll('\\', '/');
@@ -281,6 +286,19 @@ function checkBash(rawCommand, readScript) {
       if (!PR_COMMENTS_FLAGS.has(unquote(t))) {
         return { allow: false, reason: `option '${unquote(t)}' is not allowed with pr-comments` };
       }
+    }
+    return { allow: true };
+  }
+
+  // `node <jira-attachments helper> <ISSUE-KEY>` — fetches ticket text + attachments into
+  // the Jira cache. Read-only against Jira; the only argument is one issue key.
+  if (
+    tokens[0] === 'node' &&
+    tokens.length >= 2 &&
+    JIRA_FETCH_HELPER_RE.test(normalizePath(unquote(tokens[1])))
+  ) {
+    if (tokens.length !== 3 || !ISSUE_KEY_RE.test(unquote(tokens[2]))) {
+      return { allow: false, reason: 'jira-attachments takes exactly one issue key, no flags' };
     }
     return { allow: true };
   }

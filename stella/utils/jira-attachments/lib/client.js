@@ -173,7 +173,8 @@ class JiraClient {
   async fetchIssue(issueKey) {
     const base = this.config.baseUrl.replace(/\/$/, '');
     const params = new URLSearchParams({
-      fields: 'attachment,description,comment,summary,status,updated,issuetype,project',
+      fields:
+        'attachment,description,comment,summary,status,updated,issuetype,project,parent,issuelinks,labels,priority',
       expand: 'renderedFields',
     });
     const url = `${base}/rest/api/3/issue/${encodeURIComponent(issueKey)}?${params.toString()}`;

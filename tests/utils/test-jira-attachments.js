@@ -125,6 +125,21 @@ ok(
     /_bmad-output[\\/]stella[\\/]\.bmad-tokens[\\/]\.env/.test(res.stderr),
   'cli: missing credentials → exit 10, names the v6 token file',
 );
+ok(
+  (() => {
+    try {
+      const j = JSON.parse(res.stdout);
+      return (
+        j.ok === false &&
+        j.code === 10 &&
+        j.message === 'Jira token file missing. Run the installer again.'
+      );
+    } catch {
+      return false;
+    }
+  })(),
+  'cli: missing credentials → stdout JSON carries the dev-facing line',
+);
 res = run(['--self-test']);
 ok(res.status === 10, 'cli: --self-test without credentials → exit 10');
 res = run(['AIL-1', '--purge']);

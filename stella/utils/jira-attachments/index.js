@@ -4,7 +4,13 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { performance } = require('node:perf_hooks');
 
-const { resolveConfig, validateConfig, ENV_KEYS, tokensEnvPath } = require('./lib/config');
+const {
+  resolveConfig,
+  validateConfig,
+  ENV_KEYS,
+  tokensEnvPath,
+  TOKENS_ENV,
+} = require('./lib/config');
 const { JiraClient, JiraError } = require('./lib/client');
 const { collectAdfMediaFromIssue, summarizeDescription, extractPlainText } = require('./lib/adf');
 const {
@@ -289,7 +295,29 @@ function buildManifest({ issue, ticketKey, config, downloads, skipped, adfLocati
       type: issue?.fields?.issuetype?.name || null,
       updated: issue?.fields?.updated || null,
       project: issue?.fields?.project?.key || null,
+      labels: Array.isArray(issue?.fields?.labels) ? issue.fields.labels : [],
+      priority: issue?.fields?.priority?.name || null,
     },
+    // A Jira parent (epic or story) is context only — never a BMad epic.
+    parent: issue?.fields?.parent
+      ? {
+          key: issue.fields.parent.key || null,
+          title: issue.fields.parent.fields?.summary || null,
+          type: issue.fields.parent.fields?.issuetype?.name || null,
+        }
+      : null,
+    links: (Array.isArray(issue?.fields?.issuelinks) ? issue.fields.issuelinks : [])
+      .map((l) => {
+        const other = l.outwardIssue || l.inwardIssue;
+        if (!other) return null;
+        return {
+          type: (l.outwardIssue ? l.type?.outward : l.type?.inward) || l.type?.name || null,
+          key: other.key || null,
+          title: other.fields?.summary || null,
+          status: other.fields?.status?.name || null,
+        };
+      })
+      .filter(Boolean),
     description: summarizeDescription(issue),
     comments: buildCommentSummaries(issue),
     adfMediaReferences: adfLocations,
@@ -399,7 +427,7 @@ async function main(argv) {
 
   if (config.baseUrlWarning) {
     logger.error(`Invalid JIRA_BASE_URL — ${config.baseUrlWarning}`);
-    return EXIT_CODES.CONFIG;
+    return fail(EXIT_CODES.CONFIG, `Invalid JIRA_BASE_URL — ${config.baseUrlWarning}`);
   }
 
   const validation = validateConfig(config);
@@ -407,7 +435,7 @@ async function main(argv) {
     logger.error(
       `Missing credentials: ${validation.missing.join(', ')}. Set them as env vars or in ${tokensEnvPath(config.projectRoot)}.`,
     );
-    return EXIT_CODES.CONFIG;
+    return fail(EXIT_CODES.CONFIG, MESSAGES.tokenMissing);
   }
 
   if (args.selfTest) {
@@ -416,13 +444,14 @@ async function main(argv) {
       return EXIT_CODES.OK;
     } catch (error) {
       logger.error(error.message);
-      return mapErrorToExit(error);
+      const code = mapErrorToExit(error);
+      return fail(code, failureMessage(code, error));
     }
   }
 
   if (args.positional.length === 0) {
     logger.error('A Jira ticket key or URL is required. Use --help for usage.');
-    return EXIT_CODES.CONFIG;
+    return fail(EXIT_CODES.CONFIG, 'A Jira ticket key or URL is required.');
   }
 
   let ticketKey;
@@ -430,7 +459,7 @@ async function main(argv) {
     ticketKey = sanitizeTicketKey(extractIssueKey(args.positional[0]));
   } catch (error) {
     logger.error(error.message);
-    return EXIT_CODES.CONFIG;
+    return fail(EXIT_CODES.CONFIG, error.message);
   }
 
   const startMs = performance.now();
@@ -441,7 +470,8 @@ async function main(argv) {
     issue = await client.fetchIssue(ticketKey);
   } catch (error) {
     logger.error(error.message);
-    return mapErrorToExit(error);
+    const code = mapErrorToExit(error);
+    return fail(code, failureMessage(code, error));
   }
 
   const adfLocations = collectAdfMediaFromIssue(issue);
@@ -481,7 +511,8 @@ async function main(argv) {
     downloads = await handleDownloads(client, planned, ticketKey, config, logger);
   } catch (error) {
     logger.error(`Unexpected download error: ${error.message}`);
-    return mapErrorToExit(error);
+    const code = mapErrorToExit(error);
+    return fail(code, failureMessage(code, error));
   }
 
   const manifest = buildManifest({
@@ -518,6 +549,25 @@ function emitResult(manifestPath, manifest) {
     fetchDurationMs: manifest.fetchDurationMs,
   };
   process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+}
+
+// Dev-facing failure messages. The skills print `message` verbatim and act on
+// `code`; the wording lives here, not in the skill files.
+const TOKEN_FILE_LABEL = TOKENS_ENV.replaceAll('\\', '/'); // relative, forward slashes
+const MESSAGES = Object.freeze({
+  tokenExpired: `Jira token expired. Put a new token in ${TOKEN_FILE_LABEL} (JIRA_API_TOKEN).`,
+  tokenMissing: 'Jira token file missing. Run the installer again.',
+});
+
+/** Writes `{ ok:false, code, message }` to stdout and returns the exit code. */
+function fail(code, message) {
+  process.stdout.write(`${JSON.stringify({ ok: false, code, message }, null, 2)}\n`);
+  return code;
+}
+
+function failureMessage(code, error) {
+  if (code === EXIT_CODES.AUTH) return MESSAGES.tokenExpired;
+  return error && error.message ? error.message : `exit ${code}`;
 }
 
 function mapErrorToExit(error) {

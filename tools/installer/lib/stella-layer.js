@@ -53,7 +53,7 @@ function rmIfPresent(target) {
 function copyStellaFiles(root) {
   const dest = rel(root, STELLA_CUSTOM_DIR);
   copyDir(SRC.checklists, path.join(dest, 'checklists'));
-  for (const util of ['jira-attachments', 'pr-comments']) {
+  for (const util of ['jira-attachments', 'jira-comment', 'pr-comments']) {
     copyDir(path.join(SRC.utils, util), path.join(dest, 'utils', util));
   }
   fs.writeFileSync(

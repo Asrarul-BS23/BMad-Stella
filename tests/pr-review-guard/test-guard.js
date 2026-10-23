@@ -38,6 +38,8 @@ const ALLOW = [
   'gh pr view 12 --json title -q .title',
   'gh pr diff https://github.com/o/r/pull/12',
   'gh pr diff 12 --name-only',
+  'node _bmad/custom/stella/utils/jira-attachments LEADRSC-4901',
+  'node _bmad/custom/stella/utils/jira-attachments/index.js leadrsc-4901',
   'gh pr checks https://github.com/o/r/pull/12',
   'git fetch origin pull/12/head',
   `git cat-file -t ${SHA}`,
@@ -88,6 +90,19 @@ const BLOCK = [
   [`node .bmad-core/utils/pr-comments ${REV}/r-pr12/findings.json`, 'old v4 helper path'],
   [`node ${HELPER} bmad-docs/reviewer/r-pr12/findings.json`, 'helper with old v4 findings path'],
   [`node ${HELPER} ${REV}/r-pr12/findings.json --force`, 'helper with unknown flag'],
+  [
+    'node _bmad/custom/stella/utils/jira-attachments LEADRSC-4901 --force-refresh',
+    'jira fetch with a flag',
+  ],
+  ['node _bmad/custom/stella/utils/jira-attachments', 'jira fetch without a key'],
+  [
+    'node _bmad/custom/stella/utils/jira-attachments https://x.atlassian.net/browse/A-1',
+    'jira fetch with a url',
+  ],
+  [
+    'node _bmad/custom/stella/utils/jira-comment LEADRSC-4901',
+    'jira-comment never runs in a review',
+  ],
 ];
 for (const c of ALLOW) ok(checkBash(c).allow === true, `allow: ${c}`);
 for (const [c, label] of BLOCK) ok(checkBash(c).allow === false, `block: ${label}`);
