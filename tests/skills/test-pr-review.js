@@ -52,7 +52,10 @@ ok(
   checklist.includes(`${reviewer}/`) && checklist.includes(`${scratch}/`),
   'checklist: guard paths',
 );
-ok(/AGENTS\.md/.test(skill), 'skill: context from AGENTS.md');
+ok(
+  /project-context\/project\.md/.test(skill) && !/AGENTS\.md/.test(skill),
+  'skill: context from project-context/, no AGENTS.md',
+);
 ok(/_bmad-output\/stella\/domain-knowledge\//.test(skill), 'skill: domain knowledge folder');
 ok(
   /node _bmad\/custom\/stella\/utils\/jira-attachments \{KEY\}/.test(skill) &&

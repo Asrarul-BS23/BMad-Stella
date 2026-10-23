@@ -78,6 +78,11 @@ const STELLA_SKILLS = [
   'stella-project-context',
 ];
 
+// Official skills removed after the BMad install because a Stella version replaces
+// them (bmad-build-auto only loops bmad-build). Re-runs reinstall BMad, so this
+// runs every time. No official file is edited; the folders are simply not kept.
+const BMAD_SKILLS_REMOVED = ['bmad-build', 'bmad-build-auto', 'bmad-project-context'];
+
 // Project-level hooks copied to .claude/stella/hooks/<name>/ and registered in
 // settings.local.json. The memory hook is deliberately absent (out of scope).
 const PROJECT_HOOKS = [
@@ -120,6 +125,7 @@ module.exports = {
   STELLA_HOOKS_DIR,
   SETTINGS_LOCAL,
   STELLA_SKILLS,
+  BMAD_SKILLS_REMOVED,
   PROJECT_HOOKS,
   OUTPUT_FOLDERS,
   FRICTION_DEFAULTS,

@@ -62,7 +62,7 @@ const fakeBmad = async (root, { projectName, userName }) => {
     path.join(root, '_bmad', 'config.toml'),
     `[core]\nproject_name = "${projectName}"\nuser_name = "${userName}"\n`,
   );
-  for (const skill of ['bmad-build', 'bmad-help', 'bmad-project-context']) {
+  for (const skill of ['bmad-build', 'bmad-build-auto', 'bmad-help', 'bmad-project-context']) {
     const dir = path.join(root, '.claude', 'skills', skill);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'SKILL.md'), `---\nname: ${skill}\n---\n`);
@@ -185,7 +185,19 @@ const userHooks = async () => ({ status: 'current', changed: false });
   // step 10
   for (const skill of C.STELLA_SKILLS)
     ok(exists(root, `.claude/skills/${skill}/SKILL.md`), `layer: skill ${skill} installed`);
-  ok(exists(root, '.claude/skills/bmad-build/SKILL.md'), 'layer: official bmad-build kept');
+  for (const gone of C.BMAD_SKILLS_REMOVED)
+    ok(!exists(root, `.claude/skills/${gone}`), `layer: official ${gone} removed`);
+  ok(exists(root, '.claude/skills/bmad-help/SKILL.md'), 'layer: other official skills kept');
+  ok(
+    sum.removedBmadSkills.join(',') === 'bmad-build,bmad-build-auto,bmad-project-context',
+    'layer: summary lists the removed official skills',
+  );
+  ok(
+    installer
+      .layerNotes(sum)
+      .some((n) => /removed bmad-build, bmad-build-auto, bmad-project-context/.test(n.text)),
+    'layer: note row names them',
+  );
   ok(
     /^name: stella-build/m.test(read(root, '.claude/skills/stella-build/SKILL.md')),
     'layer: installed stella-build carries its own name',

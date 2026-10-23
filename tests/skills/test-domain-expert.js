@@ -49,8 +49,11 @@ ok(
 
 // ---- paths ----
 ok(skill.includes('_bmad-output/stella/domain-knowledge/'), 'skill: domain-knowledge folder');
-ok(/AGENTS\.md/.test(skill), 'skill: AGENTS.md as technical reference');
-ok(/bmad-project-context/.test(skill), 'skill: names the skill that writes AGENTS.md');
+ok(
+  /project-context\//.test(skill) && !/AGENTS\.md/.test(skill),
+  'skill: project-context/ as technical reference, no AGENTS.md',
+);
+ok(/stella-project-context/.test(skill), 'skill: names the skill that writes project-context/');
 ok(
   /Folder missing or empty/.test(skill) && /Continue/.test(skill),
   'skill: empty folder → warn and continue',
@@ -75,7 +78,8 @@ ok(/not currently covered in my knowledge base/.test(skill), 'rule: gap sentence
 ok(/Would you like me to scan the codebase/.test(skill), 'rule: permission question');
 ok(/Never skip the permission step/.test(skill), 'rule: never skip permission');
 ok(
-  /\[Source: domain-knowledge\/\{file\}\.md\]/.test(skill) && /\[Source: AGENTS\.md\]/.test(skill),
+  /\[Source: domain-knowledge\/\{file\}\.md\]/.test(skill) &&
+    /\[Source: project-context\/\{file\}\.md\]/.test(skill),
   'rule: citation formats',
 );
 ok(/\[Source: codebase scan\]/.test(skill), 'rule: scan answers marked');

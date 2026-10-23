@@ -187,6 +187,7 @@ async function install(root, deps) {
   const s5 = ui.spin('copying skills, hooks and helpers…');
   layer.copyStellaFiles(root);
   summary.skills = layer.copySkills(root);
+  summary.removedBmadSkills = layer.removeShadowedBmadSkills(root);
   summary.hooks = layer.copyHooks(root);
   summary.settings = layer.registerSettings(root);
   summary.created.push(...layer.ensureOutputFolders(root));
@@ -277,6 +278,12 @@ function layerNotes(s) {
     d.status === 'skipped' ? skippedNote(d.reason) : null,
     d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
     mcpNote(s.mcp),
+    s.removedBmadSkills && s.removedBmadSkills.length > 0
+      ? {
+          kind: 'note',
+          text: `removed ${s.removedBmadSkills.join(', ')} (Stella versions installed)`,
+        }
+      : null,
     s.created.length > 0 ? { kind: 'note', text: `created ${s.created.join(', ')}` } : null,
   ].filter(Boolean);
 }

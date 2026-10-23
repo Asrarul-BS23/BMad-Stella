@@ -43,4 +43,3 @@ Chat and the spec are in caveman style. Code, tests and the diff are normal.
 - Project context from `project-context/` is loaded on every run when the lead has created it: [project-context.md](project-context.md).
 - A dirty `.gitignore` or `project-context/` does not count as a dirty tree.
 - The ticket is fetched with your Jira token. If the token has expired, the run says so and continues through the Atlassian MCP without attachments; if that is not authenticated either, it stops and tells you to run `/mcp` or fix the token.
-- The official `/bmad-build` is also installed. Use `/stella-build` for Stella projects; it is the one that posts to Jira and never commits.

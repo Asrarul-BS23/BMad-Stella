@@ -15,6 +15,7 @@ const {
   STELLA_HOOKS_DIR,
   SETTINGS_LOCAL,
   STELLA_SKILLS,
+  BMAD_SKILLS_REMOVED,
   PROJECT_HOOKS,
   STELLA_OUTPUT_DIR,
   OUTPUT_FOLDERS,
@@ -210,6 +211,15 @@ function removeStellaClaudeParts(root) {
   return removed;
 }
 
+/** Official skills replaced by a Stella version: not kept after the BMad install. */
+function removeShadowedBmadSkills(root) {
+  const removed = [];
+  for (const name of BMAD_SKILLS_REMOVED) {
+    if (rmIfPresent(rel(root, `${CLAUDE_SKILLS_DIR}/${name}`))) removed.push(name);
+  }
+  return removed;
+}
+
 /** Official BMad skills (uninstall only). */
 function removeBmadSkills(root) {
   const dir = rel(root, CLAUDE_SKILLS_DIR);
@@ -233,6 +243,7 @@ module.exports = {
   ensureOutputFolders,
   removeStellaClaudeParts,
   removeBmadSkills,
+  removeShadowedBmadSkills,
   readSettings,
   mergeHooks,
   mergePermissions,
