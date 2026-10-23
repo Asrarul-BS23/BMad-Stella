@@ -10,7 +10,8 @@ const CONFIG_FILE = ['_bmad', 'custom', 'stella', 'guard.json']; // kill switch,
 const REVIEWER_DIR = ['_bmad-output', 'stella', 'reviewer']; // review folders live here
 const SCRATCH_DIR = [...REVIEWER_DIR, '.scratch']; // pure-computation scripts
 const STATE_DIR = [...REVIEWER_DIR, '.state']; // per-session cache + guard debug log
-const HELPER_PATH = ['_bmad', 'custom', 'stella', 'utils', 'pr-comments']; // the one runnable helper
+const HELPER_PATH = ['_bmad', 'custom', 'stella', 'utils', 'pr-comments']; // posts findings (Post to PR step)
+const JIRA_FETCH_HELPER_PATH = ['_bmad', 'custom', 'stella', 'utils', 'jira-attachments']; // read-only ticket fetch
 
 // Path-regex building blocks (forward or back slashes, used on normalized paths).
 const SEP = String.raw`[\\/]`;
@@ -18,6 +19,7 @@ const seg = (parts) => parts.map((p) => p.replaceAll('.', String.raw`\.`)).join(
 
 const REVIEWER_RE_PART = seg(REVIEWER_DIR); // _bmad-output[\/]stella[\/]reviewer
 const HELPER_RE_PART = seg(HELPER_PATH); // _bmad[\/]custom[\/]stella[\/]utils[\/]pr-comments
+const JIRA_FETCH_HELPER_RE_PART = seg(JIRA_FETCH_HELPER_PATH); // …[\/]utils[\/]jira-attachments
 
 const rootMarker = (dir) => path.join(dir, ...ROOT_MARKER);
 const configFile = (root) => path.join(root, ...CONFIG_FILE);
@@ -34,6 +36,7 @@ module.exports = {
   SEP,
   REVIEWER_RE_PART,
   HELPER_RE_PART,
+  JIRA_FETCH_HELPER_RE_PART,
   REVIEWER_LABEL: REVIEWER_DIR.join('/'),
   SCRATCH_LABEL: SCRATCH_DIR.join('/'),
   HELPER_LABEL: HELPER_PATH.join('/'),

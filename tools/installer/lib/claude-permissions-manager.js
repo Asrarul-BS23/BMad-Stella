@@ -34,6 +34,8 @@ class ClaudePermissionsManager {
       'Bash(node _bmad/custom/stella/utils/jira-attachments *)',
       'Bash(node _bmad/custom/stella/utils/jira-attachments/index.js)',
       'Bash(node _bmad/custom/stella/utils/jira-attachments/index.js *)',
+      'Bash(node _bmad/custom/stella/utils/jira-comment *)',
+      'Bash(node _bmad/custom/stella/utils/jira-comment/index.js *)',
       'Bash(node _bmad/custom/stella/utils/pr-comments *)',
       'Bash(node _bmad/custom/stella/utils/pr-comments/index.js *)',
 
@@ -149,6 +151,8 @@ class ClaudePermissionsManager {
       'PowerShell(node _bmad/custom/stella/utils/jira-attachments *)',
       'PowerShell(node _bmad/custom/stella/utils/jira-attachments/index.js)',
       'PowerShell(node _bmad/custom/stella/utils/jira-attachments/index.js *)',
+      'PowerShell(node _bmad/custom/stella/utils/jira-comment *)',
+      'PowerShell(node _bmad/custom/stella/utils/jira-comment/index.js *)',
     ];
 
     // Hard-blocked commands (settings.permissions.deny — deny wins over allow in Claude Code).
@@ -157,6 +161,10 @@ class ClaudePermissionsManager {
     // (commit/push/checkout…) are intentionally NOT denied: they stay on Claude Code's default
     // prompt so developers can still commit from the same session.
     this.bmadDenyPermissions = [
+      // The Jira token file: only the helpers read it, as processes. Never the agent's
+      // tools. `Edit(...)` covers Write and MultiEdit too; a `Write(...)` rule never matches.
+      'Read(_bmad-output/stella/.bmad-tokens/**)',
+      'Edit(_bmad-output/stella/.bmad-tokens/**)',
       'Bash(gh api)',
       'Bash(gh api *)',
       'Bash(gh pr comment *)',

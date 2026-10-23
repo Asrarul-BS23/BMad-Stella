@@ -45,6 +45,7 @@ Run the same command again to update. Credentials: "Use them as is?" The project
 
 - `uv could not be installed`: no network or a blocked download. Install it by hand from https://docs.astral.sh/uv/getting-started/installation/ and re-run.
 - `Atlassian MCP not registered — claude command not found`: the `claude` command is not on your PATH. Install the Claude Code CLI and re-run.
-- Jira fetch fails in `/stella-build`: run `/mcp` in Claude Code and log in to `atlassian`.
+- `Jira token expired`: put a new token in `_bmad-output/stella/.bmad-tokens/.env` (`JIRA_API_TOKEN`). Until then builds fall back to the Atlassian MCP, without attachments.
+- `Jira token file missing`: run the installer again.
 - Install fails in the BMad step: re-run with `--verbose` to see BMad's own output.
 - Always open Claude Code at the project root, not in a subfolder. Hooks are registered there.

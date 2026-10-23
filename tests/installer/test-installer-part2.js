@@ -324,8 +324,8 @@ const userHooks = async () => ({ status: 'current', changed: false });
   );
   ok(sum.userHooks.status === 'current', 'user hooks: called');
   ok(
-    /run \/mcp to check/.test(sum.next) && !/stella-build/.test(sum.next),
-    'summary: Next text is the /mcp check only',
+    sum.next === undefined,
+    'summary: no Next text (MCP is only a fallback, nothing to tell after install)',
   );
   ok(
     sum.mcp.status === 'registered' && mcpCalls.some(([k, r]) => k === 'register' && r === root),

@@ -91,13 +91,19 @@ function normalizeBaseUrl(raw) {
   } catch {
     return { url: null, warning: null };
   }
+  const local = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
   if (parsed.protocol !== 'https:') {
-    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
-      return { url: parsed.origin, warning: 'using http on localhost (test only)' };
-    }
+    if (local) return { url: parsed.origin, warning: 'using http on localhost (test only)' };
     return {
       url: null,
       warning: `refused: JIRA_BASE_URL must use https (got ${parsed.protocol}). Credentials would be sent in plaintext.`,
+    };
+  }
+  // Credentials go to Atlassian Cloud only (localhost kept for tests).
+  if (!local && !parsed.hostname.endsWith('.atlassian.net')) {
+    return {
+      url: null,
+      warning: `refused: JIRA_BASE_URL must be an *.atlassian.net site (got ${parsed.hostname}).`,
     };
   }
   return { url: parsed.origin, warning: null };

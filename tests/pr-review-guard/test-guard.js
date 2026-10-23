@@ -38,6 +38,8 @@ const ALLOW = [
   'gh pr view 12 --json title -q .title',
   'gh pr diff https://github.com/o/r/pull/12',
   'gh pr diff 12 --name-only',
+  'node _bmad/custom/stella/utils/jira-attachments LEADRSC-4901',
+  'node _bmad/custom/stella/utils/jira-attachments/index.js leadrsc-4901',
   'gh pr checks https://github.com/o/r/pull/12',
   'git fetch origin pull/12/head',
   `git cat-file -t ${SHA}`,
@@ -88,6 +90,19 @@ const BLOCK = [
   [`node .bmad-core/utils/pr-comments ${REV}/r-pr12/findings.json`, 'old v4 helper path'],
   [`node ${HELPER} bmad-docs/reviewer/r-pr12/findings.json`, 'helper with old v4 findings path'],
   [`node ${HELPER} ${REV}/r-pr12/findings.json --force`, 'helper with unknown flag'],
+  [
+    'node _bmad/custom/stella/utils/jira-attachments LEADRSC-4901 --force-refresh',
+    'jira fetch with a flag',
+  ],
+  ['node _bmad/custom/stella/utils/jira-attachments', 'jira fetch without a key'],
+  [
+    'node _bmad/custom/stella/utils/jira-attachments https://x.atlassian.net/browse/A-1',
+    'jira fetch with a url',
+  ],
+  [
+    'node _bmad/custom/stella/utils/jira-comment LEADRSC-4901',
+    'jira-comment never runs in a review',
+  ],
 ];
 for (const c of ALLOW) ok(checkBash(c).allow === true, `allow: ${c}`);
 for (const [c, label] of BLOCK) ok(checkBash(c).allow === false, `block: ${label}`);
@@ -520,6 +535,52 @@ const stale = srcFiles.filter((f) =>
   /bmad-docs|\.bmad-core|bmad-logs|review-pr\.md/.test(fs.readFileSync(path.join(G, f), 'utf8')),
 );
 ok(stale.length === 0, `source: no v4 paths left (${stale.join(', ')})`);
+
+// ================= .state housekeeping =================
+{
+  const { pruneCaches, CACHE_MAX_AGE_MS } = require(path.join(G, 'lib', 'review-state.js'));
+  const dir = path.join(ROOT, 'prune-test');
+  fs.mkdirSync(dir, { recursive: true });
+  const f = (name, body = '{"scannedLines":1,"active":false}') => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(p, body);
+    return p;
+  };
+  const keep = f('current.json');
+  const fresh = f('fresh.json');
+  const old = f('old.json');
+  const oldStamp = (Date.now() - CACHE_MAX_AGE_MS - 60_000) / 1000;
+  fs.utimesSync(old, oldStamp, oldStamp);
+  const otherTmp = f('x.json.tmp.99999');
+  const ownTmp = f(`x.json.tmp.${process.pid}`);
+  const log = f('guard-debug.log', 'line\n');
+  const oldLog = f('old.log', 'line\n');
+  fs.utimesSync(oldLog, oldStamp, oldStamp);
+  pruneCaches(dir, keep);
+  ok(fs.existsSync(keep) && fs.existsSync(fresh), 'prune: current + fresh caches kept');
+  ok(!fs.existsSync(old), 'prune: cache older than 7 days removed');
+  ok(!fs.existsSync(otherTmp), "prune: another process's temp file removed");
+  ok(fs.existsSync(ownTmp), 'prune: own temp file kept');
+  ok(fs.existsSync(log) && fs.existsSync(oldLog), 'prune: non-cache files (debug log) untouched');
+  pruneCaches(path.join(dir, 'missing'), keep);
+  ok(true, 'prune: missing dir is a no-op');
+
+  // rename loses the race → temp file must not stay
+  const rs = require(path.join(G, 'lib', 'review-state.js'));
+  const transcript = path.join(ROOT, 'race.jsonl');
+  fs.writeFileSync(transcript, JSON.stringify({ type: 'user', message: { content: 'hi' } }) + '\n');
+  // drive writeCache through reviewState; the cache path is a directory, so rename fails
+  const stateRoot = path.join(ROOT, 'race-root');
+  fs.mkdirSync(path.join(stateRoot, '_bmad'), { recursive: true });
+  const target = rs.cachePath(stateRoot, 'sess');
+  fs.mkdirSync(target, { recursive: true }); // rename onto a directory fails
+  rs.reviewState(stateRoot, 'sess', transcript);
+  const leftovers = fs.readdirSync(path.dirname(target)).filter((n) => /\.tmp\./.test(n));
+  ok(
+    leftovers.length === 0,
+    `writeCache: failed rename leaves no temp file (${leftovers.join(', ')})`,
+  );
+}
 
 console.log(
   `pr-review-guard: ${total - fails}/${total} passed${fails ? ` — ${fails} FAILED` : ''}`,

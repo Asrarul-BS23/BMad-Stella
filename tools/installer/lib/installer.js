@@ -17,7 +17,7 @@ const runner = require('./bmad-runner');
 const gitignore = require('./gitignore');
 const layer = require('./stella-layer');
 const domain = require('./domain-knowledge-fetcher');
-const { silentUi, NEXT_TEXT } = require('./ui');
+const { silentUi } = require('./ui');
 
 const defaultUserHooks = async () => {
   const hooksManager = require('./hooks-manager');
@@ -222,9 +222,7 @@ async function install(root, deps) {
   }
   for (const w of summary.warnings.filter((w) => !earlyWarnings.includes(w))) ui.line('warn', w);
 
-  summary.next = NEXT_TEXT.join(' ');
   ui.end(`${project.name} is set up in ${path.basename(root)}`);
-  ui.next();
   return summary;
 }
 
@@ -313,4 +311,4 @@ async function uninstall(root, { prompt, yes = false, mcp = mcpRegistrar } = {})
   return { removed, aborted: false };
 }
 
-module.exports = { install, uninstall, layerDetail, layerNotes, NEXT_TEXT };
+module.exports = { install, uninstall, layerDetail, layerNotes };

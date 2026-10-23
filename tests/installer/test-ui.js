@@ -79,7 +79,6 @@ u.line('warn', 'Domain docs skipped — domain-knowledge/ already has files');
 u.cont('delete the folder and re-run to refresh');
 u.line('note', '.gitignore  added _bmad/');
 u.end('SLS is set up in proj');
-u.next();
 const t = c.text();
 const lines = t.split('\n');
 
@@ -114,17 +113,9 @@ ok(
 ok(/^│ {3}\.gitignore {2}added _bmad\/$/m.test(t), 'rows: note row without a mark');
 ok((t.match(/^│$/gm) || []).length === 3, 'gap: bare │ rows between steps');
 ok(/^└ Ready\. {2}SLS is set up in proj$/m.test(t), 'end: Ready line');
-ok(
-  /┌─+┐\n│ ◆ Next: check Atlassian in Claude Code +│\n│ {3}Open Claude Code in this folder and run \/mcp to check +│\n│ {3}that atlassian is authenticated\. +│\n└─+┘/.test(
-    t,
-  ),
-  'next: panel with the /mcp check text',
-);
+ok(!/┌─+┐/.test(t) && !/Next:/.test(t), 'next: no panel after the Ready line');
 ok(!/stella-build|\/bmad|Settings → Connectors/.test(t), 'no command hints anywhere');
-ok(
-  ui.NEXT_TEXT.join(' ') === installer.NEXT_TEXT.join(' '),
-  'installer exposes the same Next text',
-);
+ok(ui.NEXT_TEXT === undefined && installer.NEXT_TEXT === undefined, 'no Next text exported');
 
 // ---- questions ----
 const styled = ui.styleQuestions([{ type: 'confirm', name: 'x', message: 'Use them as is?' }]);
@@ -145,7 +136,6 @@ silent.cont('c');
 silent.gap();
 silent.end('e');
 silent.failed('f');
-silent.next();
 ok(typeof silent.spin('a').fail === 'function', 'silent ui: full surface, no output');
 
 // ---- layer detail / notes ----

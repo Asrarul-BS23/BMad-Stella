@@ -94,14 +94,52 @@ function readCache(file) {
   return { scannedLines: 0, active: false };
 }
 
+const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const TMP_RE = /\.json\.tmp\.\d+$/;
+
 function writeCache(file, cache) {
+  const tmp = `${file}.tmp.${process.pid}`;
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    const tmp = `${file}.tmp.${process.pid}`;
     fs.writeFileSync(tmp, JSON.stringify(cache));
     fs.renameSync(tmp, file);
   } catch {
-    /* cache is an optimisation only */
+    // Parallel tool calls run parallel hooks; on Windows the rename can lose the
+    // race. The cache is an optimisation only, but the temp file must not stay.
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      /* already gone */
+    }
+  }
+  pruneCaches(path.dirname(file), file);
+}
+
+/**
+ * Housekeeping for reviewer/.state: session caches older than 7 days and temp
+ * files left by other hook processes are removed. The current session's file,
+ * this process's temp file and anything else (guard-debug.log) are kept.
+ */
+function pruneCaches(dir, keep, now = Date.now()) {
+  let names;
+  try {
+    names = fs.readdirSync(dir);
+  } catch {
+    return;
+  }
+  const ownTmp = `.tmp.${process.pid}`;
+  for (const name of names) {
+    const full = path.join(dir, name);
+    if (full === keep) continue;
+    try {
+      if (TMP_RE.test(name)) {
+        if (!name.endsWith(ownTmp)) fs.unlinkSync(full);
+      } else if (name.endsWith('.json') && now - fs.statSync(full).mtimeMs > CACHE_MAX_AGE_MS) {
+        fs.unlinkSync(full);
+      }
+    } catch {
+      /* best effort */
+    }
   }
 }
 
@@ -161,5 +199,7 @@ module.exports = {
   scratchDir,
   cleanupScratch,
   cachePath,
+  pruneCaches,
+  CACHE_MAX_AGE_MS,
   REVIEW_SKILL,
 };

@@ -79,6 +79,8 @@ node _bmad/custom/stella/utils/jira-attachments PROJ-123 --purge
     "type": "Story",
     "updated": "2026-04-20T14:22:00.000Z"
   },
+  "parent": { "key": "PROJ-100", "title": "Epic or parent story", "type": "Epic" },
+  "links": [{ "type": "blocks", "key": "PROJ-124", "title": "...", "status": "Open" }],
   "description": "Plain-text rendering of the ticket description...",
   "comments": [{ "id": "10001", "author": "...", "created": "...", "text": "..." }],
   "attachments": [
