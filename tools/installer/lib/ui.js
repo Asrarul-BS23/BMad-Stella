@@ -23,12 +23,6 @@ const TOTAL = STEP_LABELS.length;
 const MIN_WIDTH = 64;
 const MAX_WIDTH = 96;
 
-const NEXT_TITLE = 'Next: check Atlassian in Claude Code';
-const NEXT_TEXT = [
-  'Open Claude Code in this folder and run /mcp to check',
-  'that atlassian is authenticated.',
-];
-
 const MARK = {
   ok: chalk.green('✓'),
   warn: chalk.yellow('▲'),
@@ -136,10 +130,6 @@ function createUi({ version, bmadVersion, stream = process.stdout } = {}) {
       write(`${chalk.dim('└')} ${chalk.red.bold('Failed.')}  ${chalk.red(message)}`);
       write('');
     },
-    next() {
-      for (const l of panel(NEXT_TITLE, NEXT_TEXT, width)) write(chalk.yellow(l));
-      write('');
-    },
   };
 }
 
@@ -156,7 +146,6 @@ function silentUi() {
     spin: () => handle,
     end: noop,
     failed: noop,
-    next: noop,
   };
 }
 
@@ -176,7 +165,5 @@ module.exports = {
   justify,
   panel,
   stepTitle,
-  NEXT_TITLE,
-  NEXT_TEXT,
   STEP_LABELS,
 };
