@@ -161,10 +161,10 @@ class ClaudePermissionsManager {
     // (commit/push/checkout…) are intentionally NOT denied: they stay on Claude Code's default
     // prompt so developers can still commit from the same session.
     this.bmadDenyPermissions = [
-      // The Jira token file: only the helpers read it, as processes. Never the agent's tools.
+      // The Jira token file: only the helpers read it, as processes. Never the agent's
+      // tools. `Edit(...)` covers Write and MultiEdit too; a `Write(...)` rule never matches.
       'Read(_bmad-output/stella/.bmad-tokens/**)',
       'Edit(_bmad-output/stella/.bmad-tokens/**)',
-      'Write(_bmad-output/stella/.bmad-tokens/**)',
       'Bash(gh api)',
       'Bash(gh api *)',
       'Bash(gh pr comment *)',
