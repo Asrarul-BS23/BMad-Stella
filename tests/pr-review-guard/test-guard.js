@@ -536,6 +536,52 @@ const stale = srcFiles.filter((f) =>
 );
 ok(stale.length === 0, `source: no v4 paths left (${stale.join(', ')})`);
 
+// ================= .state housekeeping =================
+{
+  const { pruneCaches, CACHE_MAX_AGE_MS } = require(path.join(G, 'lib', 'review-state.js'));
+  const dir = path.join(ROOT, 'prune-test');
+  fs.mkdirSync(dir, { recursive: true });
+  const f = (name, body = '{"scannedLines":1,"active":false}') => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(p, body);
+    return p;
+  };
+  const keep = f('current.json');
+  const fresh = f('fresh.json');
+  const old = f('old.json');
+  const oldStamp = (Date.now() - CACHE_MAX_AGE_MS - 60_000) / 1000;
+  fs.utimesSync(old, oldStamp, oldStamp);
+  const otherTmp = f('x.json.tmp.99999');
+  const ownTmp = f(`x.json.tmp.${process.pid}`);
+  const log = f('guard-debug.log', 'line\n');
+  const oldLog = f('old.log', 'line\n');
+  fs.utimesSync(oldLog, oldStamp, oldStamp);
+  pruneCaches(dir, keep);
+  ok(fs.existsSync(keep) && fs.existsSync(fresh), 'prune: current + fresh caches kept');
+  ok(!fs.existsSync(old), 'prune: cache older than 7 days removed');
+  ok(!fs.existsSync(otherTmp), "prune: another process's temp file removed");
+  ok(fs.existsSync(ownTmp), 'prune: own temp file kept');
+  ok(fs.existsSync(log) && fs.existsSync(oldLog), 'prune: non-cache files (debug log) untouched');
+  pruneCaches(path.join(dir, 'missing'), keep);
+  ok(true, 'prune: missing dir is a no-op');
+
+  // rename loses the race → temp file must not stay
+  const rs = require(path.join(G, 'lib', 'review-state.js'));
+  const transcript = path.join(ROOT, 'race.jsonl');
+  fs.writeFileSync(transcript, JSON.stringify({ type: 'user', message: { content: 'hi' } }) + '\n');
+  // drive writeCache through reviewState; the cache path is a directory, so rename fails
+  const stateRoot = path.join(ROOT, 'race-root');
+  fs.mkdirSync(path.join(stateRoot, '_bmad'), { recursive: true });
+  const target = rs.cachePath(stateRoot, 'sess');
+  fs.mkdirSync(target, { recursive: true }); // rename onto a directory fails
+  rs.reviewState(stateRoot, 'sess', transcript);
+  const leftovers = fs.readdirSync(path.dirname(target)).filter((n) => /\.tmp\./.test(n));
+  ok(
+    leftovers.length === 0,
+    `writeCache: failed rename leaves no temp file (${leftovers.join(', ')})`,
+  );
+}
+
 console.log(
   `pr-review-guard: ${total - fails}/${total} passed${fails ? ` — ${fails} FAILED` : ''}`,
 );
