@@ -1,6 +1,6 @@
 # What belongs in the project context
 
-Rules for deciding what goes into `project.md` and `architecture.md`, for judging what a repo already has, and for explaining both to the lead.
+Rules for deciding what goes into `project.md` and `architecture.md`, for judging what a repo already has, and for explaining both to the runner.
 
 ## The test
 
@@ -20,11 +20,11 @@ Rules age well, inventories rot. "All DB access goes through `src/repos/`" holds
 
 ## Admit
 
-- **Policy the code cannot express**: secrets locations, frozen and dead areas, generated files, lead-approval areas, external-system limits, same-PR obligations. Stated by the lead or read off an enforcing config, never inferred.
+- **Policy the code cannot express**: secrets locations, frozen and dead areas, generated files, approval areas, external-system limits, same-PR obligations. Read off an enforcing config, a source file or a memory note; otherwise a marked line, never an inference written as fact.
 - **What a manifest cannot say about running the project**: the root test script does nothing in this workspace, integration tests need a service up first, the suite takes eleven minutes so iterate on single files, CI runs a check the test script does not, CI targets the wrong runtime so the local run is the real gate. The obvious invocation that is already right lives in the manifest and earns no line; the correction, the caveat and the right command do.
 - **Conventions that differ from ecosystem defaults.** Command invocations count: when the obvious command is wrong here, the exact working invocation earns a line without any observed mistake.
-- **Pitfalls with observed evidence**: a recorded lesson, the lead's recollection, the same mistake fixed repeatedly in history, or one an agent made and the lead reported. A repo yields hundreds of trap-looking facts and none of them predict real mistakes; only observed behaviour does. A surprising scan finding is a question, not a line.
-- **Runtime behaviour invisible from the repo** once the lead confirms it: replaying queues, lying health endpoints, environment quirks, exceptions swallowed into a log file.
+- **Pitfalls with observed evidence**: a recorded lesson, a memory note, the same mistake fixed repeatedly in history, or one an agent made and the runner reported. A repo yields hundreds of trap-looking facts and none of them predict real mistakes; only observed behaviour does. A surprising scan finding is a question, not a line.
+- **Runtime behaviour invisible from the repo** once the runner confirms it, a marked line until then: replaying queues, lying health endpoints, environment quirks, exceptions swallowed into a log file.
 - **Cross-component rules**, when getting one wrong in one file breaks something elsewhere.
 - **Required tool and runtime versions**, read from the project files that declare them, never from the session's environment.
 - **Entry points, canonical files and pointers** to where work lands.
@@ -38,7 +38,7 @@ Prefer prohibitions to advice, and name the permitted alternative in the same li
 | Git workflow rules: branches, commit format, push, PR                           | developers do git by hand; `stella-build` never commits, so the line changes no agent behaviour |
 | Repo overviews, directory trees, stack lists, controller or feature inventories | derived fresh, more accurately; stored copies rot                                               |
 | Anything already in an auto-loaded file (`CLAUDE.md`, `AGENTS.md`)              | paid every session already; point at it once instead                                            |
-| People: lead names, module owners, reviewers                                    | people change; the rule ("ask the lead before X") stays, the name goes                          |
+| People: lead names, module owners, reviewers                                    | people change; the rule ("ask before X") stays, the name goes                                   |
 | Style rules an agent self-enforces                                              | belongs in a formatter, linter, hook or CI check; propose the check                             |
 | Platitudes                                                                      | already the default                                                                             |
 | Transcribed command lists whose obvious invocation is right                     | read from the manifest; a copy drifts the moment a script is renamed                            |
@@ -48,14 +48,14 @@ Prefer prohibitions to advice, and name the permitted alternative in the same li
 
 ## Retire
 
-A policy or pitfall goes only when the thing it guards is gone, or the lead retires it. Nothing failing lately is not evidence; a working rule erases its own evidence. Any other line faces one question at each write: would removing it change agent behaviour? If no, cut it.
+A policy or pitfall goes only when the thing it guards is gone, or the runner deletes it in the file. Nothing failing lately is not evidence; a working rule erases its own evidence. Any other line faces one question at each write: would removing it change agent behaviour? If no, cut it.
 
 Four grounds for removing a line on refresh or audit, each named in the diff:
 
 1. **Stale or incorrect**: the referent is gone, or the claim was never true; the evidence is named.
 2. **Mechanically enforced**: a hook, linter, architecture test or CI check now fails the violation the line names. A tool that only covers the same files does not count.
 3. **Harmful or contradictory**: it points agents at the wrong thing, or contradicts another live instruction and loses the reconciliation.
-4. **The lead retired it**, asked as a line item.
+4. **The runner retired it** by deleting the line in the file; refresh does not bring it back.
 
 "It is discoverable somewhere in the repository" is never, alone, a ground.
 
@@ -67,17 +67,17 @@ Every line is paid on every `stella-build` run, and instruction-following degrad
 
 - Every path is checked to exist before it enters a file.
 - Every claim about a command is read from the script, manifest or CI config that runs it.
-- Code and architecture tests beat any doc. A doc that disagrees with the code is a question for the lead and a flag in Orientation, never a copied claim.
+- Code and architecture tests beat any doc. A doc that disagrees with the code loses: a `contradicts` ledger row and a flag in Orientation, never a copied claim.
 - Tool versions come from the project's declaring files, never from the session's environment.
 - Both files carry the date and SHA they were verified against. Refresh diffs renames and deletions since that SHA against every line.
 
 ## Judging existing instruction files
 
-`CLAUDE.md`, `AGENTS.md`, rule files and docs are the team's testimony: someone paid for every line, usually by watching an agent fail. They are sources, never targets: read, never edited. Every instruction in them gets a ledger entry so the lead sees where it went:
+`CLAUDE.md`, `AGENTS.md`, rule files and docs are the team's testimony: someone paid for every line, usually by watching an agent fail. They are sources, never targets: read, never edited. Every instruction in them gets a ledger entry so the runner sees where it went:
 
 - `pointer`: already loaded every session; `project.md` points at the file, does not repeat it.
 - `carry`: enters one of the two files, section named, because `stella-build` needs it and no auto-loaded file holds it.
-- `contradicts`: the code or an architecture test disagrees; shown with evidence and asked, never copied, never dropped silently.
+- `contradicts`: the code or an architecture test disagrees; the code wins, the evidence is shown, the doc is flagged in Orientation, never copied, never dropped silently.
 - `skip`: not a rule `stella-build` acts on, or excluded above; reason given.
 
 Report, in this order: what is unverifiable or stale, what is missing against the sections in `template.md`, what is already good, then the ledger.

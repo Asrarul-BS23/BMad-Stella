@@ -56,6 +56,14 @@ ok(
   allow.includes('Bash(uv run *)') && allow.includes('PowerShell(uv run *)'),
   'allow: uv run in both shells (BMad render/config scripts)',
 );
+const CHECK = 'node .claude/skills/stella-project-context/scripts/check-context.js';
+ok(
+  allow.includes(`Bash(${CHECK})`) &&
+    allow.includes(`Bash(${CHECK} *)`) &&
+    allow.includes(`PowerShell(${CHECK})`) &&
+    allow.includes(`PowerShell(${CHECK} *)`),
+  'allow: project-context check script in both shells',
+);
 ok(
   allow.includes('mcp__claude_ai_Atlassian__getJiraIssue') &&
     allow.includes('mcp__claude_ai_Atlassian__addCommentToJiraIssue') &&

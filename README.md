@@ -14,14 +14,14 @@ Two questions (Atlassian credentials, project), about a minute. Details: [docs/i
 
 ## Skills
 
-| Command                      | What it does                                            |
-| ---------------------------- | ------------------------------------------------------- |
-| `/stella-build <JIRA key>`   | Plans, implements and reviews a ticket. Never commits.  |
-| `/stella-security <spec>`    | Security audit of what a build changed.                 |
-| `/stella-pr-review <PR url>` | Reviews a pull request against its ticket. Read-only.   |
-| `/stella-domain-expert`      | Answers questions from the project's domain docs.       |
-| `/stella-project-context`    | Lead only. Writes the project context that builds load. |
-| `/caveman`                   | Terse chat mode.                                        |
+| Command                      | What it does                                           |
+| ---------------------------- | ------------------------------------------------------ |
+| `/stella-build <JIRA key>`   | Plans, implements and reviews a ticket. Never commits. |
+| `/stella-security <spec>`    | Security audit of what a build changed.                |
+| `/stella-pr-review <PR url>` | Reviews a pull request against its ticket. Read-only.  |
+| `/stella-domain-expert`      | Answers questions from the project's domain docs.      |
+| `/stella-project-context`    | Writes the project context every session loads.        |
+| `/caveman`                   | Terse chat mode.                                       |
 
 ## Docs
 
@@ -33,7 +33,7 @@ Two questions (Atlassian credentials, project), about a minute. Details: [docs/i
 - [PR review](docs/pr-review.md)
 - [Domain expert](docs/domain-expert.md)
 - [Friction logger](docs/friction-logger.md)
-- [Project context](docs/project-context.md), for leads
+- [Project context](docs/project-context.md)
 - [Maintaining](docs/maintaining.md), for whoever maintains this repo
 
 ## Requirements

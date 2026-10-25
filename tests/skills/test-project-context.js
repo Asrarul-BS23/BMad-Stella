@@ -1,9 +1,10 @@
 'use strict';
 
-// stella-project-context — a lead-run plain skill that writes project-context/{project,
-// architecture}.md for stella-build. Checks: frontmatter, references present, the two
-// output files and their budgets, section order, the four modes and their detection,
-// no git policy, the guardrails, and the installer copying it.
+// stella-project-context — a plain skill anyone runs. It writes project-context/{project,
+// architecture}.md and one import line in CLAUDE.md. Checks: frontmatter, references present,
+// the two output files and their budgets, section order, the root rule (git root, one level
+// down, no git), the four modes and their detection, no questions and the marked-line cap,
+// no git policy, no role wording, the guardrails, and the installer copying it.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -26,7 +27,12 @@ const V4 =
   /bmad-docs|\.bmad-core|bmad-core|BMad:agents|BMad:tasks|BMad:caveman|Dev Agent Record|core-config\.yaml/;
 
 // ---- files ----
-const files = ['SKILL.md', 'references/template.md', 'references/best-practices.md'];
+const files = [
+  'SKILL.md',
+  'references/template.md',
+  'references/best-practices.md',
+  'scripts/check-context.js',
+];
 for (const f of files) ok(fs.existsSync(path.join(SKILL, f)), `files: ${f} exists`);
 const listed = [];
 const walk = (dir, prefix) => {
@@ -38,12 +44,13 @@ const walk = (dir, prefix) => {
 walk(SKILL, '');
 ok(
   listed.sort().join(',') === [...files].sort().join(','),
-  `files: folder holds exactly the three files (${listed.join(', ')})`,
+  `files: folder holds exactly the four files (${listed.join(', ')})`,
 );
 
 const skill = read(SKILL, 'SKILL.md');
 const template = read(SKILL, 'references', 'template.md');
 const practices = read(SKILL, 'references', 'best-practices.md');
+const docs = read(REPO, 'docs', 'project-context.md');
 for (const [name, text] of [
   ['SKILL.md', skill],
   ['template.md', template],
@@ -59,6 +66,8 @@ ok(fm !== null, 'frontmatter: block present');
 ok(fm && /^name: stella-project-context$/m.test(fm[1]), 'frontmatter: name equals folder');
 ok(fm && /^description: >/m.test(fm[1]), 'frontmatter: description present');
 ok(fm && /\/stella-project-context/.test(fm[1]), 'frontmatter: trigger names the slash command');
+ok(fm && /Anyone runs it/.test(fm[1]), 'frontmatter: anyone runs it');
+ok(fm && /^disable-model-invocation: true$/m.test(fm[1]), 'frontmatter: typed command only');
 
 // ---- outputs and budgets ----
 ok(skill.includes('project-context/project.md'), 'output: project.md path');
@@ -69,8 +78,44 @@ ok(/## architecture\.md \(≤ 90 lines\)/.test(template), 'template: architectur
 ok(/`project\.md` ≤ 60 lines, `architecture\.md` ≤ 90/.test(practices), 'practices: budgets');
 ok(/never raise the budget/i.test(practices), 'practices: budget never raised');
 ok(/Verified YYYY-MM-DD against <short sha>/.test(template), 'template: provenance line');
+ok(/Without git, `<short sha>` is `none`/.test(template), 'template: provenance without git');
 ok(/git rev-parse --short HEAD/.test(skill), 'skill: SHA from git rev-parse');
 ok(!/AGENTS\.md` block|<!-- bmad:context -->/.test(skill), 'output: not an AGENTS.md block');
+
+// ---- CLAUDE.md import line ----
+ok(/`@project-context\/project\.md`/.test(skill), 'import: the CLAUDE.md line is named');
+ok(
+  /append `@project-context\/project\.md` as the last line of `\{project-root\}\/CLAUDE\.md`/.test(
+    skill,
+  ),
+  'import: appended as the last line',
+);
+ok(/creating the file with only that line when it does not exist/.test(skill), 'import: created');
+ok(/skipping when the line is already there/.test(skill), 'import: idempotent');
+ok(/Three writes only/.test(skill), 'guard: three writes only');
+ok(
+  /`AGENTS\.md`, rule files, docs and source are read only/.test(skill),
+  'guard: other files read only',
+);
+ok(/@project-context\/project\.md, appended; created if missing/.test(docs), 'docs: import line');
+
+// ---- root rule ----
+ok(/The working directory is a git repository root → use it/.test(skill), 'root: git root here');
+ok(
+  /folders one level down are git roots/.test(skill) && /list them, ask which one/.test(skill),
+  'root: repos one level down, ask once',
+);
+ok(/No git anywhere → use the working directory/.test(skill), 'root: no git at all');
+ok(
+  !/HALT/.test(skill.slice(skill.indexOf('## Resolution'), skill.indexOf('## Style'))),
+  'root: no halt',
+);
+ok(/`git ls-files` with git, a directory walk without/.test(skill), 'scan: count without git');
+ok(
+  /Up to 500 files/.test(skill) && /\*\*More:\*\* fan out read-only subagents/.test(skill),
+  'scan: size rule',
+);
+ok(/in parallel/.test(skill), 'scan: parallel subagents');
 
 // ---- sections in order ----
 const order = (text, heads) => {
@@ -113,7 +158,7 @@ for (const kind of [
   'Secrets',
   'Frozen and dead areas',
   'Generated and binary files',
-  'Lead-approval areas',
+  'Approval areas',
   'External systems',
   'Same-PR obligations',
 ]) {
@@ -136,6 +181,30 @@ ok(
 ok(!/## Ownership/.test(template), 'template: no Ownership section');
 ok(/People: lead names, module owners/.test(practices), 'practices: people excluded');
 
+// ---- no questions, marked lines ----
+ok(/## Marked lines/.test(template), 'marked: template section');
+ok(/- Unverified: <the claim>\. Edit this line or delete it\./.test(template), 'marked: shape');
+ok(/At most three across both files/.test(template), 'marked: cap in template');
+ok(/at most three across both files/.test(skill), 'marked: cap in skill');
+ok(/\*\*No questions\.\*\*/.test(skill), 'guard: no questions');
+ok(
+  /### 3\. Mark the gaps/.test(skill) && /Nothing is asked\./.test(skill),
+  'setup: gaps are marked',
+);
+ok(!/Interview|interview/.test(skill), 'setup: no interview');
+ok(!/eight questions|Wait for approval|wait for approval/.test(skill), 'setup: no approval wait');
+ok(/No questions/.test(docs), 'docs: no questions');
+
+// ---- no role wording ----
+for (const [name, text] of [
+  ['SKILL.md', skill],
+  ['template.md', template],
+  ['docs', docs],
+]) {
+  ok(!/\blead\b/i.test(text), `${name}: no lead wording`);
+}
+ok(/the runner sees where every instruction went/.test(skill), 'ledger: addressed to the runner');
+
 // ---- modes ----
 for (const mode of ['## Setup', '## Refresh', '## Record', '## Audit']) {
   ok(skill.includes(mode), `modes: ${mode} section`);
@@ -146,39 +215,78 @@ ok(/describes a mistake an agent made +\| record/.test(skill), 'modes: mistake �
 ok(/nothing else said +\| refresh/.test(skill), 'modes: folder present → refresh');
 ok(/`audit` is never auto-picked/.test(skill), 'modes: audit only by name');
 ok(/git log --diff-filter=DR --name-only <sha>\.\.HEAD/.test(skill), 'refresh: diff since SHA');
-ok(/Never re-ask what the first run settled/.test(skill), 'refresh: no re-asking');
+ok(/or there is no git, say so and fall back/.test(skill), 'refresh: no-git fallback');
 ok(/Show a \*\*diff\*\*, not the full files/.test(skill), 'refresh: shows a diff');
 ok(/not in history \(squash, rebase\)/.test(skill), 'refresh: lost SHA fallback');
+ok(
+  /Start from the current files, not from scratch/.test(skill),
+  'refresh: starts from current files',
+);
+ok(/a line the runner deleted stays deleted/.test(skill), 'refresh: runner deletions survive');
+ok(
+  /no longer starts with `Unverified:` is an ordinary line/.test(skill),
+  'refresh: edited marks become ordinary lines',
+);
+ok(/refresh re-verifies every line/.test(template), 'template: provenance says re-verifies');
+ok(!/edits are replaced on refresh/.test(template), 'template: no replace-on-refresh wording');
+ok(/keep the three that would most change agent behaviour/.test(skill), 'marked: priority rule');
+ok(/or `audit` without `project\.md`/.test(skill), 'modes: audit without files surfaced');
+ok(/a missing mistake or correct form/.test(skill), 'guard: record question allowed');
 ok(/Audit ends smaller or equal/.test(skill), 'audit: smaller or equal');
-ok(/at most four questions/.test(skill), 'record: four questions');
-ok(/propose the check first/.test(skill), 'record: check before line');
+ok(/ask once for both; otherwise ask nothing/.test(skill), 'record: one question at most');
+ok(/name the check in the reply/.test(skill), 'record: names the mechanical check');
 
 // ---- guardrails ----
-ok(/Only two files are ever written/.test(skill), 'guard: only two files written');
-ok(
-  /`CLAUDE\.md`, `AGENTS\.md`, rule files, docs and source are read, never edited/.test(skill),
-  'guard: existing files never edited',
-);
 ok(/Every path cited exists/.test(skill), 'guard: paths verified');
-ok(/Code and tests beat docs/.test(skill), 'guard: code beats docs');
+ok(/Code and tests beat docs/.test(skill) && /the code wins/.test(skill), 'guard: code wins');
 ok(/Pitfalls come only from observed mistakes/.test(skill), 'guard: pitfalls from evidence');
 ok(
   /Nothing already in an auto-loaded file is repeated/.test(skill),
   'guard: no duplication of CLAUDE.md',
 );
-ok(/never `git add`, `git commit`/.test(skill), 'guard: never commits');
-ok(/No writes until step 5/.test(skill), 'setup: no early writes');
-ok(/at most eight questions/.test(skill), 'setup: interview capped at eight');
 ok(
-  /read-only subagents/i.test(skill) && /in parallel/.test(skill),
-  'setup: parallel read-only subagents',
+  /\*\*Git is read only:\*\*/.test(skill) && /No `git add`, `git commit`/.test(skill),
+  'guard: git read only',
 );
+ok(/No writes until step 4/.test(skill), 'setup: no early writes');
+ok(/the runner's auto memory/.test(skill), 'assess: runner memory is a source');
 for (const l of ['`pointer`', '`carry`', '`contradicts`', '`skip`']) {
   ok(skill.includes(l) && practices.includes(l), `ledger: ${l} in skill and practices`);
 }
 ok(/persistent_facts/.test(skill), 'close: tells how stella-build loads it');
-ok(/commit `project-context\/` themselves/.test(skill), 'close: lead commits');
-ok(/Caveman full for chat output/.test(skill), 'style: caveman chat, files exact');
+ok(/commit `project-context\/` and the `CLAUDE\.md` line\./.test(skill), 'close: runner commits');
+ok(!/caveman/i.test(skill), 'style: no caveman');
+
+// ---- check script wiring ----
+const CHECK_CMD = 'node .claude/skills/stella-project-context/scripts/check-context.js';
+ok(skill.includes(`run (do not read) \`${CHECK_CMD}\``), 'check: command named, run not read');
+ok(/Do not modify the command\./.test(skill), 'check: command fixed');
+ok(/the step ends only on `ok`/.test(skill), 'check: ends only on ok');
+ok(
+  /If the command itself cannot run, report its output and stop/.test(skill),
+  'check: cannot-run rule',
+);
+ok(
+  (skill.match(/Run the check script as in setup step 4\./g) || []).length === 3,
+  'check: refresh, record and audit run it',
+);
+ok(/The check script's `ok` line, quoted\./.test(skill), 'check: close quotes ok');
+ok(/A check script verifies both files/.test(docs), 'docs: check script named');
+ok(/^Contents: Marked lines/m.test(template), 'template: table of contents');
+
+// ---- one term for the person ----
+ok(/The runner → the person who invoked this skill/.test(skill), 'term: runner defined');
+for (const [name, text] of [
+  ['SKILL.md', skill],
+  ['template.md', template],
+  ['best-practices.md', practices],
+]) {
+  ok(
+    !/a human|whoever runs|the person who ran|a developer reported/i.test(text),
+    `${name}: one term for the runner`,
+  );
+}
+ok((skill.match(/\bnever\b/gi) || []).length <= 9, 'style: never used sparingly');
 
 // ---- installer ----
 ok(C.STELLA_SKILLS.includes('stella-project-context'), 'installer: in STELLA_SKILLS');

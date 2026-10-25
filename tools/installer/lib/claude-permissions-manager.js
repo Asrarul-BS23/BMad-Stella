@@ -38,6 +38,9 @@ class ClaudePermissionsManager {
       'Bash(node _bmad/custom/stella/utils/jira-comment/index.js *)',
       'Bash(node _bmad/custom/stella/utils/pr-comments *)',
       'Bash(node _bmad/custom/stella/utils/pr-comments/index.js *)',
+      // stella-project-context verifies its own output with this script
+      'Bash(node .claude/skills/stella-project-context/scripts/check-context.js)',
+      'Bash(node .claude/skills/stella-project-context/scripts/check-context.js *)',
 
       // BMad + Stella files the agent reads every session
       'Read(_bmad/**)',
@@ -153,6 +156,8 @@ class ClaudePermissionsManager {
       'PowerShell(node _bmad/custom/stella/utils/jira-attachments/index.js *)',
       'PowerShell(node _bmad/custom/stella/utils/jira-comment *)',
       'PowerShell(node _bmad/custom/stella/utils/jira-comment/index.js *)',
+      'PowerShell(node .claude/skills/stella-project-context/scripts/check-context.js)',
+      'PowerShell(node .claude/skills/stella-project-context/scripts/check-context.js *)',
     ];
 
     // Hard-blocked commands (settings.permissions.deny — deny wins over allow in Claude Code).

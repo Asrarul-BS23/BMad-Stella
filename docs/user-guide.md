@@ -2,13 +2,13 @@
 
 Open Claude Code at the project root first.
 
-## Project context (lead, once)
+## Project context (once per repo)
 
 ```
 /stella-project-context
 ```
 
-Better done first, by the project lead. It writes `project-context/`, git tracked, and every `stella-build` run loads it before reading the ticket. `stella-build` works fine without it. Details: [project-context.md](project-context.md).
+Better done first, by anyone. It writes `project-context/` and one import line in `CLAUDE.md`, asks nothing, and every session and every `stella-build` run loads it from then on. Review the two files and commit them. `stella-build` works fine without it. Details: [project-context.md](project-context.md).
 
 ## Standard dev flow
 

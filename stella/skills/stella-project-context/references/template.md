@@ -1,14 +1,28 @@
 # File shapes
 
+Contents: Marked lines · Provenance line · project.md (Orientation, Policy, Where things are, Running and verifying, Conventions that differ from defaults, Known pitfalls) · architecture.md (Layers, Request flow, Data, Wiring, Background and integrations, Cross-component rules, Canonical files) · Worked fragment.
+
 Two files under `{project-root}/project-context/`. Sections in the order given. **Omit any section with nothing that passes its rule; never write an empty one.** Admission rules: `best-practices.md`.
 
 Style for both: terse imperative lines under plain headings. No prose beyond Orientation, no introduction, no summary. A bare fact appears only as the justification clause of an instruction: "Exclude `vendor/` from searches, it is 60% of tracked files", never "`vendor/` is 60% of tracked files". A prohibition names the alternative in the same line. At most two emphasis markers per file. Every path exists at the verified SHA.
 
+## Marked lines
+
+What the evidence suggests but only the runner can confirm. One line, in the section it belongs to, in this shape:
+
+```
+- Unverified: <the claim>. Edit this line or delete it.
+```
+
+At most three across both files. Refresh keeps an edited one as written and reports an untouched one as still open.
+
 Line 1 of each file is the provenance line:
 
 ```
-<!-- Verified YYYY-MM-DD against <short sha>. Managed by stella-project-context; edits are replaced on refresh. -->
+<!-- Verified YYYY-MM-DD against <short sha>. Managed by stella-project-context; refresh re-verifies every line. -->
 ```
+
+Without git, `<short sha>` is `none`.
 
 ## project.md (≤ 60 lines)
 
@@ -24,12 +38,12 @@ Three or four sentences: what the system is and for whom, the stack, where plann
 ## Policy
 ```
 
-What humans require and no linter, test or config enforces. Each line from the lead or an enforcing config, never inferred from code. Six kinds, nothing else:
+What humans require and no linter, test or config enforces. Each line from a source file, an enforcing config, a memory note or a marked line, never inferred from code. Six kinds, nothing else:
 
 - Secrets: files that hold credentials and must never be staged, printed or copied.
 - Frozen and dead areas: folders never edited, revived or referenced, and where new work goes instead.
 - Generated and binary files: never hand-edited, and the command or owner that changes them.
-- Lead-approval areas: where the agent stops and asks before editing.
+- Approval areas: where the agent stops and asks before editing.
 - External systems: what the agent may do with Jira, Confluence, databases, APIs.
 - Same-PR obligations: docs or logs that must change with the code.
 
@@ -112,7 +126,7 @@ One existing path per thing to add: endpoint, command, query, DTO, mapper, confi
 ## Worked fragment
 
 ```markdown
-<!-- Verified 2026-10-16 against c32c6dd. Managed by stella-project-context; edits are replaced on refresh. -->
+<!-- Verified 2026-10-16 against c32c6dd. Managed by stella-project-context; refresh re-verifies every line. -->
 
 # acme-billing
 
@@ -125,7 +139,8 @@ Payment processing for Acme storefronts. TypeScript/Node, pnpm, Postgres. Planni
 - Never stage `.env*` or `config/secrets/`; values come from the vault at deploy time.
 - Never edit `legacy/`, it is frozen and being replaced; new work goes in `src/`.
 - Never hand-edit `src/generated/`; run `pnpm codegen`.
-- Ask the lead before touching `src/auth/` or any migration.
+- Ask before touching `src/auth/` or any migration.
+- Unverified: `legacy-import/` has no commits since 2024 and may be dead. Edit this line or delete it.
 
 ## Running and verifying
 
