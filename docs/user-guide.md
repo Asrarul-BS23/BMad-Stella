@@ -46,7 +46,7 @@ Ask how the project works, from its domain docs. Details: [domain-expert.md](dom
 /caveman
 ```
 
-Terse replies for the rest of the session. `/caveman stop` turns it off. Build sessions use it by default.
+Terse replies for the rest of the session. `/caveman stop` turns it off.
 
 ## What happens on its own
 

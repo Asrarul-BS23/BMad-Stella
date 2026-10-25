@@ -30,8 +30,6 @@ Plain text also works. Nothing is fetched from Jira.
 4. Reviews the diff with three review subagents. Fixes go back to the implementer.
 5. Shows a short summary and offers to post a comment on the Jira ticket. Answer `y` or `n`.
 
-Chat and the spec are in caveman style. Code, tests and the diff are normal.
-
 ## After it ends
 
 - The changes are in your working tree, uncommitted. Review them.
