@@ -77,7 +77,7 @@ If the spec is an epic story and `{{.implementation_artifacts}}/sprint-status.ya
        - **Product Brief** (`*brief*`) — project vision and scope
      - Scan the listing for files matching these patterns. If any look relevant to the current intent, load them selectively — you don't need all of them, but you need the right constraints and requirements rather than guessing from code alone.
 2. Carry the intent and loaded evidence forward as-is. Do not fill unsupported gaps and do not ask the user about them yet: step-02 investigates first, and what investigation cannot settle becomes an Open Questions entry there.
-3. Version control sanity check. Is the working tree clean? Does the current branch make sense for this intent — considering its name and recent history? If the tree is dirty or the branch is an obvious mismatch, HALT and ask the human before proceeding. If version control is unavailable, skip this check.
+3. No version-control check: the developer manages branches and the working tree. Continue.
 4. Multi-goal check (see SCOPE STANDARD). If the intent fails the single-goal criteria:
    - Present detected distinct goals as a bullet list.
    - Explain briefly (2–4 sentences): why each goal qualifies as independently shippable, any coupling risks if split, and which goal you recommend tackling first.

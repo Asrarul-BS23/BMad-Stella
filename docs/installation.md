@@ -23,7 +23,7 @@ You are asked for two things.
 │ ◇ Atlassian API token (https://id.atlassian.com/manage-profile/security/api-tokens): ****
 ```
 
-Your Atlassian email and API token. Verified, then saved once per machine in `~/.claude/stella/credentials.env`. Already saved and still valid: nothing is asked. Upgrading from the old BMad-Stella: saved credentials that still work are reused without asking; otherwise only the token is asked.
+Your Atlassian email and API token. Verified, then saved once per machine in `~/.claude/stella/credentials.env`. Already saved and still valid: nothing is asked. Upgrading from the old BMad-Stella: saved credentials that still work are moved there without asking; otherwise email and token are asked, email prefilled.
 
 ```
 │ ◇ Select your project: LEADRS
@@ -39,7 +39,7 @@ Done. Open Claude Code in the same folder and run `/mcp`. If `atlassian` shows a
 
 ## Re-run
 
-Run the same command again to update. Credentials: "Use them as is?" The project list is shown every time. Everything under `_bmad-output/` is kept.
+Run the same command again to update. Credentials are checked silently; you are asked only when the token no longer works. The project list is shown every time. Everything under `_bmad-output/` is kept.
 
 ## Problems
 
