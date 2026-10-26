@@ -36,6 +36,8 @@ persistent_facts = [
   "file:project-context/project.md",
   "file:project-context/architecture.md",
   "For the version-control check in step 01 and the diff in step 03, ignore changes to `.gitignore` and `project-context/`. A tree where only those differ counts as clean, and those paths are left out of the review diff.",
+  "Step 02 investigation runs in this session, no subagents: start from memory and project-context, then read the code yourself.",
+  "Review patches are applied in this session, the same way the implementation was.",
 ]
 
 # Instruction run after Build completes.
@@ -80,11 +82,7 @@ open_spec = ""
 # substituted at run time.
 
 implementation_handoff = """
-Launch a subagent with no prior conversation context, with this prompt:
-
-> Read {spec_file} fully and implement it — the spec is the sole source of truth. Load every file listed in its frontmatter `context:` before you start.
->
-> When done, report what you changed, how you verified it, and anything left incomplete or risky.
+Implement {spec_file} in this session, now. Load every file in its frontmatter `context:` first; the spec is the source of truth. Then report what you changed, how you verified it, and anything left incomplete or risky.
 """
 
 # Review layers for the review step. `instruction` is the layer's whole

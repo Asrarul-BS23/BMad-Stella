@@ -26,7 +26,7 @@ Plain text also works. Nothing is fetched from Jira.
 
 1. Clarifies the intent. Asks only when something is unclear.
 2. Writes a spec under `_bmad-output/implementation-artifacts/` and shows it for approval.
-3. Implements it with a subagent that reads only the spec.
+3. Implements it in the same session, from the spec and its context files.
 4. Reviews the diff with three review subagents. Fixes go back to the implementer.
 5. Shows a short summary and offers to post a comment on the Jira ticket. Answer `y` or `n`.
 

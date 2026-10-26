@@ -50,6 +50,8 @@ const ALLOWED = {
         '  "file:project-context/project.md",',
         '  "file:project-context/architecture.md",',
         '  "For the version-control check in step 01 and the diff in step 03, ignore changes to `.gitignore` and `project-context/`. A tree where only those differ counts as clean, and those paths are left out of the review diff.",',
+        '  "Step 02 investigation runs in this session, no subagents: start from memory and project-context, then read the code yourself.",',
+        '  "Review patches are applied in this session, the same way the implementation was.",',
         ']',
       ],
     },
@@ -61,6 +63,24 @@ const ALLOWED = {
         'Jira comment (Stella). If `{jira_key}` is empty, read `jira_key` from the spec frontmatter; none → do nothing. Compose a short comment (what changed, verification, review result, anything deferred, spec path), write it to `{project-root}/_bmad-output/stella/cache/jira/{jira_key}/comment.md`, show it, and ask "Post to {jira_key}? (y/n)" in the same message as the completion summary. On y: run `node {project-root}/_bmad/custom/stella/utils/jira-comment {jira_key}` and read its stdout JSON. Exit 20: print its `message`, then post the same text through the Atlassian MCP if it responds, else say "Comment not posted." Any other failure: print its `message`. Never change status, assignee, labels or attachments.',
         '"""',
       ],
+    },
+    // 2026-10-26 — implementation in the main session (dev feedback: slow, lost knowledge).
+    {
+      line: 69,
+      from: 'Launch a subagent with no prior conversation context, with this prompt:',
+      to: 'Implement {spec_file} in this session, now. Load every file in its frontmatter `context:` first; the spec is the source of truth. Then report what you changed, how you verified it, and anything left incomplete or risky.',
+    },
+    { line: 70, from: '', to: null },
+    {
+      line: 71,
+      from: '> Read {spec_file} fully and implement it — the spec is the sole source of truth. Load every file listed in its frontmatter `context:` before you start.',
+      to: null,
+    },
+    { line: 72, from: '>', to: null },
+    {
+      line: 73,
+      from: '> When done, report what you changed, how you verified it, and anything left incomplete or risky.',
+      to: null,
     },
   ],
 
