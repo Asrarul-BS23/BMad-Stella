@@ -17,10 +17,10 @@
 activation_steps_prepend = [
   """
 Jira intent (Stella). If the invocation text is a Jira key or URL: set `{jira_key}`; run `node {project-root}/_bmad/custom/stella/utils/jira-attachments {jira_key}` and read its stdout JSON.
-- Exit 0: read the manifest it names and its image attachments; that is the intent for step 01. A Jira parent or epic is not a BMad epic.
+- Exit 0: read the manifest it names and its attachments (images, PDF, text); that is the intent for step 01. A Jira parent or epic is not a BMad epic.
 - Exit 20: print its `message`, then fetch the issue through the Atlassian MCP if it responds and say "Continuing with the Atlassian MCP. Attachments are skipped until the token is fixed."; if it does not respond, say "Run /mcp and authenticate atlassian, or fix the token, then re-run." and HALT.
 - Any other failure: print its `message` and HALT.
-Keep `jira_key: {jira_key}` in the spec frontmatter whenever the spec is written or rewritten. A spec path or anything else: say nothing, continue as normal.
+Keep `jira_key: {jira_key}` in the spec frontmatter whenever the spec is written or rewritten. After the spec is approved, run `node {project-root}/_bmad/custom/stella/utils/jira-attachments <KEY> --purge` for every ticket fetched in this run. A spec path or anything else: say nothing, continue as normal.
 """,
 ]
 
@@ -35,7 +35,9 @@ activation_steps_append = []
 persistent_facts = [
   "file:project-context/project.md",
   "file:project-context/architecture.md",
-  "For the version-control check in step 01 and the diff in step 03, ignore changes to `.gitignore` and `project-context/`. A tree where only those differ counts as clean, and those paths are left out of the review diff.",
+  "Step 02 investigation runs in this session, no subagents: start from memory and project-context, then read the code yourself.",
+  "Review patches are applied in this session, the same way the implementation was.",
+  "Step 01 reads the ticket and the artifact listing only; code reading starts in step 02.",
 ]
 
 # Instruction run after Build completes.
@@ -80,11 +82,7 @@ open_spec = ""
 # substituted at run time.
 
 implementation_handoff = """
-Launch a subagent with no prior conversation context, with this prompt:
-
-> Read {spec_file} fully and implement it — the spec is the sole source of truth. Load every file listed in its frontmatter `context:` before you start.
->
-> When done, report what you changed, how you verified it, and anything left incomplete or risky.
+Implement {spec_file} in this session, now. Load every file in its frontmatter `context:` first; the spec is the source of truth. Then report what you changed, how you verified it, and anything left incomplete or risky.
 """
 
 # Review layers for the review step. `instruction` is the layer's whole
