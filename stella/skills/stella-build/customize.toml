@@ -35,10 +35,9 @@ activation_steps_append = []
 persistent_facts = [
   "file:project-context/project.md",
   "file:project-context/architecture.md",
-  "For the version-control check in step 01 and the diff in step 03, ignore changes to `.gitignore` and `project-context/`. A tree where only those differ counts as clean, and those paths are left out of the review diff.",
   "Step 02 investigation runs in this session, no subagents: start from memory and project-context, then read the code yourself.",
   "Review patches are applied in this session, the same way the implementation was.",
-  "Step 01 reads the ticket, the artifact listing and git state only; code reading starts in step 02.",
+  "Step 01 reads the ticket and the artifact listing only; code reading starts in step 02.",
 ]
 
 # Instruction run after Build completes.

@@ -34,10 +34,10 @@ Plain text also works. Nothing is fetched from Jira.
 
 - The changes are in your working tree, uncommitted. Review them.
 - Run [stella-security](stella-security.md) on the spec if the ticket touches input, auth or data.
-- Commit by hand before the next ticket. A dirty tree at the next start triggers a question.
+- Commit by hand before the next ticket.
 
 ## Good to know
 
 - Project context from `project-context/` is loaded on every run when it exists: [project-context.md](project-context.md).
-- A dirty `.gitignore` or `project-context/` does not count as a dirty tree.
+- The skill never checks the branch or the working tree. Changes already uncommitted before the run appear in the review diff.
 - The ticket is fetched with your Jira token. If the token has expired, the run says so and continues through the Atlassian MCP without attachments; if that is not authenticated either, it stops and tells you to run `/mcp` or fix the token.

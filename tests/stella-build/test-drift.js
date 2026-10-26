@@ -25,6 +25,15 @@ const NO_COMMIT =
 const ALLOWED = {
   'SKILL.md': [{ line: 2, from: 'name: bmad-build', to: 'name: stella-build' }],
 
+  // 2026-10-26 — no version-control check: the developer manages git (one place, no fact).
+  'step-01-clarify-and-route.md': [
+    {
+      line: 80,
+      from: '3. Version control sanity check. Is the working tree clean? Does the current branch make sense for this intent — considering its name and recent history? If the tree is dirty or the branch is an obvious mismatch, HALT and ask the human before proceeding. If version control is unavailable, skip this check.',
+      to: '3. No version-control check: the developer manages branches and the working tree. Continue.',
+    },
+  ],
+
   // Task 6b-2 — settings only; every official key keeps its place.
   'customize.toml': [
     {
@@ -49,10 +58,9 @@ const ALLOWED = {
         'persistent_facts = [',
         '  "file:project-context/project.md",',
         '  "file:project-context/architecture.md",',
-        '  "For the version-control check in step 01 and the diff in step 03, ignore changes to `.gitignore` and `project-context/`. A tree where only those differ counts as clean, and those paths are left out of the review diff.",',
         '  "Step 02 investigation runs in this session, no subagents: start from memory and project-context, then read the code yourself.",',
         '  "Review patches are applied in this session, the same way the implementation was.",',
-        '  "Step 01 reads the ticket, the artifact listing and git state only; code reading starts in step 02.",',
+        '  "Step 01 reads the ticket and the artifact listing only; code reading starts in step 02.",',
         ']',
       ],
     },
