@@ -13,9 +13,11 @@ const mcpRegistrar = require('./mcp-registrar');
 const jira = require('./jira-credentials-manager');
 const picker = require('./project-picker');
 const cleaner = require('./cleaner');
+const legacyMemory = require('./legacy-memory-migrator');
 const runner = require('./bmad-runner');
 const gitignore = require('./gitignore');
 const layer = require('./stella-layer');
+const memoryBootstrap = require('./memory-bootstrap');
 const domain = require('./domain-knowledge-fetcher');
 const { silentUi } = require('./ui');
 
@@ -29,7 +31,8 @@ const seconds = (ms) => Math.max(1, Math.round(ms / 1000));
 /**
  * @param {string} root project folder
  * @param {object} deps prompt (required), fetch, verbose, runBmad(root, opts) → status,
- *   userHooks() → {status}, ui, env, isTTY, now, home (credentials file lives under it)
+ *   userHooks() → {status}, bootstrapMemory(root) → {domainMap, patterns}, ui, env, isTTY,
+ *   now, home (credentials file lives under it)
  * @returns {Promise<object>} summary
  */
 async function install(root, deps) {
@@ -39,6 +42,7 @@ async function install(root, deps) {
     verbose = false,
     runBmad = (r, o) => runner.install(r, o),
     userHooks = defaultUserHooks,
+    bootstrapMemory = (r) => memoryBootstrap.bootstrapIfMissing(r),
     check = preflight.check,
     tools = toolInstaller,
     mcp = mcpRegistrar,
@@ -150,6 +154,16 @@ async function install(root, deps) {
   summary.project = project;
   ui.line('ok', `${project.name}${project.pageId ? '' : ' (no Confluence page)'}`);
 
+  // 5.5. carry a v4 project's memory forward before clean() deletes bmad-docs/
+  summary.legacyMigration = legacyMemory.migrateLegacy(root);
+  if (summary.legacyMigration.memoryMigrated)
+    ui.line('ok', 'Carried over previous memory  →  _bmad-output/stella/memory');
+  if (summary.legacyMigration.plansMigrated > 0)
+    ui.line(
+      'ok',
+      `Archived ${summary.legacyMigration.plansMigrated} previous plan file(s)  →  _bmad-output/implementation-artifacts/legacy-plans`,
+    );
+
   // 6. clean (v4 leftovers; on re-run also _bmad/ and the Stella parts of .claude/)
   summary.removed.push(...cleaner.clean(root, { rerun: summary.rerun }).removed);
   if (summary.rerun) summary.removed.push(...layer.removeStellaClaudeParts(root));
@@ -194,6 +208,11 @@ async function install(root, deps) {
   summary.hooks = layer.copyHooks(root);
   summary.settings = layer.registerSettings(root);
   summary.created.push(...layer.ensureOutputFolders(root));
+
+  // Fire-and-forget: collect domain-map.md/patterns.md now if a legacy
+  // migration didn't already carry them over, instead of waiting for
+  // daily-job.js's first weekly run.
+  summary.memoryBootstrap = bootstrapMemory(root);
 
   // Atlassian MCP in Claude Code's local scope (silent; login happens later via /mcp)
   s5.update('registering Atlassian MCP…');

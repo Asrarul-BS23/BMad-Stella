@@ -125,6 +125,8 @@ const scripted = (answers) => {
   };
 };
 const userHooks = async () => ({ status: 'current', changed: false });
+// stub: never spawn real background `claude` collectors from a test run
+const bootstrapMemoryStub = () => ({ domainMap: false, patterns: false });
 // credentials go to a throwaway home, never the real one
 const HOME = tmp('home');
 const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.env');
@@ -148,7 +150,16 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   fs.writeFileSync(path.join(root, '.gitignore'), 'node_modules/\n');
   // v4 leftovers
   fs.mkdirSync(path.join(root, '.bmad-core'), { recursive: true });
-  fs.mkdirSync(path.join(root, 'bmad-docs', 'memory'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'bmad-docs', 'memory', 'episodes'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, 'bmad-docs', 'memory', 'episodes', 'billing.md'),
+    '---\ntype: episodic\narea: "billing"\n---\n\n# billing Episode History\n',
+  );
+  fs.mkdirSync(path.join(root, 'bmad-docs', 'impl-plan'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, 'bmad-docs', 'impl-plan', 'AIL-1-old-plan.md'),
+    '## Status\nDone\n',
+  );
 
   // ================= 1. fresh install =================
   let s = scripted(['dev@stella.com', 'tok-abcdefghijklmnop', 'LEADRSC']);
@@ -159,6 +170,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     fetch: fetchMock,
     runBmad: fakeBmad,
     userHooks,
+    bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
     env: {},
     isTTY: true,
@@ -169,6 +181,20 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     'install: fresh, project with page id',
   );
   ok(sum.removed.join(',') === '.bmad-core,bmad-docs', 'install: v4 leftovers removed');
+  ok(
+    sum.legacyMigration.memoryMigrated && sum.legacyMigration.plansMigrated === 1,
+    'install: legacy memory and one plan file migrated',
+  );
+  ok(
+    read(root, '_bmad-output/stella/memory/episodes/billing.md').includes('type: episodic'),
+    'install: legacy episode file carried over verbatim',
+  );
+  ok(
+    read(root, '_bmad-output/implementation-artifacts/legacy-plans/AIL-1-old-plan.md').includes(
+      '## Status',
+    ),
+    'install: legacy plan file archived verbatim, untouched by the new spec parser',
+  );
 
   // step 9
   ok(
@@ -368,6 +394,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     fetch: fetchMock,
     runBmad: fakeBmad,
     userHooks,
+    bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
     env: {},
     isTTY: true,
@@ -459,6 +486,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     fetch: fetchMock,
     runBmad: fakeBmad,
     userHooks,
+    bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
     env: {},
     isTTY: true,
@@ -499,6 +527,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       fetch: fetchMock,
       runBmad: fakeBmad,
       userHooks,
+      bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
       env: {},
       isTTY: false,
@@ -520,6 +549,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       fetch: fetchMock,
       runBmad: async () => 2,
       userHooks,
+      bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
       env: { JIRA_EMAIL: 'a@b.co', JIRA_API_TOKEN: 'tok-abcdefghijklmnop', STELLA_PROJECT: 'SLS' },
       isTTY: false,
