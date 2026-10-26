@@ -5,7 +5,7 @@ The installer and the Jira helper use an Atlassian API token to read tickets and
 ## Create one
 
 1. Open https://id.atlassian.com/manage-profile/security/api-tokens
-2. **Create API token**, give it a label such as `bmad-stella`.
+2. **Create API token**, give it a label such as `bmad-stella` and set its expiry to 1 year, the longest allowed.
 3. Copy the token. It is shown once.
 
 ## Where it goes
@@ -16,13 +16,13 @@ The installer asks for your email and the token, verifies them against Jira, and
 ~/.claude/stella/credentials.env
 ```
 
-The file is git-ignored. It holds `JIRA_BASE_URL`, `JIRA_EMAIL` and `JIRA_API_TOKEN`.
+One file per machine, outside every repo. It holds `JIRA_BASE_URL`, `JIRA_EMAIL` and `JIRA_API_TOKEN`.
 
 ## Replace it
 
-Run the installer again and answer **No** to "Use them as is?". Enter the new token.
+Run the installer again. An expired or revoked token is detected and you are asked for a new one, email prefilled.
 
-Or edit the `.env` file by hand and change `JIRA_API_TOKEN`.
+Or edit the file by hand and change `JIRA_API_TOKEN`.
 
 ## Non-interactive (CI)
 

@@ -16,11 +16,11 @@
 
 activation_steps_prepend = [
   """
-Jira intent (Stella). If the invocation text is a Jira key or URL: set `{jira_key}`; run `node {project-root}/_bmad/custom/stella/utils/jira-attachments {jira_key}` and read its stdout JSON.
+Jira intent (Stella). If the invocation text is a Jira key or URL: set `{jira_key}`; run `node _bmad/custom/stella/utils/jira-attachments {jira_key}` and read its stdout JSON.
 - Exit 0: read the manifest it names and its attachments (images, PDF, text); that is the intent for step 01. A Jira parent or epic is not a BMad epic.
 - Exit 20: print its `message`, then fetch the issue through the Atlassian MCP if it responds and say "Continuing with the Atlassian MCP. Attachments are skipped until the token is fixed."; if it does not respond, say "Run /mcp and authenticate atlassian, or fix the token, then re-run." and HALT.
 - Any other failure: print its `message` and HALT.
-Keep `jira_key: {jira_key}` in the spec frontmatter whenever the spec is written or rewritten. After the spec is approved, run `node {project-root}/_bmad/custom/stella/utils/jira-attachments <KEY> --purge` for every ticket fetched in this run. A spec path or anything else: say nothing, continue as normal.
+Keep `jira_key: {jira_key}` in the spec frontmatter whenever the spec is written or rewritten. After the spec is approved, run `node _bmad/custom/stella/utils/jira-attachments <KEY> --purge` for every ticket fetched in this run. A spec path or anything else: say nothing, continue as normal.
 """,
 ]
 
@@ -44,7 +44,7 @@ persistent_facts = [
 # Empty means no extra completion behavior.
 
 on_complete = """
-Jira comment (Stella). If `{jira_key}` is empty, read `jira_key` from the spec frontmatter; none → do nothing. Compose a short comment (what changed, verification, review result, anything deferred, spec path), write it to `{project-root}/_bmad-output/stella/cache/jira/{jira_key}/comment.md`, show it, and ask "Post to {jira_key}? (y/n)" in the same message as the completion summary. On y: run `node {project-root}/_bmad/custom/stella/utils/jira-comment {jira_key}` and read its stdout JSON. Exit 20: print its `message`, then post the same text through the Atlassian MCP if it responds, else say "Comment not posted." Any other failure: print its `message`. Never change status, assignee, labels or attachments.
+Jira comment (Stella). If `{jira_key}` is empty, read `jira_key` from the spec frontmatter; none → do nothing. Compose a short comment (what changed, verification, review result, anything deferred, spec path), write it to `{project-root}/_bmad-output/stella/cache/jira/{jira_key}/comment.md`, show it, and ask "Post to {jira_key}? (y/n)" in the same message as the completion summary. On y: run `node _bmad/custom/stella/utils/jira-comment {jira_key}` and read its stdout JSON. Exit 20: print its `message`, then post the same text through the Atlassian MCP if it responds, else say "Comment not posted." Any other failure: print its `message`. Never change status, assignee, labels or attachments.
 """
 
 # Optional instructions for opening a completed spec. The empty default leaves
