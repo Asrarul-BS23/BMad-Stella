@@ -10,6 +10,9 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const REPO = path.resolve(__dirname, '..', '..');
+// Guard: nothing in this file may touch the real home directory.
+process.env.HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'stella-guard-home-'));
+process.env.USERPROFILE = process.env.HOME;
 const LIB = path.join(REPO, 'tools', 'installer', 'lib');
 const BIN = path.join(REPO, 'tools', 'installer', 'bin', 'bmad.js');
 const C = require(path.join(LIB, 'constants.js'));

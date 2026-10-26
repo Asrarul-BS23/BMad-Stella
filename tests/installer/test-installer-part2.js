@@ -10,6 +10,9 @@ const os = require('node:os');
 const path = require('node:path');
 
 const REPO = path.resolve(__dirname, '..', '..');
+// Guard: nothing in this file may touch the real home directory.
+process.env.HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'stella-guard-home-'));
+process.env.USERPROFILE = process.env.HOME;
 const LIB = path.join(REPO, 'tools', 'installer', 'lib');
 const C = require(path.join(LIB, 'constants.js'));
 const installer = require(path.join(LIB, 'installer.js'));
@@ -491,6 +494,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   try {
     await installer.install(tmp('ni'), {
       mcp: mcpMock,
+      home: HOME,
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: fakeBmad,
@@ -511,6 +515,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   try {
     await installer.install(failRoot, {
       mcp: mcpMock,
+      home: HOME,
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: async () => 2,
