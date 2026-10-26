@@ -1,42 +1,37 @@
 'use strict';
 
-// Distills bmad-docs/domain-knowledge/*.md files into bmad-docs/memory/domain-map.md.
-// Called by daily-job.js (weekly) and spawned as a detached background process by memory-setup.js at install time.
+// Distills _bmad-output/stella/domain-knowledge/*.md files into
+// _bmad-output/stella/memory/domain-map.md (installer-provisioned location —
+// see tools/installer/lib/constants.js OUTPUT_FOLDERS).
+// Called by daily-job.js (weekly).
 // Usage as standalone: node domain-map-distiller.js <cwd>
 
 const path = require('node:path');
 const fs = require('node:fs');
-const yaml = require('js-yaml');
 const { log } = require('./state');
 const { callClaude, callClaudeAgent } = require('./llm');
+const { memoryDir: memoryDirPath } = require('./paths');
 const {
   buildDistillDomainMapPrompt,
   buildDistillDomainMapFromCodePrompt,
 } = require('../prompts/distill-domain-map');
 
 const SOURCE_DIR_NAME = 'domain-knowledge';
-const TARGET_FILE = path.join('bmad-docs', 'memory', 'domain-map.md');
 const PLACEHOLDER_MARKER = '{{domain_map_placeholder}}';
 
 function getSourceDir(cwd) {
-  return path.join(cwd, 'bmad-docs', SOURCE_DIR_NAME);
+  return path.join(memoryDirPath(cwd), '..', SOURCE_DIR_NAME);
 }
 
 function getTargetPath(cwd) {
-  return path.join(cwd, TARGET_FILE);
+  return path.join(memoryDirPath(cwd), 'domain-map.md');
 }
 
-function getConfiguredPatterns(cwd) {
-  try {
-    const configPath = path.join(cwd, '.bmad-core', 'core-config.yaml');
-    if (!fs.existsSync(configPath)) return null;
-    const config = yaml.load(fs.readFileSync(configPath, 'utf8'));
-    const patterns = config?.domainKnowledge?.domainMapSourceFiles;
-    if (Array.isArray(patterns) && patterns.length > 0) return patterns;
-    return null;
-  } catch {
-    return null;
-  }
+// v4's core-config.yaml could narrow domain-knowledge sources to a configured
+// pattern list (domainKnowledge.domainMapSourceFiles). No equivalent config
+// exists in BMad v6, so every *.md file in domain-knowledge/ is used.
+function getConfiguredPatterns() {
+  return null;
 }
 
 // Converts a glob pattern (only * wildcard) to a case-insensitive RegExp.

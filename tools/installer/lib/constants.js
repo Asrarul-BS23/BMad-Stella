@@ -90,7 +90,7 @@ const STELLA_SKILLS = [
 const BMAD_SKILLS_REMOVED = ['bmad-build', 'bmad-build-auto', 'bmad-project-context'];
 
 // Project-level hooks copied to .claude/stella/hooks/<name>/ and registered in
-// settings.local.json. The memory hook is deliberately absent (out of scope).
+// settings.local.json.
 const PROJECT_HOOKS = [
   {
     name: 'friction-logger',
@@ -109,6 +109,15 @@ const PROJECT_HOOKS = [
     name: 'personalization-inject',
     events: {
       UserPromptExpansion: { file: 'user-prompt-expansion.js' },
+    },
+  },
+  {
+    name: 'memory',
+    events: {
+      // Sole trigger: checks for a new calendar day and spawns daily-job.js
+      // detached when so. No UserPromptExpansion entry — the planner reads
+      // domain-map/episodic/semantic files on demand now, not via injection.
+      UserPromptSubmit: { file: 'user-prompt-submit.js' },
     },
   },
 ];

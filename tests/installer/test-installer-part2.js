@@ -217,7 +217,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
         `layer: hook file ${hook.name}/${spec.file}`,
       );
   }
-  ok(!exists(root, '.claude/stella/hooks/memory'), 'layer: memory hook NOT installed');
+  ok(exists(root, '.claude/stella/hooks/memory/daily-job.js'), 'layer: memory hook installed');
   ok(
     JSON.parse(read(root, '.claude/stella/package.json')).type === 'commonjs' &&
       JSON.parse(read(root, '_bmad/custom/stella/package.json')).type === 'commonjs',
@@ -277,7 +277,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     .flat()
     .map((e) => e.hooks[0].command)
     .filter((c) => c.includes('.claude/stella/hooks/'));
-  ok(ourCommands.length === 4, `settings: four Stella hook commands (${ourCommands.length})`);
+  ok(ourCommands.length === 5, `settings: five Stella hook commands (${ourCommands.length})`);
   ok(
     ourCommands.every((c) => c.startsWith('node "${CLAUDE_PROJECT_DIR}/.claude/stella/hooks/')),
     'settings: no Stella hook command is a relative path',

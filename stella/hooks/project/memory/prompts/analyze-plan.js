@@ -1,8 +1,9 @@
 'use strict';
 
 /**
- * Prompt for batched plan analysis — episodic entry + at most one lesson in one call.
- * Patterns are handled separately via codebase scan (pattern-scanner.js), not plan analysis.
+ * Prompt for batched plan analysis — module tag + episodic entry + at most one
+ * lesson, in one call. Patterns are handled separately via codebase scan
+ * (pattern-scanner.js), not plan analysis.
  * Edit this file to tune prompt behavior without touching daily-job.js logic.
  */
 
@@ -16,12 +17,36 @@ function buildExistingLessonsBlock(existingLessons) {
   return `ALREADY-RECORDED LESSONS (${existingLessons.length}) — slug — rule:\n${rows}`;
 }
 
+// Renders the known episodic areas so the module-tag classifier can reuse one
+// instead of minting a near-duplicate. There is no catalog to maintain — this
+// is just the current `episodes/*.md` filenames, read fresh on every call.
+// When there are none yet (cold start), this call runs as an exploring agent
+// instead — see buildAnalyzePlanPrompt's `coldStart` branch.
+function buildExistingAreasBlock(existingAreas, coldStart, cwd) {
+  if (!coldStart) {
+    return `EXISTING MODULE AREAS (${existingAreas.length}):\n${existingAreas.map((a) => `- ${a}`).join('\n')}`;
+  }
+  return `EXISTING MODULE AREAS: none yet — this is the first spec this project has ever processed.
+
+PROJECT ROOT: ${cwd}
+
+You have Glob, Read, and Grep. Before naming the module tag, you may briefly look at how this
+codebase is actually organized — its real folders and feature areas, not its architecture layers
+(skip generic layer names like "Core", "Infrastructure", "Application", "src"). This is optional
+help, not a requirement: if nothing in the structure clearly groups with this spec's Intent, ignore
+it and name the tag from Intent alone, exactly as every later spec in this project will. Do not
+explore more than a couple of directories deep — this is a quick orientation, not a full audit.`;
+}
+
 function buildAnalyzePlanPrompt({
   planId,
   today,
   status,
-  moduleTag,
-  description,
+  title,
+  intent,
+  existingAreas,
+  coldStart,
+  cwd,
   sectionsBlock,
   existingLessons,
 }) {
@@ -32,19 +57,29 @@ Default answer for lessons is NONE. A well-executed plan yields no lesson. Extra
 PLAN ID: ${planId}
 DATE: ${today}
 STATUS: ${status}
-MODULE: ${moduleTag}
-DESCRIPTION: ${description}
+TITLE: ${title || 'not provided'}
+
+INTENT:
+${intent || '(no Intent section found)'}
+
+${buildExistingAreasBlock(existingAreas, coldStart, cwd)}
 
 ${sectionsBlock}
 
 ${buildExistingLessonsBlock(existingLessons)}
 
-Return single JSON object with exactly two keys:
+Return single JSON object with exactly three keys:
 
 {
+  "moduleTag": "kebab-case-slug",
   "episodic": "30-60 words. No filler. No 'the agent'. Format: Plan-ID | what-was-built | key outcome. Omit implementation details.",
   "lessons": []
 }
+
+MODULE TAG — classify this spec's own INTENT against EXISTING MODULE AREAS above:
+- If the Intent clearly belongs to an existing area, return that area's exact slug unchanged. Do not rename it, even if you would have phrased it differently.
+- Only when nothing existing fits, mint a new short kebab-case slug (1-3 words) directly from the Intent's own subject matter — never a lifecycle/scaffolding word like "setup", "core", "shared", "misc".
+- When genuinely unsure between two existing areas, prefer the one the Intent's "Problem" sentence names most directly.
 
 LESSONS — the array holds ZERO entries, or ONE. Never two. There is no second slot: if two candidate mistakes exist, they are either the same mistake reworded (emit one) or one is weaker than the other (emit only the stronger). An array of length 2 is an invalid response.
 
@@ -78,7 +113,11 @@ EXCLUDE — any of these disqualifies immediately:
 - A single incorrect line, inverted condition, or typo — a bug is not a pattern
 
 Empty array [] if no lesson passes all three checks. Prefer [] over a weak entry.
-Return ONLY valid JSON, no other text.`;
+${
+  coldStart
+    ? 'You have NO file-write access — do not use a Write/Edit tool or attempt to save anything yourself. Return ONLY valid JSON as your final text response, no other text.'
+    : 'Return ONLY valid JSON, no other text.'
+}`;
 }
 
 module.exports = { buildAnalyzePlanPrompt, buildExistingLessonsBlock };

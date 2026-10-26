@@ -12,10 +12,9 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
-const yaml = require('js-yaml');
 
 // The four sections a semantic body must carry, in order. `Established
-// Patterns` was removed: it restated bmad-docs/architecture/coding-standards.md,
+// Patterns` was removed: it restated the project's own coding-standards docs,
 // which the planner already reads directly.
 const BODY_SECTIONS = ['Current State', 'Invariants', 'Known Gotchas', 'Reference Implementation'];
 
@@ -24,20 +23,75 @@ const BODY_SECTIONS = ['Current State', 'Invariants', 'Known Gotchas', 'Referenc
 // contract above.
 const BODY_SCHEMA_VERSION = 1;
 
+// Both frontmatter functions anchor on a bare `\n` after `---`. A CRLF-checked-out
+// file (`core.autocrlf=true`, no .gitattributes forcing LF on these templates)
+// never matches that, so the match silently fails and the whole raw file —
+// frontmatter included — leaks through as "body" (seen in the wild: a seeded
+// semantic file whose body was the unfilled template's own frontmatter
+// duplicated underneath the real one). Normalizing once up front, and slicing
+// the same normalized string throughout, removes the failure mode entirely.
+function normalizeNewlines(content) {
+  return content.replaceAll('\r\n', '\n');
+}
+
+// Quoted stays a string verbatim; a bare integer becomes a Number (matches
+// js-yaml's implicit int typing — lib/constraint-promoter.js's frequency
+// check requires `typeof fm.frequency === 'number'`); anything else
+// (including a bare date like `2026-10-07`, which js-yaml would otherwise
+// implicitly type as a Date) stays a plain string — every caller of a date
+// field here only ever compares or stringifies it, never does date math.
+function coerceScalar(raw) {
+  const trimmed = raw.trim();
+  const quoted =
+    (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+    (trimmed.startsWith('"') && trimmed.endsWith('"'));
+  if (quoted) return trimmed.slice(1, -1);
+  if (/^-?\d+$/.test(trimmed)) return Number(trimmed);
+  return trimmed;
+}
+
+// Hand-rolled parser for the one frontmatter shape this framework writes:
+// scalar `key: value` lines (quoted, bare integer, or bare string) and one
+// block-list key (`episode-sources:` followed by indented `- ` lines, or
+// inline `[]`). Not a general YAML parser — deliberately so, to keep this
+// hook zero-dependency when copied standalone into a project (no npm install
+// runs on install; see tools/installer/lib/stella-layer.js's copyHooks()).
 function parseFrontmatter(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  const normalized = normalizeNewlines(content);
+  const match = normalized.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return {};
-  try {
-    return yaml.load(match[1]) || {};
-  } catch {
-    return {};
+
+  const result = {};
+  let listKey = null;
+  for (const line of match[1].split('\n')) {
+    const listItem = line.match(/^\s+-\s*(.*)$/);
+    if (listItem && listKey) {
+      result[listKey].push(coerceScalar(listItem[1]));
+      continue;
+    }
+    listKey = null;
+
+    const kv = line.match(/^([A-Za-z][\w-]*):\s*(.*)$/);
+    if (!kv) continue;
+    const [, key, rawValue] = kv;
+    const value = rawValue.trim();
+    if (value === '') {
+      result[key] = [];
+      listKey = key; // a block list may follow on the next lines
+    } else if (value === '[]') {
+      result[key] = [];
+    } else {
+      result[key] = coerceScalar(value);
+    }
   }
+  return result;
 }
 
 function splitFrontmatter(content) {
-  const match = content.match(/^---\n[\s\S]*?\n---\n?/);
-  if (!match) return { fm: {}, body: content.trim() };
-  return { fm: parseFrontmatter(content), body: content.slice(match[0].length).trim() };
+  const normalized = normalizeNewlines(content);
+  const match = normalized.match(/^---\n[\s\S]*?\n---\n?/);
+  if (!match) return { fm: {}, body: normalized.trim() };
+  return { fm: parseFrontmatter(normalized), body: normalized.slice(match[0].length).trim() };
 }
 
 // Lines that carry no distilled knowledge: blanks, headings, HTML comments and

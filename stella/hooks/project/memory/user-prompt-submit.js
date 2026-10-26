@@ -11,12 +11,13 @@ if (process.env.BMAD_HOOK_SUBPROCESS) process.exit(0);
 const path = require('node:path');
 const fs = require('node:fs');
 const { spawn } = require('node:child_process');
+const { rootMarker, statePath } = require('./lib/paths');
 
 const DAILY_JOB = path.join(__dirname, 'daily-job.js');
 
 function readDailyState(cwd) {
   try {
-    const filePath = path.join(cwd, 'bmad-docs', 'memory', '.state', '.daily-state.json');
+    const filePath = statePath(cwd, '.daily-state.json');
     if (!fs.existsSync(filePath)) return { last_daily_run: null, last_weekly_run: null };
     return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   } catch {
@@ -40,9 +41,8 @@ process.stdin.on('end', () => {
 
     if (!cwd) process.exit(0);
 
-    // Guard: only run in BMad projects
-    const memoryDir = path.join(cwd, 'bmad-docs', 'memory');
-    if (!fs.existsSync(memoryDir)) process.exit(0);
+    // Guard: only run in BMad v6 projects
+    if (!fs.existsSync(rootMarker(cwd))) process.exit(0);
 
     const state = readDailyState(cwd);
     const today = todayUTC();

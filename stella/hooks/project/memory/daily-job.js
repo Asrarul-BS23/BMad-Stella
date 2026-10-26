@@ -17,7 +17,9 @@ const { consolidateAll } = require('./lib/semantic-consolidator');
 const { distillIfStale } = require('./lib/domain-map-distiller');
 const { promoteConstraintCandidates } = require('./lib/constraint-promoter');
 const { updateMemoryIndex } = require('./lib/memory-index');
-const { callClaude } = require('./lib/llm');
+const { callClaude, callClaudeAgent } = require('./lib/llm');
+const { normalizeModuleTag } = require('./lib/slug');
+const { rootMarker, memoryDir: memoryDirPath, specsDir } = require('./lib/paths');
 const { buildAnalyzePlanPrompt } = require('./prompts/analyze-plan');
 
 const PERSONALIZATION_FILE = path.join(os.homedir(), '.claude', 'personalization.md');
@@ -70,12 +72,30 @@ function scanPlanFiles(implPlanDir, lastDailyRun, stateDir) {
   try {
     if (!fs.existsSync(implPlanDir)) return [];
     const processed = readProcessed(stateDir);
+    return (
+      fs
+        .readdirSync(implPlanDir)
+        // stella-build names specs `spec-*.md`; the same folder also holds
+        // `deferred-work.md` and `sprint-status.yaml`, neither of which is a spec.
+        .filter((f) => f.endsWith('.md') && f.toLowerCase().startsWith('spec-'))
+        .filter((f) => !processed[f])
+        .map((f) => path.join(implPlanDir, f))
+        .filter((fp) => isAfterLastRun(fp, lastDailyRun))
+    );
+  } catch {
+    return [];
+  }
+}
+
+// Episodic area filenames currently on disk — the classifier's reuse candidates.
+// `_untagged.md` is a holding bin, not a real area (see lib/semantic-consolidator.js).
+function readExistingAreas(episodesDir) {
+  try {
+    if (!fs.existsSync(episodesDir)) return [];
     return fs
-      .readdirSync(implPlanDir)
-      .filter((f) => f.endsWith('.md'))
-      .filter((f) => !processed[f])
-      .map((f) => path.join(implPlanDir, f))
-      .filter((fp) => isAfterLastRun(fp, lastDailyRun));
+      .readdirSync(episodesDir)
+      .filter((f) => f.endsWith('.md') && !f.startsWith('_'))
+      .map((f) => path.basename(f, '.md'));
   } catch {
     return [];
   }
@@ -83,13 +103,7 @@ function scanPlanFiles(implPlanDir, lastDailyRun, stateDir) {
 
 // Extract the sections Claude reads for analysis — caps at 3000 chars
 function extractPlanSections(content) {
-  const SECTION_NAMES = [
-    'Dev Agent Record',
-    'QA Feedback',
-    'Security Review',
-    'Security Violations',
-    'Deviation Record',
-  ];
+  const SECTION_NAMES = ['Implementation Notes', 'Review Triage Log', 'Spec Change Log'];
   const parts = [];
   for (const name of SECTION_NAMES) {
     const match = content.match(
@@ -103,11 +117,25 @@ function extractPlanSections(content) {
   return parts.join('\n\n').slice(0, 3000);
 }
 
-// Single batched call — returns { episodic, lessons } or null
-async function analyzePlan(planInfo, existingLessons) {
+// Single batched call — returns { moduleTag, episodic, lessons } or null.
+// moduleTag is derived here (from the spec's own Intent, classified against
+// existingAreas) rather than read off the plan file — the new spec format
+// (spec-template.md) carries no module-tag field at all.
+//
+// Cold start: when existingAreas is empty (first spec this project has ever
+// processed), there is nothing yet to classify against, so this one call runs
+// as an EXPLORING agent (Glob/Read/Grep) instead of a plain text call — it can
+// look at how the codebase is actually laid out to help ground the very first
+// area name, the same way distillFromCode() explores for domain-map.md. Purely
+// optional help: the prompt tells it the structure may not clarify anything,
+// in which case it falls back to naming from Intent alone like every later
+// call does. Every call after this one classifies against a real area instead,
+// so the agent path only ever runs once per project.
+async function analyzePlan(planInfo, existingAreas, existingLessons, cwd) {
   const today = todayUTC();
-  const planId = path.basename(planInfo.filePath, '.md');
+  const planId = planInfo.planId;
   const sections = extractPlanSections(planInfo.content);
+  const coldStart = existingAreas.length === 0;
 
   const sectionsBlock = sections
     ? `PLAN SECTIONS (agent work records):\n${sections}`
@@ -117,13 +145,16 @@ async function analyzePlan(planInfo, existingLessons) {
     planId,
     today,
     status: planInfo.status || 'unknown',
-    moduleTag: planInfo.moduleTag || 'untagged',
-    description: planInfo.description || 'not provided',
+    title: planInfo.title,
+    intent: planInfo.intent,
+    existingAreas,
+    coldStart,
+    cwd,
     sectionsBlock,
     existingLessons,
   });
 
-  const result = await callClaude(prompt);
+  const result = coldStart ? await callClaudeAgent(prompt) : await callClaude(prompt);
   if (!result) return null;
 
   try {
@@ -134,6 +165,7 @@ async function analyzePlan(planInfo, existingLessons) {
     const parsed = JSON.parse(trimmed);
     if (typeof parsed !== 'object' || parsed === null) return null;
     return {
+      moduleTag: normalizeModuleTag(parsed.moduleTag),
       episodic: typeof parsed.episodic === 'string' ? parsed.episodic.trim() : null,
       // Hard cap: the prompt asks for 0 or 1, but a model that returns two
       // near-identical lessons must not be able to create two files.
@@ -217,17 +249,17 @@ async function run() {
 
   log('daily-job: starting', { cwd });
 
-  const memoryDir = path.join(cwd, 'bmad-docs', 'memory');
+  if (!fs.existsSync(rootMarker(cwd))) {
+    log('daily-job: not a BMad v6 project (_bmad/config.toml not found), exiting', { cwd });
+    return;
+  }
+
+  const memoryDir = memoryDirPath(cwd);
   const stateDir = path.join(memoryDir, '.state');
-  const implPlanDir = path.join(cwd, 'bmad-docs', 'impl-plan');
+  const implPlanDir = specsDir(cwd);
   const episodesDir = path.join(memoryDir, 'episodes');
   const lessonsDir = path.join(memoryDir, 'lessons');
   const constraintsDir = path.join(memoryDir, 'constraints');
-
-  if (!fs.existsSync(memoryDir)) {
-    log('daily-job: bmad-docs/memory not found, exiting', { cwd });
-    return;
-  }
 
   const dailyStateFile = path.join(stateDir, '.daily-state.json');
   const dailyState = readState(dailyStateFile, { last_daily_run: null, last_weekly_run: null });
@@ -245,21 +277,24 @@ async function run() {
     const planInfo = parsePlanFile(planFile);
     if (!planInfo) continue;
 
-    const planId = path.basename(planFile, '.md');
-    log('daily-job: processing plan', { file: planId, module: planInfo.moduleTag });
+    const planId = planInfo.planId;
+    log('daily-job: processing plan', { file: planId });
 
-    // Re-read per plan: a lesson written for an earlier plan in this same run
-    // must be matchable by later plans, otherwise a backfill duplicates it.
+    // Re-read per plan: a module tag or lesson written for an earlier plan in
+    // this same run must be matchable by later plans, otherwise a backfill
+    // mints a near-duplicate area or duplicates a lesson.
+    const existingAreas = readExistingAreas(episodesDir);
     const existingLessons = readExistingLessons(lessonsDir);
 
-    // Single batched Claude call per plan — episodic + lessons + patterns
-    const analysis = await analyzePlan(planInfo, existingLessons);
+    // Single batched Claude call per plan — module tag + episodic + lessons
+    const analysis = await analyzePlan(planInfo, existingAreas, existingLessons, cwd);
+    const moduleTag = analysis?.moduleTag || null;
 
     const episodicEntry =
       analysis?.episodic ||
-      `${planId} | ${today} | status: ${planInfo.status || 'unknown'} | module: ${planInfo.moduleTag || 'untagged'}`;
+      `${planId} | ${today} | status: ${planInfo.status || 'unknown'} | module: ${moduleTag || 'untagged'}`;
 
-    const result = await writeEpisodic(episodesDir, planInfo.moduleTag, episodicEntry);
+    const result = await writeEpisodic(episodesDir, moduleTag, episodicEntry);
     if (result.compressed) anyCompressed = true;
 
     if (analysis) {
@@ -272,7 +307,7 @@ async function run() {
     }
 
     markProcessed(stateDir, path.basename(planFile));
-    log('daily-job: plan marked processed', { file: planId });
+    log('daily-job: plan marked processed', { file: planId, module: moduleTag });
   }
 
   if (anyCompressed) {

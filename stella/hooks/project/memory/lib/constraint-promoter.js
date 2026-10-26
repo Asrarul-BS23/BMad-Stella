@@ -2,22 +2,12 @@
 
 const path = require('node:path');
 const fs = require('node:fs');
-const yaml = require('js-yaml');
 const { log } = require('./state');
 const { callClaude } = require('./llm');
+const { parseFrontmatter } = require('./semantic-body');
 const { buildPromoteConstraintPrompt } = require('../prompts/promote-constraint');
 
 const PROMOTION_THRESHOLD = 3;
-
-function parseFrontmatter(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return {};
-  try {
-    return yaml.load(match[1]) || {};
-  } catch {
-    return {};
-  }
-}
 
 async function promoteConstraintCandidates(memoryDir) {
   const lessonsDir = path.join(memoryDir, 'lessons');

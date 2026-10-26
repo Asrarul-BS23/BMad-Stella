@@ -1,6 +1,6 @@
 'use strict';
 
-// Maintains bmad-docs/memory/MEMORY.md — live index of all files in the memory system.
+// Maintains _bmad-output/stella/memory/MEMORY.md — live index of all files in the memory system.
 // Called after any write to episodes/, lessons/, semantic/, constraints/, or patterns.md.
 // Planner reads this index at plan start to discover which module files exist.
 //
@@ -209,8 +209,8 @@ function updateMemoryIndex(memoryDir, cwd) {
     lines.push(
       '',
       '## Notes',
-      '- `bmad-docs/memory/` is gitignored — each developer has independent local memory.',
-      '- PC migration: copy `~/.claude/personalization.md` + `bmad-docs/memory/` to same paths on new machine.',
+      '- `_bmad-output/` is gitignored — each developer has independent local memory.',
+      '- PC migration: copy `~/.claude/personalization.md` + `_bmad-output/stella/memory/` to same paths on new machine.',
       '',
     );
 
