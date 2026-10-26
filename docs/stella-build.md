@@ -8,7 +8,7 @@ The official BMad `bmad-build` skill with Stella behaviour. Builds one ticket: p
 /stella-build LEADRSC-4901
 ```
 
-Or paste the Jira URL. The ticket, its comments and attachments (images included) are fetched and become the intent.
+Or paste the Jira URL. The ticket, its comments and attachments (images and PDFs included) are fetched and become the intent. The downloaded attachments are removed once the spec is approved.
 
 ```
 /stella-build _bmad-output/implementation-artifacts/spec-leadrsc-4901-....md
