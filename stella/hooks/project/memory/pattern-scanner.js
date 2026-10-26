@@ -1,11 +1,11 @@
 'use strict';
 
-// Standalone CLI entry — invoked from memory-setup.js at install time.
+// Standalone CLI entry.
 // Scans codebase via LLM agent (Glob/Read/Grep), writes patterns.md.
 // Usage: node pattern-scanner.js <cwd>
 
-const path = require('node:path');
 const { log } = require('./lib/state');
+const { memoryDir } = require('./lib/paths');
 const { updateMemoryIndex } = require('./lib/memory-index');
 const { distillPatternsFromCode } = require('./lib/pattern-distiller');
 
@@ -30,8 +30,7 @@ async function run() {
 
   const updated = await distillPatternsFromCode(cwd);
   if (updated) {
-    const memoryDir = path.join(cwd, 'bmad-docs', 'memory');
-    updateMemoryIndex(memoryDir, cwd);
+    updateMemoryIndex(memoryDir(cwd), cwd);
     process.stdout.write('patterns.md written\n');
   } else {
     process.stdout.write('patterns.md not written\n');

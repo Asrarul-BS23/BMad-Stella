@@ -1,10 +1,18 @@
 'use strict';
 
 // One-time manual cleanup — NOT run by the daily cron.
-// Re-parses every impl-plan file with the fixed plan-parser and moves entries
+// Re-parses every spec file with the fixed plan-parser and moves entries
 // that are sitting in episodes/_untagged.md under the wrong tag into the
 // correct per-module episode file. Moves text as-is — no re-extraction, no
 // Claude calls, .processed-files.json is left untouched.
+//
+// STALE since the module tag moved from a planner-filled spec field to an
+// LLM classification made once, at write time, in daily-job.js (see
+// prompts/analyze-plan.js) — a spec file carries no re-derivable module tag of
+// its own anymore, so `loadPlanTagsById` below will not find one to key off
+// and this script will effectively no-op. Needs its own redesign (re-running
+// the classifier against the remaining `_untagged.md` entries) rather than
+// re-parsing, before it's useful again.
 //
 // Usage: node reconcile-episodic-tags.js <cwd>
 
@@ -14,6 +22,7 @@ const fs = require('node:fs');
 const { parsePlanFile } = require('./plan-parser');
 const { loadTemplate } = require('./episodic-writer');
 const { log } = require('./state');
+const { specsDir, memoryDir } = require('./paths');
 
 const ENTRY_SPLIT_RE =
   /\n---\n\*\*(\d{4}-\d{2}-\d{2})\*\*\n([\s\S]*?)(?=\n---\n\*\*\d{4}-\d{2}-\d{2}\*\*\n|$)/g;
@@ -80,8 +89,8 @@ function run() {
     return;
   }
 
-  const implPlanDir = path.join(cwd, 'bmad-docs', 'impl-plan');
-  const episodesDir = path.join(cwd, 'bmad-docs', 'memory', 'episodes');
+  const implPlanDir = specsDir(cwd);
+  const episodesDir = path.join(memoryDir(cwd), 'episodes');
   const untaggedFile = path.join(episodesDir, '_untagged.md');
 
   if (!fs.existsSync(untaggedFile)) {

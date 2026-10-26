@@ -57,15 +57,15 @@ function tmpDir(label) {
 
   const s1 = { session_id: 's1', cwd: project };
 
-  const first = out({ ...s1, command_name: '/bmad-build' });
-  check('/bmad-build injects', first.includes('Developer Personalization'), first.slice(0, 80));
+  const first = out({ ...s1, command_name: '/stella-build' });
+  check('/stella-build injects', first.includes('Developer Personalization'), first.slice(0, 80));
   check(
     'injected text is the personalization file',
     first.includes('Short answers.') &&
       JSON.parse(first).hookSpecificOutput.hookEventName === 'UserPromptExpansion',
   );
 
-  check('same session second time: nothing', out({ ...s1, command_name: '/bmad-build' }) === '');
+  check('same session second time: nothing', out({ ...s1, command_name: '/stella-build' }) === '');
   check(
     'state file written under _bmad-output/stella/memory/.state',
     fs.existsSync(path.join(project, '_bmad-output/stella/memory/.state/.injection-state.json')),
@@ -82,10 +82,18 @@ function tmpDir(label) {
     out({ session_id: 's3', cwd: project, command_name: '/stella-security' }) !== '',
   );
   check(
-    '/BMAD-help (case) triggers',
-    out({ session_id: 's4', cwd: project, command_name: '/BMAD-help' }) !== '',
+    '/STELLA-help (case) triggers',
+    out({ session_id: 's4', cwd: project, command_name: '/STELLA-help' }) !== '',
   );
 
+  check(
+    '/bmad-build does not trigger (official, unmodified BMad skill)',
+    out({ session_id: 's4b', cwd: project, command_name: '/bmad-build' }) === '',
+  );
+  check(
+    '/BMAD-help (case) does not trigger',
+    out({ session_id: 's4c', cwd: project, command_name: '/BMAD-help' }) === '',
+  );
   check(
     '/help does not trigger',
     out({ session_id: 's5', cwd: project, command_name: '/help' }) === '',
@@ -106,16 +114,17 @@ function tmpDir(label) {
   const notBmad = tmpDir('plain');
   check(
     'project without _bmad/: nothing',
-    out({ session_id: 's9', cwd: notBmad, command_name: '/bmad-build' }) === '',
+    out({ session_id: 's9', cwd: notBmad, command_name: '/stella-build' }) === '',
   );
-  check('missing cwd: nothing', out({ session_id: 's10', command_name: '/bmad-build' }) === '');
+  check('missing cwd: nothing', out({ session_id: 's10', command_name: '/stella-build' }) === '');
   check('invalid stdin exits 0', run('not json').status === 0);
 
   // helper-level checks
   const { isTriggerCommand } = require(INJECT);
-  check('isTriggerCommand: bmad-build', isTriggerCommand('bmad-build'));
+  check('isTriggerCommand: bmad-build', !isTriggerCommand('bmad-build'));
   check('isTriggerCommand: /stella-domain-expert', isTriggerCommand('/stella-domain-expert'));
   check('isTriggerCommand: bmadx', !isTriggerCommand('bmadx'));
+  check('isTriggerCommand: stellax', !isTriggerCommand('stellax'));
   check('isTriggerCommand: undefined', !isTriggerCommand());
 }
 

@@ -1,22 +1,21 @@
 'use strict';
 
 // Distills widely-reused code (base classes, wrappers, shared utilities) into
-// bmad-docs/memory/patterns.md by having an LLM agent explore the codebase directly
-// (Glob/Read/Grep) and verify reuse via reference counts — not guessed by folder name.
-// Called by daily-job.js (weekly) and spawned as a detached background process by
-// memory-setup.js at install time.
+// _bmad-output/stella/memory/patterns.md by having an LLM agent explore the
+// codebase directly (Glob/Read/Grep) and verify reuse via reference counts —
+// not guessed by folder name.
+// Called by daily-job.js (weekly).
 // Usage as standalone: node pattern-scanner.js <cwd>
 
 const path = require('node:path');
 const fs = require('node:fs');
 const { log } = require('./state');
 const { callClaudeAgent } = require('./llm');
+const { memoryDir } = require('./paths');
 const { buildScanPatternsFromCodePrompt } = require('../prompts/scan-patterns');
 
-const TARGET_FILE = path.join('bmad-docs', 'memory', 'patterns.md');
-
 function getTargetPath(cwd) {
-  return path.join(cwd, TARGET_FILE);
+  return path.join(memoryDir(cwd), 'patterns.md');
 }
 
 async function distillPatternsFromCode(cwd) {

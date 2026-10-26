@@ -3,6 +3,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
+const { statePath: memoryStatePath } = require('./paths');
 
 const LOG_FILE = path.join(os.homedir(), '.claude', 'bmad-hooks', 'bmad_hooks_debug.log');
 
@@ -40,7 +41,7 @@ function writeState(filePath, data) {
 }
 
 function getStatePath(cwd, filename) {
-  return path.join(cwd, 'bmad-docs', 'memory', '.state', filename);
+  return memoryStatePath(cwd, filename);
 }
 
 module.exports = { readState, writeState, getStatePath, log };

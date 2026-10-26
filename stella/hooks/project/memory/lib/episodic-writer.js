@@ -7,32 +7,15 @@ const { callClaude } = require('./llm');
 const { buildCompressEpisodePrompt } = require('../prompts/compress-episode');
 
 const WORD_CAP = 800;
-const TEMPLATE_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  '.bmad-core',
-  'templates',
-  'memories',
-  'episodes',
-  '_template.md',
-);
 
 function countWords(text) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+// No external template file ships with this framework repo anymore
+// (`.bmad-core/templates/` was removed with the rest of bmad-core) — this
+// inline form is the only template now, not a fallback for a missing file.
 function loadTemplate(area) {
-  try {
-    if (fs.existsSync(TEMPLATE_PATH)) {
-      return fs
-        .readFileSync(TEMPLATE_PATH, 'utf8')
-        .replace('feature-area-slug', area || 'untagged');
-    }
-  } catch {
-    // fall through to inline template
-  }
   return `---\ntype: episodic\narea: "${area || 'untagged'}"\nlast-updated: ${new Date().toISOString().slice(0, 10)}\ncycle-count: 0\n---\n\n# ${area || 'Untagged'} Episode History\n\n<!-- Format: Plan-ID | date | what-built | key-decision | notable-deviation | QA/security-finding -->\n`;
 }
 

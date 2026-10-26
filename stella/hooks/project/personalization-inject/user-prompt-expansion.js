@@ -1,8 +1,11 @@
 'use strict';
 
 // UserPromptExpansion hook — fires when the user runs a slash command.
-// Injects ~/.claude/personalization.md once per session, but only for BMad / Stella
-// commands (`/bmad-*`, `/stella-*`). Everything else is left untouched.
+// Injects ~/.claude/personalization.md once per session, but only for Stella's own
+// commands (`/stella-*`). Official, unmodified BMad agents (`/bmad-*`) are left
+// untouched — BMad v6 is installed unchanged by the official installer (see
+// docs/maintaining.md), and personalization is a Stella-specific customization that
+// has no business reaching into vanilla upstream skills.
 //
 // Zero dependencies. State lives in _bmad-output/stella/memory/.state/.injection-state.json.
 
@@ -14,8 +17,8 @@ const PERSONALIZATION_FILE = path.join(os.homedir(), '.claude', 'personalization
 const LOG_FILE = path.join(os.homedir(), '.claude', 'bmad-hooks', 'bmad_hooks_debug.log');
 const STATE_RELATIVE = ['_bmad-output', 'stella', 'memory', '.state', '.injection-state.json'];
 
-// `/bmad-build`, `bmad-build`, `/stella-pr-review`, `stella-security` … (case-insensitive)
-const TRIGGER_RE = /^\/?(?:bmad|stella)-/i;
+// `/stella-pr-review`, `stella-security` … (case-insensitive). `bmad-*` commands never match.
+const TRIGGER_RE = /^\/?stella-/i;
 
 function log(msg, extra) {
   try {

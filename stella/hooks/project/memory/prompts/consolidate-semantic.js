@@ -25,13 +25,31 @@ const { BODY_SECTIONS } = require('../lib/semantic-body');
  * Edit this file to tune prompt behavior without touching semantic-consolidator.js logic.
  */
 
+// Same section names and hint wording as bmad-core/templates/memories/semantic/_template.md
+// (the shape lib/semantic-consolidator.js's templateBody() seeds a new domain file
+// with) — shown to the model as the literal target shape instead of just a
+// comma-separated section list, the same way distill-domain-map.js and
+// promote-constraint.js already embed their templates verbatim rather than
+// describing them in prose.
+const SECTION_HINTS = {
+  'Current State': 'What the system does in this domain right now — no history, no chronology',
+  Invariants: 'Business rules or technical constraints of THIS domain that must never be violated',
+  'Known Gotchas': 'Things that trip up agents or developers in THIS domain — watch out for these',
+  'Reference Implementation':
+    'Pointer to the canonical implementation: file path + what to observe',
+};
+
+const TARGET_STRUCTURE = BODY_SECTIONS.map(
+  (heading) => `## ${heading}\n\n[${SECTION_HINTS[heading]}]`,
+).join('\n\n');
+
 const SECTION_LIST = BODY_SECTIONS.join(', ');
 
 // Project-wide conventions are read directly by the planner from the
 // architecture docs. Restating them here is what filled `Invariants` with
 // linter and logging boilerplate that held for every module in the codebase.
-const EXCLUSION_TEST = `Project-wide conventions live in bmad-docs/architecture/coding-standards.md
-and tech-stack.md. The planner reads those directly.
+const EXCLUSION_TEST = `Project-wide conventions live in the project's own coding-standards and
+tech-stack docs. The planner reads those directly.
 
 EXCLUSION TEST — before writing any line, ask: does this depend on what THIS
 domain does? If it holds for every module in this codebase, it is a project
@@ -95,6 +113,12 @@ ${sourcesLabel}:
 ${episodeContents}
 
 ${modeRules}
+
+TARGET STRUCTURE (fill every \`[bracketed placeholder]\` with real content; never leave one in place, never leave a section empty, never add/rename/drop/reorder a section):
+
+# ${domain} — Current State
+
+${TARGET_STRUCTURE}
 
 RULES:
 ${SHARED_RULES}

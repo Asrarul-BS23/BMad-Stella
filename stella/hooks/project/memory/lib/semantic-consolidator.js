@@ -2,7 +2,6 @@
 
 const path = require('node:path');
 const fs = require('node:fs');
-const yaml = require('js-yaml');
 const { log, readState, writeState } = require('./state');
 const {
   BODY_SECTIONS,
@@ -18,18 +17,6 @@ const { normalizeModuleTag } = require('./slug');
 const { callClaude } = require('./llm');
 const { buildConsolidateSemanticPrompt } = require('../prompts/consolidate-semantic');
 const { buildResolveSemanticDomainsPrompt } = require('../prompts/resolve-semantic-domain');
-
-const TEMPLATE_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  '.bmad-core',
-  'templates',
-  'memories',
-  'semantic',
-  '_template.md',
-);
 
 const EXCERPT_CHARS = 800;
 const AREA_EXCERPT_CHARS = 600;
@@ -101,17 +88,11 @@ function buildFrontmatter({ domain, lastUpdated, episodeSources, supersededBy })
   ].join('\n');
 }
 
+// No external template file ships with this framework repo anymore
+// (`.bmad-core/templates/` was removed with the rest of bmad-core) — this
+// inline form is the only template now, built straight from BODY_SECTIONS so
+// it can never drift out of sync with the section contract above.
 function templateBody(domain) {
-  try {
-    if (fs.existsSync(TEMPLATE_PATH)) {
-      const { body } = splitFrontmatter(fs.readFileSync(TEMPLATE_PATH, 'utf8'));
-      if (body) return body.replace('[Domain Area]', domain);
-    }
-  } catch {
-    // fall through to inline default
-  }
-  // Only reached when the installed template is missing, but if the two
-  // disagree a project without the template silently gets the old contract.
   return [`# ${domain} — Current State`, '', ...BODY_SECTIONS.flatMap((h) => [`## ${h}`, ''])]
     .join('\n')
     .trimEnd();
@@ -156,21 +137,15 @@ function readEpisodeExcerpt(episodesDir, file, limit = EXCERPT_CHARS) {
   }
 }
 
-function readArchLocation(cwd) {
-  try {
-    const configPath = path.join(cwd, '.bmad-core', 'core-config.yaml');
-    if (!fs.existsSync(configPath)) return 'bmad-docs/architecture';
-    const config = yaml.load(fs.readFileSync(configPath, 'utf8'));
-    return config?.architecture?.architectureShardedLocation || 'bmad-docs/architecture';
-  } catch {
-    return 'bmad-docs/architecture';
-  }
-}
-
+// Best-effort guess only (see the PROJECT CODE STRUCTURE comment on the prompt
+// below — it's a secondary hint, never load-bearing). BMad v6 has no config
+// field naming this location the way v4's core-config.yaml did
+// (architecture.architectureShardedLocation); a missing file here just means
+// the prompt proceeds without this excerpt.
 function readProjectStructureExcerpt(cwd) {
   if (!cwd) return null;
   try {
-    const structurePath = path.join(cwd, readArchLocation(cwd), 'project-structure.md');
+    const structurePath = path.join(cwd, 'docs', 'architecture', 'project-structure.md');
     if (!fs.existsSync(structurePath)) return null;
     return fs.readFileSync(structurePath, 'utf8').slice(0, EXCERPT_CHARS);
   } catch {
