@@ -4,7 +4,8 @@ const { spawn } = require('node:child_process');
 const { log } = require('./state');
 
 const MAX_RETRIES = 3;
-const TIMEOUT_MS = 60_000;
+const TIMEOUT_MS = 300_000; // 5 min — a tight timeout with a short backoff left no room for transient contention to clear
+const RETRY_BACKOFF_MS = 10_000; // 10s, 20s between attempts
 const AGENT_TIMEOUT_MS = 600_000; // 10 min — large codebases need room
 const AGENT_TOOLS = ['Glob', 'Read', 'Grep'];
 // Hard-blocked regardless of settings — these headless/detached calls must never be able to
@@ -21,7 +22,7 @@ async function callClaude(prompt) {
     if (result !== null) return result;
     lastError = 'spawn returned null';
     if (attempt < MAX_RETRIES) {
-      await new Promise((r) => setTimeout(r, 1000 * attempt));
+      await new Promise((r) => setTimeout(r, RETRY_BACKOFF_MS * attempt));
     }
   }
   log('llm: all retries failed', { error: lastError });

@@ -19,12 +19,18 @@ function buildExistingLessonsBlock(existingLessons) {
 
 // Renders the known episodic areas so the module-tag classifier can reuse one
 // instead of minting a near-duplicate. There is no catalog to maintain — this
-// is just the current `episodes/*.md` filenames, read fresh on every call.
+// is just the current `episodes/*.md` files, read fresh on every call, each
+// with a short real-content excerpt (not just its slug) so the model has
+// something to actually compare the new spec's Intent against, rather than
+// guessing fit from a bare name.
 // When there are none yet (cold start), this call runs as an exploring agent
 // instead — see buildAnalyzePlanPrompt's `coldStart` branch.
 function buildExistingAreasBlock(existingAreas, coldStart, cwd) {
   if (!coldStart) {
-    return `EXISTING MODULE AREAS (${existingAreas.length}):\n${existingAreas.map((a) => `- ${a}`).join('\n')}`;
+    const rows = existingAreas
+      .map((a) => `- ${a.area}${a.excerpt ? ` — ${a.excerpt}` : ''}`)
+      .join('\n');
+    return `EXISTING MODULE AREAS (${existingAreas.length}):\n${rows}`;
   }
   return `EXISTING MODULE AREAS: none yet — this is the first spec this project has ever processed.
 
@@ -77,8 +83,9 @@ Return single JSON object with exactly three keys:
 }
 
 MODULE TAG — classify this spec's own INTENT against EXISTING MODULE AREAS above:
-- If the Intent clearly belongs to an existing area, return that area's exact slug unchanged. Do not rename it, even if you would have phrased it differently.
-- Only when nothing existing fits, mint a new short kebab-case slug (1-3 words) directly from the Intent's own subject matter — never a lifecycle/scaffolding word like "setup", "core", "shared", "misc".
+- Compare the Intent against each existing area's EXCERPT (its real content), not against the slug name alone.
+- Reuse an existing area's exact slug only if the Intent is genuinely about the same functional area — not merely adjacent, not merely because the slug sounds related, and not merely because it is the only area listed. Do not rename a reused slug, even if you would have phrased it differently.
+- Having only one (or few) existing areas is NOT a reason to force-fit an unrelated spec into one of them. If the Intent describes a different functional area than every excerpt shown, mint a new short kebab-case slug (1-3 words) directly from the Intent's own subject matter — never a lifecycle/scaffolding word like "setup", "core", "shared", "misc".
 - When genuinely unsure between two existing areas, prefer the one the Intent's "Problem" sentence names most directly.
 
 LESSONS — the array holds ZERO entries, or ONE. Never two. There is no second slot: if two candidate mistakes exist, they are either the same mistake reworded (emit one) or one is weaker than the other (emit only the stronger). An array of length 2 is an invalid response.

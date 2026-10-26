@@ -9,6 +9,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 
 const { readState, writeState, log } = require('./lib/state');
+const { splitFrontmatter } = require('./lib/semantic-body');
 const { parsePlanFile } = require('./lib/plan-parser');
 const { writeEpisodic } = require('./lib/episodic-writer');
 const { writeLesson, readExistingLessons } = require('./lib/lesson-writer');
@@ -87,7 +88,13 @@ function scanPlanFiles(implPlanDir, lastDailyRun, stateDir) {
   }
 }
 
-// Episodic area filenames currently on disk — the classifier's reuse candidates.
+const AREA_EXCERPT_CHARS = 200;
+
+// Episodic areas currently on disk — the classifier's reuse candidates, each
+// with a short real-content excerpt. A bare slug list gave the model nothing
+// to judge fit against, so with few areas it defaulted to reusing the only
+// one available even for an unrelated spec — the excerpt is what lets it
+// actually compare the new Intent against what an area already covers.
 // `_untagged.md` is a holding bin, not a real area (see lib/semantic-consolidator.js).
 function readExistingAreas(episodesDir) {
   try {
@@ -95,7 +102,21 @@ function readExistingAreas(episodesDir) {
     return fs
       .readdirSync(episodesDir)
       .filter((f) => f.endsWith('.md') && !f.startsWith('_'))
-      .map((f) => path.basename(f, '.md'));
+      .map((f) => {
+        const area = path.basename(f, '.md');
+        let excerpt = '';
+        try {
+          const { body } = splitFrontmatter(fs.readFileSync(path.join(episodesDir, f), 'utf8'));
+          // Every real entry is `PlanID | what-built | outcome` — the first
+          // such line skips the heading and the format comment with no extra
+          // parsing needed.
+          const entryLine = body.split('\n').find((l) => l.includes('|'));
+          excerpt = entryLine ? entryLine.trim().slice(0, AREA_EXCERPT_CHARS) : '';
+        } catch {
+          // excerpt stays empty; the slug alone is still usable
+        }
+        return { area, excerpt };
+      });
   } catch {
     return [];
   }

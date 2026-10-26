@@ -20,7 +20,6 @@ const { buildResolveSemanticDomainsPrompt } = require('../prompts/resolve-semant
 
 const EXCERPT_CHARS = 800;
 const AREA_EXCERPT_CHARS = 600;
-const EPISODE_BUDGET_CHARS = 6000;
 
 // Deltas are surgical, so drift accumulates slowly rather than never. A
 // re-verification rebuild every Nth delta catches what the surgical path
@@ -578,27 +577,16 @@ function isRebuildBlocked(stored) {
   );
 }
 
-// Fair-share the character budget across the sources being fed, rather than
-// filling first-come. domainSourcesOf and seedSemanticFile both sort, so a
-// first-come fill meant an alphabetically-early source always reached the model
-// and a late one never did. With few sources each share exceeds the file, so
-// the file is fed whole; the cap only bites when many sources are fed at once.
-function readEpisodeSources(memoryDir, sources, domain) {
-  const share = Math.floor(EPISODE_BUDGET_CHARS / Math.max(1, sources.length));
+// No char budget here on purpose: episodic files are already bounded (800
+// words, compressed by episodic-writer.js), so feeding every source whole is
+// never unbounded — it's the semantic layer's own job to never lose real
+// content to a size cap it invented on top of that existing bound.
+function readEpisodeSources(memoryDir, sources) {
   const chunks = [];
   for (const source of sources) {
     const fullPath = path.join(memoryDir, source);
     if (!fs.existsSync(fullPath)) continue;
-    const raw = `### ${source}\n${fs.readFileSync(fullPath, 'utf8')}`;
-    if (raw.length > share) {
-      log('semantic-consolidator: source truncated to its fair share of the budget', {
-        domain,
-        source,
-        share,
-        length: raw.length,
-      });
-    }
-    chunks.push(raw.slice(0, share));
+    chunks.push(`### ${source}\n${fs.readFileSync(fullPath, 'utf8')}`);
   }
   return chunks;
 }
@@ -606,6 +594,17 @@ function readEpisodeSources(memoryDir, sources, domain) {
 // Both modes are forbidden from shrinking a body: delta is surgical and rebuild
 // is re-verification, so neither has a legitimate reason to return less. The
 // only mechanism that reduces a body is a domain split.
+// A model sometimes prefaces its answer with its own meta-commentary (e.g.
+// "All claims check out against the actual repo...") despite being told to
+// output the body only. The real body always starts at its own `# domain —
+// Current State` heading, so anything before the first top-level heading is
+// never genuine content — drop it before it can pass the section check below
+// and get written to the file.
+function stripLeadingPreamble(body) {
+  const match = body.match(/^#\s+.*$/m);
+  return match ? body.slice(match.index).trimStart() : body;
+}
+
 function rejectionReason(newBody, existingBody) {
   if (!hasRealContent(newBody)) return 'no real content — placeholders only';
   const missing = BODY_SECTIONS.filter((h) => !new RegExp(`^##\\s+${h}\\s*$`, 'm').test(newBody));
@@ -656,7 +655,7 @@ async function consolidateSemantic(memoryDir, semanticFilePath, carryoverBody, f
     }
 
     const sourcesToFeed = mode === 'delta' ? changed : episodeSources;
-    const episodeContents = readEpisodeSources(memoryDir, sourcesToFeed, domain);
+    const episodeContents = readEpisodeSources(memoryDir, sourcesToFeed);
 
     if (episodeContents.length === 0) {
       log('semantic-consolidator: no episode sources found on disk', { file: semanticFilePath });
@@ -702,12 +701,15 @@ async function consolidateSemantic(memoryDir, semanticFilePath, carryoverBody, f
 
       // Strip any frontmatter or fencing the model added despite being told not
       // to — frontmatter is rebuilt here so episode-sources can't be corrupted.
-      const candidate = splitFrontmatter(
-        raw
-          .trim()
-          .replace(/^```(?:markdown|md)?\s*\n/, '')
-          .replace(/\n```\s*$/, ''),
-      ).body;
+      // Then strip any meta-commentary preamble before the real heading.
+      const candidate = stripLeadingPreamble(
+        splitFrontmatter(
+          raw
+            .trim()
+            .replace(/^```(?:markdown|md)?\s*\n/, '')
+            .replace(/\n```\s*$/, ''),
+        ).body,
+      );
 
       rejection = rejectionReason(candidate, body);
       if (!rejection) {
