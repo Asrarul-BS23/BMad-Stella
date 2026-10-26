@@ -15,7 +15,7 @@ No npm dependencies — the helper uses Node built-ins only, so it runs from any
 
 ## Configuration
 
-Credentials are loaded from environment variables, with fallback to `_bmad-output/stella/.bmad-tokens/.env` (git-ignored). Precedence: process env > `.env` file.
+Credentials are loaded from environment variables, with fallback to `~/.claude/stella/credentials.env` (one file per machine). Precedence: process env > `.env` file.
 
 | Variable              | Required | Description                                                    |
 | --------------------- | -------- | -------------------------------------------------------------- |
@@ -24,7 +24,7 @@ Credentials are loaded from environment variables, with fallback to `_bmad-outpu
 | `JIRA_API_TOKEN`      | yes      | API token (not a password)                                     |
 | `BMAD_JIRA_CACHE_DIR` | no       | Override cache root (default `_bmad-output/stella/cache/jira`) |
 
-The BMad-Stella installer prompts for and writes these during setup. Keep `.env` out of git — the repo template already ignores it.
+The BMad-Stella installer prompts for and writes these during setup. The file lives outside every repo.
 
 ## Usage
 

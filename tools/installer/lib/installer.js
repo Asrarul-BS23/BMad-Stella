@@ -29,7 +29,7 @@ const seconds = (ms) => Math.max(1, Math.round(ms / 1000));
 /**
  * @param {string} root project folder
  * @param {object} deps prompt (required), fetch, verbose, runBmad(root, opts) → status,
- *   userHooks() → {status}, ui, env, isTTY, now
+ *   userHooks() → {status}, ui, env, isTTY, now, home (credentials file lives under it)
  * @returns {Promise<object>} summary
  */
 async function install(root, deps) {
@@ -46,6 +46,7 @@ async function install(root, deps) {
     env = process.env,
     isTTY = Boolean(process.stdin.isTTY),
     now = Date.now,
+    home,
   } = deps;
   const summary = { root, warnings: [], removed: [], created: [] };
   const note = (text) => ui.line('note', text);
@@ -124,18 +125,20 @@ async function install(root, deps) {
 
   // 3 + 4. credentials (inquirer lines render inside the tree)
   ui.step(2);
-  const creds = await jira.run(root, { prompt, fetch, log: note, env });
+  const creds = await jira.run(root, { prompt, fetch, log: note, env, home });
   summary.credentials = {
     email: creds.email,
     verified: creds.verified,
     source: creds.source,
     displayName: creds.displayName || null,
+    removedProjectFile: creds.removedProjectFile,
   };
+  const moved = creds.source === 'project' || creds.source === 'legacy';
   ui.line(
     'ok',
     creds.verified
       ? `Signed in as ${creds.displayName || creds.email}${
-          creds.source === 'legacy' ? '  (credentials carried over from the previous install)' : ''
+          moved ? `  (credentials moved to ${constants.CREDENTIALS_FILE_LABEL})` : ''
         }`
       : `${creds.email} (not verified)`,
   );

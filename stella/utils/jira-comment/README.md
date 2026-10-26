@@ -14,7 +14,7 @@ node _bmad/custom/stella/utils/jira-comment LEADRSC-4901 --dry-run   # print the
 node _bmad/custom/stella/utils/jira-comment LEADRSC-4901 --keep      # post, keep the file
 ```
 
-Credentials: same as `jira-attachments` (`_bmad-output/stella/.bmad-tokens/.env`, env vars win).
+Credentials: same as `jira-attachments` (`~/.claude/stella/credentials.env`, env vars win).
 
 ## Markdown supported
 
@@ -41,7 +41,7 @@ On failure:
 {
   "ok": false,
   "code": 20,
-  "message": "Jira token expired. Put a new token in _bmad-output/stella/.bmad-tokens/.env (JIRA_API_TOKEN)."
+  "message": "Jira token expired. Put a new token in ~/.claude/stella/credentials.env (JIRA_API_TOKEN)."
 }
 ```
 

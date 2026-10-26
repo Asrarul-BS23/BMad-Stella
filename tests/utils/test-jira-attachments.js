@@ -28,7 +28,11 @@ const ROOT = fs.mkdtempSync(path.join(os.tmpdir(), 'stella-t5-jira-'));
 fs.mkdirSync(path.join(ROOT, '_bmad'), { recursive: true });
 const nested = path.join(ROOT, 'src', 'deep');
 fs.mkdirSync(nested, { recursive: true });
-const ENV_FILE = path.join(ROOT, '_bmad-output', 'stella', '.bmad-tokens', '.env');
+// credentials live under the home directory: point HOME/USERPROFILE at a throwaway one
+const HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'stella-t5-home-'));
+process.env.HOME = HOME;
+process.env.USERPROFILE = HOME;
+const ENV_FILE = path.join(HOME, '.claude', 'stella', 'credentials.env');
 
 // strip any real credentials from the environment for these checks
 const cleanEnv = () => {
@@ -42,7 +46,7 @@ ok(cfg.findProjectRoot(nested) === ROOT, 'root: found from nested cwd via _bmad/
 ok(cfg.findProjectRoot(ROOT) === ROOT, 'root: found at the root itself');
 const plain = fs.mkdtempSync(path.join(os.tmpdir(), 'stella-t5-plain-'));
 ok(cfg.findProjectRoot(plain) === null, 'root: null outside a project');
-ok(cfg.tokensEnvPath(ROOT) === ENV_FILE, 'tokens: _bmad-output/stella/.bmad-tokens/.env');
+ok(cfg.credentialsPath() === ENV_FILE, 'credentials: ~/.claude/stella/credentials.env');
 
 // ---- config without a token file ----
 let c = cfg.resolveConfig({ cwd: nested });
@@ -87,8 +91,8 @@ ok(
 cleanEnv();
 c = cfg.resolveConfig({ projectRoot: plain, cwd: nested });
 ok(
-  c.projectRoot === plain && !cfg.validateConfig(c).ok,
-  'config: explicit projectRoot wins over cwd detection',
+  c.projectRoot === plain && cfg.validateConfig(c).ok,
+  'config: explicit projectRoot wins over cwd detection; credentials are per machine',
 );
 fs.writeFileSync(
   ENV_FILE,
@@ -109,6 +113,8 @@ const run = (argv, cwd = nested) =>
       JIRA_EMAIL: '',
       JIRA_API_TOKEN: '',
       BMAD_JIRA_CACHE_DIR: '',
+      HOME,
+      USERPROFILE: HOME,
     },
   });
 let res = run(['--help']);
@@ -122,8 +128,8 @@ res = run(['AIL-1']);
 ok(
   res.status === 10 &&
     /Missing credentials/.test(res.stderr) &&
-    /_bmad-output[\\/]stella[\\/]\.bmad-tokens[\\/]\.env/.test(res.stderr),
-  'cli: missing credentials → exit 10, names the v6 token file',
+    /~\/\.claude\/stella\/credentials\.env/.test(res.stderr),
+  'cli: missing credentials → exit 10, names the credentials file',
 );
 ok(
   (() => {

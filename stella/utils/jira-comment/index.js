@@ -12,7 +12,11 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { resolveConfig, validateConfig, TOKENS_ENV } = require('../jira-attachments/lib/config');
+const {
+  resolveConfig,
+  validateConfig,
+  CREDENTIALS_FILE_LABEL,
+} = require('../jira-attachments/lib/config');
 const { markdownToAdf } = require('./lib/markdown-to-adf');
 
 const EXIT_CODES = Object.freeze({
@@ -26,7 +30,7 @@ const EXIT_CODES = Object.freeze({
 });
 const KEY_RE = /^[A-Z][A-Z0-9]+-\d+$/;
 const REQUEST_TIMEOUT_MS = 30_000;
-const TOKEN_FILE_LABEL = TOKENS_ENV.replaceAll('\\', '/'); // relative, forward slashes
+const TOKEN_FILE_LABEL = CREDENTIALS_FILE_LABEL;
 const MESSAGES = Object.freeze({
   tokenExpired: `Jira token expired. Put a new token in ${TOKEN_FILE_LABEL} (JIRA_API_TOKEN).`,
   tokenMissing: 'Jira token file missing. Run the installer again.',

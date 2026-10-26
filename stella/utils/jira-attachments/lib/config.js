@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const ENV_KEYS = Object.freeze({
@@ -13,7 +14,9 @@ const ENV_KEYS = Object.freeze({
 // BMad v6 layout (Stella): a project is the folder holding `_bmad/`; everything Stella
 // writes lives under `_bmad-output/stella/`.
 const ROOT_MARKER = '_bmad';
-const TOKENS_ENV = path.join('_bmad-output', 'stella', '.bmad-tokens', '.env');
+// Credentials: one file per machine, written by the installer (user decision 2026-10-26).
+const CREDENTIALS_FILE_PARTS = ['.claude', 'stella', 'credentials.env'];
+const CREDENTIALS_FILE_LABEL = '~/.claude/stella/credentials.env';
 
 const DEFAULTS = Object.freeze({
   cacheSubdir: path.join('_bmad-output', 'stella', 'cache', 'jira'),
@@ -62,13 +65,13 @@ function findProjectRoot(startDir) {
   }
 }
 
-function tokensEnvPath(projectRoot) {
-  return path.join(projectRoot, TOKENS_ENV);
+function credentialsPath(home = os.homedir()) {
+  return path.join(home, ...CREDENTIALS_FILE_PARTS);
 }
 
-function loadDotenvIfPresent(projectRoot) {
-  // Tokens live in <projectRoot>/_bmad-output/stella/.bmad-tokens/.env (written by the installer).
-  const envPath = tokensEnvPath(projectRoot);
+function loadDotenvIfPresent() {
+  // Credentials live in ~/.claude/stella/credentials.env (written by the installer).
+  const envPath = credentialsPath();
   try {
     const stat = fs.statSync(envPath);
     if (!stat.isFile()) return {};
@@ -112,7 +115,7 @@ function normalizeBaseUrl(raw) {
 function resolveConfig({ projectRoot, cwd = process.cwd() } = {}) {
   // Explicit --project-root wins; otherwise the nearest ancestor with `_bmad/`; else cwd.
   const root = projectRoot || findProjectRoot(cwd) || cwd;
-  const fileEnv = loadDotenvIfPresent(root);
+  const fileEnv = loadDotenvIfPresent();
   const merged = Object.assign(Object.create(null), fileEnv);
   for (const key of Object.keys(process.env)) {
     if (FORBIDDEN_ENV_KEYS.has(key)) continue;
@@ -157,10 +160,10 @@ module.exports = {
   ENV_KEYS,
   DEFAULTS,
   ROOT_MARKER,
-  TOKENS_ENV,
+  CREDENTIALS_FILE_LABEL,
   resolveConfig,
   validateConfig,
   parseDotenv,
   findProjectRoot,
-  tokensEnvPath,
+  credentialsPath,
 };

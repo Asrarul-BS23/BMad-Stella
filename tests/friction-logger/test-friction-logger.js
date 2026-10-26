@@ -360,10 +360,14 @@ const wait = new Promise((r) => {
   const goodJson = win
     ? '@echo off\r\necho {"is_error":false,"result":"{\\"summary\\":\\"ok\\",\\"entries\\":[]}","total_cost_usd":0}\r\n'
     : '#!/bin/sh\necho \'{"is_error":false,"result":"{\\"summary\\":\\"ok\\",\\"entries\\":[]}","total_cost_usd":0}\'\n';
+  // a throwaway home so the publisher never finds real credentials
+  const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'stella-fl-home-'));
   const env = {
     ...process.env,
     PATH: bin + path.delimiter + process.env.PATH,
     Path: bin + path.delimiter + (process.env.Path || ''),
+    HOME: fakeHome,
+    USERPROFILE: fakeHome,
   };
   const dbg = path.join(LOGS, '.hook-debug.log');
   const lock = path.join(LOGS, '.fire-lock');
@@ -438,10 +442,10 @@ const wait = new Promise((r) => {
     'worker: friction.md/json under _bmad-output/stella/bmad-logs/AIL-1',
   );
   ok(
-    /no Atlassian credentials \(_bmad-output\/stella\/\.bmad-tokens\/\.env\)/.test(
+    /no Atlassian credentials \(~\/\.claude\/stella\/credentials\.env\)/.test(
       fs.readFileSync(dbg, 'utf8'),
     ) || !/publish:/.test(fs.readFileSync(dbg, 'utf8')),
-    'publisher: credential path message uses v6 location (or publishing off)',
+    'publisher: credential path message names the home file (or publishing off)',
   );
 
   // require failure -> FATAL + lock release

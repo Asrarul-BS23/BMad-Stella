@@ -14,7 +14,7 @@ const http = require('node:http');
 // publishing update the same page, never duplicate it.
 //
 // Auth: reuses the Atlassian credentials the installer already persists for the
-// jira-attachments helper (_bmad-output/stella/.bmad-tokens/.env — JIRA_EMAIL +
+// jira-attachments helper (~/.claude/stella/credentials.env — JIRA_EMAIL +
 // JIRA_API_TOKEN; the same API token authorizes Confluence REST on the site).
 // Never throws — returns { ok, reason, pageId }.
 
@@ -43,7 +43,7 @@ function parseDotenv(contents) {
 function resolveCredentials(cwd) {
   let fileEnv = {};
   try {
-    fileEnv = parseDotenv(fs.readFileSync(paths.tokensEnv(cwd), 'utf8'));
+    fileEnv = parseDotenv(fs.readFileSync(paths.credentialsEnv(), 'utf8'));
   } catch {
     // missing file is fine — process env may still carry the values
   }
@@ -203,7 +203,7 @@ async function publishReport(cwd, confluenceConfig, friction, log) {
   const logsPageUrl = confluenceConfig.logsPageUrl;
   const creds = resolveCredentials(cwd);
   if (!creds) {
-    log(`publish: no Atlassian credentials (${paths.TOKENS_ENV_LABEL}) — skipping`);
+    log(`publish: no Atlassian credentials (${paths.CREDENTIALS_FILE_LABEL}) — skipping`);
     return { ok: false, reason: 'no-credentials' };
   }
 

@@ -25,6 +25,10 @@ const ok = (c, m) => {
 
 for (const k of ['JIRA_BASE_URL', 'JIRA_EMAIL', 'JIRA_API_TOKEN', 'BMAD_JIRA_CACHE_DIR'])
   delete process.env[k];
+// credentials live under the home directory: point HOME/USERPROFILE at a throwaway one
+const HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'stella-jc-home-'));
+process.env.HOME = HOME;
+process.env.USERPROFILE = HOME;
 
 // ---- converter ----
 let doc = markdownToAdf('Hello **world** and `code` at [site](https://x.atlassian.net/a).');
@@ -95,7 +99,7 @@ ok(
 );
 ok(
   helper.MESSAGES.tokenExpired ===
-    'Jira token expired. Put a new token in _bmad-output/stella/.bmad-tokens/.env (JIRA_API_TOKEN).' &&
+    'Jira token expired. Put a new token in ~/.claude/stella/credentials.env (JIRA_API_TOKEN).' &&
     helper.MESSAGES.tokenMissing === 'Jira token file missing. Run the installer again.',
   'messages: exact dev-facing wording',
 );
@@ -107,7 +111,14 @@ const run = (args) =>
   spawnSync(process.execPath, [path.join(H, 'index.js'), ...args], {
     cwd: ROOT,
     encoding: 'utf8',
-    env: { ...process.env, JIRA_BASE_URL: '', JIRA_EMAIL: '', JIRA_API_TOKEN: '' },
+    env: {
+      ...process.env,
+      JIRA_BASE_URL: '',
+      JIRA_EMAIL: '',
+      JIRA_API_TOKEN: '',
+      HOME,
+      USERPROFILE: HOME,
+    },
   });
 const out = (r) => {
   try {
@@ -165,7 +176,7 @@ ok(r.status === 10 && /Unknown option/.test(out(r).message), 'cli: unknown optio
         text: async () => JSON.stringify(body),
       };
     };
-  const envFile = path.join(ROOT, '_bmad-output', 'stella', '.bmad-tokens', '.env');
+  const envFile = path.join(HOME, '.claude', 'stella', 'credentials.env');
   fs.mkdirSync(path.dirname(envFile), { recursive: true });
   fs.writeFileSync(
     envFile,

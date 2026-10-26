@@ -13,7 +13,7 @@ The installer and the Jira helper use an Atlassian API token to read tickets and
 The installer asks for your email and the token, verifies them against Jira, and writes:
 
 ```
-_bmad-output/stella/.bmad-tokens/.env
+~/.claude/stella/credentials.env
 ```
 
 The file is git-ignored. It holds `JIRA_BASE_URL`, `JIRA_EMAIL` and `JIRA_API_TOKEN`.

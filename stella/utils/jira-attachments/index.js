@@ -4,13 +4,7 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { performance } = require('node:perf_hooks');
 
-const {
-  resolveConfig,
-  validateConfig,
-  ENV_KEYS,
-  tokensEnvPath,
-  TOKENS_ENV,
-} = require('./lib/config');
+const { resolveConfig, validateConfig, ENV_KEYS, CREDENTIALS_FILE_LABEL } = require('./lib/config');
 const { JiraClient, JiraError } = require('./lib/client');
 const { collectAdfMediaFromIssue, summarizeDescription, extractPlainText } = require('./lib/adf');
 const {
@@ -433,7 +427,7 @@ async function main(argv) {
   const validation = validateConfig(config);
   if (!validation.ok) {
     logger.error(
-      `Missing credentials: ${validation.missing.join(', ')}. Set them as env vars or in ${tokensEnvPath(config.projectRoot)}.`,
+      `Missing credentials: ${validation.missing.join(', ')}. Set them as env vars or in ${CREDENTIALS_FILE_LABEL}.`,
     );
     return fail(EXIT_CODES.CONFIG, MESSAGES.tokenMissing);
   }
@@ -553,7 +547,7 @@ function emitResult(manifestPath, manifest) {
 
 // Dev-facing failure messages. The skills print `message` verbatim and act on
 // `code`; the wording lives here, not in the skill files.
-const TOKEN_FILE_LABEL = TOKENS_ENV.replaceAll('\\', '/'); // relative, forward slashes
+const TOKEN_FILE_LABEL = CREDENTIALS_FILE_LABEL;
 const MESSAGES = Object.freeze({
   tokenExpired: `Jira token expired. Put a new token in ${TOKEN_FILE_LABEL} (JIRA_API_TOKEN).`,
   tokenMissing: 'Jira token file missing. Run the installer again.',

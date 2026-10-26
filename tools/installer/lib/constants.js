@@ -21,7 +21,13 @@ const OTHER_PROJECT = 'Other';
 const BMAD_DIR = '_bmad';
 const OUTPUT_DIR = '_bmad-output';
 const STELLA_OUTPUT_DIR = `${OUTPUT_DIR}/stella`;
-const TOKEN_ENV_FILE = `${STELLA_OUTPUT_DIR}/.bmad-tokens/.env`;
+// Atlassian credentials: one file per machine, under the home directory (user decision
+// 2026-10-26). Parts are joined onto os.homedir() at run time.
+const CREDENTIALS_FILE_PARTS = ['.claude', 'stella', 'credentials.env'];
+const CREDENTIALS_FILE_LABEL = '~/.claude/stella/credentials.env';
+// Pre-2026-10-26 project file: read once on install, then the folder is removed.
+const PROJECT_TOKEN_DIR = `${STELLA_OUTPUT_DIR}/.bmad-tokens`;
+const PROJECT_TOKEN_ENV_FILE = `${PROJECT_TOKEN_DIR}/.env`;
 // v4 kept the same keys here; read once on upgrade, then removed with bmad-docs/.
 const LEGACY_TOKEN_ENV_FILE = 'bmad-docs/.bmad-tokens/.env';
 const PROJECT_JSON_FILE = `${STELLA_OUTPUT_DIR}/project.json`;
@@ -140,7 +146,10 @@ module.exports = {
   BMAD_DIR,
   OUTPUT_DIR,
   STELLA_OUTPUT_DIR,
-  TOKEN_ENV_FILE,
+  CREDENTIALS_FILE_PARTS,
+  CREDENTIALS_FILE_LABEL,
+  PROJECT_TOKEN_DIR,
+  PROJECT_TOKEN_ENV_FILE,
   LEGACY_TOKEN_ENV_FILE,
   PROJECT_JSON_FILE,
   GITIGNORE_LINES,

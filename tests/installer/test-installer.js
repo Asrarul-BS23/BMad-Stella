@@ -61,7 +61,16 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
   );
   ok(C.JIRA_BASE_URL === 'https://stellaint.atlassian.net', 'constants: JIRA base URL');
   ok(C.CONFLUENCE_PROJECTS_PAGE.id === '1626701832', 'constants: Confluence parent page id');
-  ok(C.TOKEN_ENV_FILE === '_bmad-output/stella/.bmad-tokens/.env', 'constants: token file path');
+  ok(
+    C.CREDENTIALS_FILE_PARTS.join('/') === '.claude/stella/credentials.env' &&
+      C.CREDENTIALS_FILE_LABEL === '~/.claude/stella/credentials.env',
+    'constants: credentials file under the home directory',
+  );
+  ok(
+    C.PROJECT_TOKEN_ENV_FILE === '_bmad-output/stella/.bmad-tokens/.env' &&
+      C.PROJECT_TOKEN_DIR === '_bmad-output/stella/.bmad-tokens',
+    'constants: old project token file path (read once, then removed)',
+  );
   ok(C.PROJECT_JSON_FILE === '_bmad-output/stella/project.json', 'constants: project.json path');
   ok(
     C.GITIGNORE_LINES.join(',') === '_bmad/,_bmad-output/,.claude/,.env',
@@ -97,27 +106,51 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     'preflight: nodeOk',
   );
 
-  // ================= JIRA credentials =================
+  // ================= JIRA credentials (one file per machine) =================
   {
-    const root = tmp('jira');
-    ok(jira.readTokenFile(root) === null, 'jira: no file → null');
     const fetchOk = async () => jsonRes(200, { displayName: 'Ash' });
     const fetch401 = async () => jsonRes(401, {});
     const fetchDown = async () => {
       throw new Error('ECONNREFUSED');
     };
+    const homeFile = (home) => path.join(home, '.claude', 'stella', 'credentials.env');
+    const projectFile = (root, lines) => {
+      const file = jira.projectTokenFilePath(root);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, lines.join('\n') + '\n');
+    };
+    const legacyFile = (root, lines) => {
+      const file = jira.legacyTokenFilePath(root);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, lines.join('\n') + '\n');
+    };
 
-    // fresh: ask email + token, verify ok, write
+    let home = tmp('home-fresh');
+    let root = tmp('jira');
+    ok(
+      jira.credentialsFile(home) === homeFile(home),
+      'jira: home file at ~/.claude/stella/credentials.env',
+    );
+    ok(jira.findCredentials(root, { home }) === null, 'jira: nothing anywhere → null');
+
+    // fresh: ask email + token, verify ok, write the home file; the expiry tip is shown once
     let s = scripted(['dev@stella.com', 'tok-1234567890abcdef']);
-    let r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
+    const logged = [];
+    let r = await jira.run(root, {
+      prompt: s.prompt,
+      fetch: fetchOk,
+      log: (m) => logged.push(m),
+      env: {},
+      home,
+    });
+    ok(
+      logged.length === 1 &&
+        logged[0] === "Set the token's expiry to 1 year, the longest Atlassian allows.",
+      'jira: expiry tip shown before the first prompt',
+    );
     ok(r.source === 'prompt' && r.verified && r.written, 'jira: fresh → prompt, verified, written');
     ok(s.asked.join(',') === 'email,token', 'jira: fresh asks email then token only (no base URL)');
-    const file = jira.tokenFilePath(root);
-    ok(
-      file === path.join(root, '_bmad-output', 'stella', '.bmad-tokens', '.env'),
-      'jira: token file at the v6 path',
-    );
-    const text = fs.readFileSync(file, 'utf8');
+    const text = fs.readFileSync(homeFile(home), 'utf8');
     ok(
       /^JIRA_BASE_URL=https:\/\/stellaint\.atlassian\.net$/m.test(text),
       'jira: base URL written as constant',
@@ -127,39 +160,54 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
         /^JIRA_API_TOKEN=tok-1234567890abcdef$/m.test(text),
       'jira: email + token written',
     );
-    ok(jira.readTokenFile(root).email === 'dev@stella.com', 'jira: file reads back');
+    ok(jira.readCredentialsFile({ home }).email === 'dev@stella.com', 'jira: home file reads back');
+    ok(!fs.existsSync(jira.projectTokenDir(root)), 'jira: no project token folder created');
 
-    // re-run: found → "use as is?" yes → verified → no questions beyond reuse
-    s = scripted([true]);
-    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
-    ok(
-      r.source === 'file' && r.verified && s.asked.join(',') === 'reuse',
-      'jira: re-run → reuse y → verified, nothing else asked',
-    );
-
-    // re-run: reuse but dead → asks fresh
-    s = scripted([true, 'new@stella.com', 'tok-abcdefghijklmnop']);
-    let calls = 0;
+    // re-run: home file valid → nothing asked, nothing printed
+    s = scripted([]);
+    logged.length = 0;
     r = await jira.run(root, {
       prompt: s.prompt,
+      fetch: fetchOk,
+      log: (m) => logged.push(m),
+      env: {},
+      home,
+    });
+    ok(
+      r.source === 'home' && r.verified && s.asked.length === 0 && logged.length === 0,
+      'jira: re-run with a valid home file → silent, no tip',
+    );
+
+    // re-run: home file rejected → email prefilled, both asked
+    s = scripted(['new@stella.com', 'tok-abcdefghijklmnop']);
+    let calls = 0;
+    let emailDefault = null;
+    const spyPrompt = async (qs) => {
+      emailDefault = qs[0].default;
+      return s.prompt(qs);
+    };
+    r = await jira.run(root, {
+      prompt: spyPrompt,
       fetch: async () => (calls++ === 0 ? jsonRes(401, {}) : jsonRes(200, {})),
       log: quiet,
       env: {},
+      home,
     });
     ok(
-      r.email === 'new@stella.com' && s.asked.join(',') === 'reuse,email,token',
-      'jira: reuse y but 401 → fresh entry',
+      r.email === 'new@stella.com' &&
+        s.asked.join(',') === 'email,token' &&
+        emailDefault === 'dev@stella.com',
+      'jira: home file rejected → email prefilled, token asked',
     );
+    ok(jira.readCredentialsFile({ home }).email === 'new@stella.com', 'jira: home file rewritten');
 
-    // re-run: reuse n → fresh
-    s = scripted([false, 'x@stella.com', 'tok-abcdefghijklmnop']);
-    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
-    ok(r.email === 'x@stella.com' && r.source === 'prompt', 'jira: reuse n → fresh entry');
-
-    // network down on reuse → keep saved, not rewritten
-    s = scripted([true]);
-    r = await jira.run(root, { prompt: s.prompt, fetch: fetchDown, log: quiet, env: {} });
-    ok(r.source === 'file' && !r.verified && !r.written, 'jira: reuse + network down → keep saved');
+    // network down with a home file → keep, nothing asked, nothing rewritten
+    s = scripted([]);
+    r = await jira.run(root, { prompt: s.prompt, fetch: fetchDown, log: quiet, env: {}, home });
+    ok(
+      r.source === 'home' && !r.verified && !r.written && s.asked.length === 0,
+      'jira: home file + network down → keep saved, silent',
+    );
 
     // three bad attempts → error
     s = scripted([
@@ -172,23 +220,31 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     ]);
     let threw = null;
     try {
-      await jira.run(tmp('jira2'), { prompt: s.prompt, fetch: fetch401, log: quiet, env: {} });
+      await jira.run(tmp('jira2'), {
+        prompt: s.prompt,
+        fetch: fetch401,
+        log: quiet,
+        env: {},
+        home: tmp('home-401'),
+      });
     } catch (error) {
       threw = error.message;
     }
     ok(/after 3 attempts/.test(threw || ''), 'jira: 3 auth failures → error');
 
-    // env override: nothing asked
+    // env override: nothing asked, home file written
     s = scripted([]);
+    home = tmp('home-env');
     r = await jira.run(tmp('jira3'), {
       prompt: s.prompt,
       fetch: fetchOk,
       log: quiet,
       env: { JIRA_EMAIL: 'ci@stella.com', JIRA_API_TOKEN: 'tok-abcdefghijklmnop' },
+      home,
     });
     ok(
-      r.source === 'env' && s.asked.length === 0 && r.written,
-      'jira: env vars → no prompt, written',
+      r.source === 'env' && s.asked.length === 0 && r.written && fs.existsSync(homeFile(home)),
+      'jira: env vars → no prompt, home file written',
     );
 
     // verify: request shape
@@ -207,111 +263,122 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
         seen.init.headers.Authorization.startsWith('Basic '),
       'jira: verify hits /myself with Basic auth',
     );
+
+    // ---- carried over from the previous Stella (project file) ----
+    home = tmp('home-project');
+    root = tmp('jira-project');
+    projectFile(root, [
+      'JIRA_BASE_URL=https://stellaint.atlassian.net',
+      'JIRA_EMAIL=proj@stella.com',
+      'JIRA_API_TOKEN=proj-token-1234567890',
+    ]);
     ok(
-      /[\s#"'=]/.test('a b') && /"a b"/.test(fs.readFileSync(file, 'utf8')) === false,
-      'jira: plain values unquoted',
+      jira.findCredentials(root, { home }).source === 'project',
+      'project: found when no home file',
     );
-  }
+    s = scripted([]);
+    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {}, home });
+    ok(
+      r.source === 'project' && r.verified && s.asked.length === 0 && r.removedProjectFile,
+      'project: valid pair → silent, moved',
+    );
+    ok(
+      jira.readCredentialsFile({ home }).token === 'proj-token-1234567890' &&
+        !fs.existsSync(jira.projectTokenDir(root)),
+      'project: home file written, .bmad-tokens folder removed',
+    );
+    s = scripted([]);
+    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {}, home });
+    ok(r.source === 'home', 'project: next run reads the home file');
 
-  // ================= JIRA credentials carried over from a v4 install =================
-  {
-    const fetchOk = async () => jsonRes(200, { displayName: 'Ash' });
-    const fetch401 = async () => jsonRes(401, {});
-    const fetchDown = async () => {
-      throw new Error('ECONNREFUSED');
-    };
-    const legacyRoot = (name, lines) => {
-      const root = tmp(name);
-      const file = jira.legacyTokenFilePath(root);
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(file, lines.join('\n') + '\n');
-      return root;
-    };
+    // project file rejected → both asked, email prefilled; folder removed after success
+    home = tmp('home-project-401');
+    root = tmp('jira-project-401');
+    projectFile(root, ['JIRA_EMAIL=proj@stella.com', 'JIRA_API_TOKEN=expired']);
+    s = scripted(['proj@stella.com', 'new-token-1234567890']);
+    calls = 0;
+    emailDefault = null;
+    r = await jira.run(root, {
+      prompt: spyPrompt,
+      fetch: async () => (++calls === 1 ? fetch401() : fetchOk()),
+      log: quiet,
+      env: {},
+      home,
+    });
+    ok(
+      s.asked.join(',') === 'email,token' &&
+        emailDefault === 'proj@stella.com' &&
+        r.source === 'prompt',
+      'project: rejected → email prefilled, both asked',
+    );
+    ok(
+      fs.existsSync(homeFile(home)) && !fs.existsSync(jira.projectTokenDir(root)),
+      'project: new pair written home, old folder removed',
+    );
+
+    // project file + network down → kept in both places, copied home unverified, nothing asked
+    home = tmp('home-project-down');
+    root = tmp('jira-project-down');
+    projectFile(root, ['JIRA_EMAIL=proj@stella.com', 'JIRA_API_TOKEN=maybe-ok-1234567890']);
+    s = scripted([]);
+    r = await jira.run(root, { prompt: s.prompt, fetch: fetchDown, log: quiet, env: {}, home });
+    ok(
+      s.asked.length === 0 && !r.verified && r.written && !r.removedProjectFile,
+      'project: network down → silent, copied home, old folder kept',
+    );
+    ok(fs.existsSync(jira.projectTokenDir(root)), 'project: folder untouched while unverified');
+
+    // ---- carried over from v4 (bmad-docs) ----
+    home = tmp('home-legacy');
     ok(jira.readLegacyTokenFile(tmp('legacy-none')) === null, 'legacy: no v4 file → null');
-
-    // valid pair → carried over, nothing asked, v6 file written
-    let root = legacyRoot('legacy-ok', [
+    root = tmp('legacy-ok');
+    legacyFile(root, [
       'JIRA_BASE_URL=https://stellaint.atlassian.net',
       'JIRA_EMAIL=old@stella.com',
       'JIRA_API_TOKEN=old-token-1234567890',
     ]);
-    let s = scripted([]);
-    let r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
+    s = scripted([]);
+    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {}, home });
     ok(
       r.source === 'legacy' && r.verified && r.email === 'old@stella.com' && s.asked.length === 0,
       'legacy: valid pair → carried over silently',
     );
     ok(
-      jira.readTokenFile(root).token === 'old-token-1234567890',
-      'legacy: v6 token file written from the v4 values',
-    );
-    s = scripted([true]);
-    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
-    ok(r.source === 'file', 'legacy: next run reads the v6 file, not bmad-docs');
-
-    // invalid token → only the token is asked, email kept
-    root = legacyRoot('legacy-401', ['JIRA_EMAIL=old@stella.com', 'JIRA_API_TOKEN=expired']);
-    s = scripted(['new-token-1234567890']);
-    let calls = 0;
-    r = await jira.run(root, {
-      prompt: s.prompt,
-      fetch: async () => (++calls === 1 ? fetch401() : fetchOk()),
-      log: quiet,
-      env: {},
-    });
-    ok(
-      s.asked.join(',') === 'token' && r.email === 'old@stella.com' && r.source === 'prompt',
-      'legacy: invalid token → token asked only, email kept',
-    );
-    ok(r.verified && r.written, 'legacy: new token verified and written');
-
-    // email only → token asked, email kept
-    root = legacyRoot('legacy-email', ['JIRA_EMAIL=old@stella.com']);
-    s = scripted(['new-token-1234567890']);
-    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
-    ok(
-      s.asked.join(',') === 'token' && r.email === 'old@stella.com',
-      'legacy: email only → token asked, email kept',
+      jira.readCredentialsFile({ home }).token === 'old-token-1234567890',
+      'legacy: home file written from the v4 values',
     );
 
-    // network down while verifying the old pair → nothing carried over, token asked
-    root = legacyRoot('legacy-down', [
-      'JIRA_EMAIL=old@stella.com',
-      'JIRA_API_TOKEN=maybe-ok-1234567890',
-    ]);
-    s = scripted(['new-token-1234567890']);
-    r = await jira.run(root, { prompt: s.prompt, fetch: fetchDown, log: quiet, env: {} });
+    // v4 email only → email prefilled, token asked
+    home = tmp('home-legacy-email');
+    root = tmp('legacy-email');
+    legacyFile(root, ['JIRA_EMAIL=old@stella.com']);
+    s = scripted(['old@stella.com', 'new-token-1234567890']);
+    emailDefault = null;
+    r = await jira.run(root, { prompt: spyPrompt, fetch: fetchOk, log: quiet, env: {}, home });
     ok(
-      s.asked.join(',') === 'token' && r.source === 'prompt' && !r.verified,
-      'legacy: unverifiable pair is not carried over',
+      s.asked.join(',') === 'email,token' &&
+        emailDefault === 'old@stella.com' &&
+        r.email === 'old@stella.com',
+      'legacy: email only → email prefilled, token asked',
     );
 
-    // wrong new token after a legacy email → second attempt asks email too
-    root = legacyRoot('legacy-retry', ['JIRA_EMAIL=old@stella.com']);
-    s = scripted(['bad-token-1234567890', 'new@stella.com', 'good-token-1234567890']);
-    calls = 0;
-    r = await jira.run(root, {
-      prompt: s.prompt,
-      fetch: async () => (++calls === 1 ? fetch401() : fetchOk()),
-      log: quiet,
-      env: {},
-    });
+    // precedence: home beats project beats v4
+    home = tmp('home-prec');
+    root = tmp('jira-prec');
+    legacyFile(root, ['JIRA_EMAIL=v4@stella.com', 'JIRA_API_TOKEN=v4-1234567890']);
+    projectFile(root, ['JIRA_EMAIL=proj@stella.com', 'JIRA_API_TOKEN=proj-1234567890']);
     ok(
-      s.asked.join(',') === 'token,email,token' && r.email === 'new@stella.com',
-      'legacy: failed attempt → email asked again, old email as default',
+      jira.findCredentials(root, { home }).email === 'proj@stella.com',
+      'precedence: project over v4',
     );
-
-    // a v6 file wins over the v4 file
-    root = legacyRoot('legacy-both', [
-      'JIRA_EMAIL=old@stella.com',
-      'JIRA_API_TOKEN=old-1234567890',
-    ]);
-    jira.writeTokenFile(root, { email: 'v6@stella.com', token: 'v6-token-1234567890' });
-    s = scripted([true]);
-    r = await jira.run(root, { prompt: s.prompt, fetch: fetchOk, log: quiet, env: {} });
+    jira.writeCredentialsFile({ email: 'home@stella.com', token: 'home-1234567890' }, { home });
     ok(
-      r.source === 'file' && r.email === 'v6@stella.com' && s.asked.join(',') === 'reuse',
-      'legacy: existing v6 file takes precedence',
+      jira.findCredentials(root, { home }).email === 'home@stella.com',
+      'precedence: home over project',
+    );
+    ok(
+      /[\s#"'=]/.test('a b') && /"a b"/.test(fs.readFileSync(homeFile(home), 'utf8')) === false,
+      'jira: plain values unquoted',
     );
   }
 

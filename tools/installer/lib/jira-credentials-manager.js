@@ -1,17 +1,23 @@
 'use strict';
 
-// Step 3 + 4 — JIRA credentials. The base URL is a constant (never asked). The
-// token file is _bmad-output/stella/.bmad-tokens/.env, read by the jira-attachments
-// helper. Flow (user decision): file found → "use as is? y/n"; otherwise ask email
-// + API token; verify with one REST call (/myself); write the file.
+// Step 2 — JIRA credentials. One file per machine: ~/.claude/stella/credentials.env,
+// read by the Jira helpers and the friction logger. The base URL is a constant
+// (never asked). Flow (user decision 2026-10-26): find credentials in the home
+// file, else the old project file, else the v4 file; verify silently with one
+// REST call (/myself). Valid → nothing asked, home file written, old project folder
+// removed. Rejected or nothing found → ask email + token. Unreachable → keep, warn.
 //
-// `prompt` (inquirer-compatible) and `fetch` are injectable for tests.
+// `prompt` (inquirer-compatible), `fetch` and `home` are injectable for tests.
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const {
   JIRA_BASE_URL,
-  TOKEN_ENV_FILE,
+  CREDENTIALS_FILE_PARTS,
+  CREDENTIALS_FILE_LABEL,
+  PROJECT_TOKEN_DIR,
+  PROJECT_TOKEN_ENV_FILE,
   LEGACY_TOKEN_ENV_FILE,
   TOKEN_HELP_URL,
 } = require('./constants');
@@ -20,6 +26,7 @@ const {
 const defaultFetch = (...args) => globalThis.fetch(...args);
 const VERIFY_TIMEOUT_MS = 10_000;
 const MAX_ATTEMPTS = 3;
+const EXPIRY_TIP = "Set the token's expiry to 1 year, the longest Atlassian allows.";
 
 function parseDotenv(contents) {
   const out = {};
@@ -41,7 +48,9 @@ function parseDotenv(contents) {
   return out;
 }
 
-const tokenFilePath = (root) => path.join(root, ...TOKEN_ENV_FILE.split('/'));
+const credentialsFile = (home = os.homedir()) => path.join(home, ...CREDENTIALS_FILE_PARTS);
+const projectTokenDir = (root) => path.join(root, ...PROJECT_TOKEN_DIR.split('/'));
+const projectTokenFilePath = (root) => path.join(root, ...PROJECT_TOKEN_ENV_FILE.split('/'));
 const legacyTokenFilePath = (root) => path.join(root, ...LEGACY_TOKEN_ENV_FILE.split('/'));
 
 function readDotenvFile(file) {
@@ -52,11 +61,21 @@ function readDotenvFile(file) {
   }
 }
 
-/** @returns {{email:string, token:string}|null} */
-function readTokenFile(root) {
-  const env = readDotenvFile(tokenFilePath(root));
+/** A complete pair from one file, or null. */
+function readPair(file) {
+  const env = readDotenvFile(file);
   if (!env || !env.JIRA_EMAIL || !env.JIRA_API_TOKEN) return null;
-  return { email: env.JIRA_EMAIL, token: env.JIRA_API_TOKEN };
+  return { email: env.JIRA_EMAIL.trim(), token: env.JIRA_API_TOKEN.trim() };
+}
+
+/** @returns {{email:string, token:string}|null} the home file */
+function readCredentialsFile({ home } = {}) {
+  return readPair(credentialsFile(home));
+}
+
+/** @returns {{email:string, token:string}|null} the pre-2026-10-26 project file */
+function readProjectTokenFile(root) {
+  return readPair(projectTokenFilePath(root));
 }
 
 /**
@@ -71,16 +90,30 @@ function readLegacyTokenFile(root) {
   return email || token ? { email, token } : null;
 }
 
+/**
+ * First credentials found, in order: home file, project file, v4 file.
+ * @returns {{email:string|null, token:string|null, source:'home'|'project'|'legacy'}|null}
+ */
+function findCredentials(root, { home } = {}) {
+  const fromHome = readCredentialsFile({ home });
+  if (fromHome) return { ...fromHome, source: 'home' };
+  const fromProject = readProjectTokenFile(root);
+  if (fromProject) return { ...fromProject, source: 'project' };
+  const legacy = readLegacyTokenFile(root);
+  if (legacy) return { ...legacy, source: 'legacy' };
+  return null;
+}
+
 function quote(value) {
   const s = String(value ?? '');
   return /[\s#"'=]/.test(s) ? `"${s.replaceAll('"', String.raw`\"`)}"` : s;
 }
 
-function writeTokenFile(root, { email, token }) {
-  const file = tokenFilePath(root);
+function writeCredentialsFile({ email, token }, { home } = {}) {
+  const file = credentialsFile(home);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const body = [
-    '# BMad-Stella JIRA credentials (written by the installer, git-ignored).',
+    '# BMad-Stella Atlassian credentials (written by the installer). One file per machine.',
     `# Create an API token at ${TOKEN_HELP_URL}`,
     `JIRA_BASE_URL=${JIRA_BASE_URL}`,
     `JIRA_EMAIL=${quote(email)}`,
@@ -96,6 +129,14 @@ function writeTokenFile(root, { email, token }) {
     // best effort on Windows
   }
   return file;
+}
+
+/** Removes the old project token folder. Returns true when something was removed. */
+function removeProjectTokenDir(root) {
+  const dir = projectTokenDir(root);
+  if (!fs.existsSync(dir)) return false;
+  fs.rmSync(dir, { recursive: true, force: true });
+  return true;
 }
 
 /**
@@ -153,13 +194,22 @@ const tokenQuestion = () => ({
   filter: (v) => String(v || '').trim(),
 });
 
+/** Writes the home file and drops the old project folder. */
+function settle(root, creds, { home }) {
+  writeCredentialsFile(creds, { home });
+  const removed = removeProjectTokenDir(root);
+  return { written: true, removedProjectFile: removed };
+}
+
 /**
- * Full step. Returns the credentials in use and whether the file was (re)written.
- * @returns {Promise<{email:string, token:string, verified:boolean, written:boolean, source:'file'|'env'|'prompt'}>}
+ * Full step. Returns the credentials in use, where they came from and whether the
+ * home file was written.
+ * @returns {Promise<{email:string, token:string, verified:boolean, displayName:string|null,
+ *   written:boolean, removedProjectFile:boolean, source:'home'|'project'|'legacy'|'env'|'prompt'}>}
  */
 async function run(
   root,
-  { prompt, fetch = defaultFetch, log = console.log, env = process.env } = {},
+  { prompt, fetch = defaultFetch, log = console.log, env = process.env, home } = {},
 ) {
   // Non-interactive override (CI): env vars win and nothing is asked.
   if (env.JIRA_EMAIL && env.JIRA_API_TOKEN) {
@@ -167,91 +217,66 @@ async function run(
     const v = await verify(creds, { fetch });
     if (v.status === 'auth')
       throw new Error(`JIRA credentials from the environment were rejected (${v.detail}).`);
-    writeTokenFile(root, creds);
     return {
       ...creds,
       verified: v.status === 'ok',
       displayName: v.displayName,
-      written: true,
+      ...settle(root, creds, { home }),
       source: 'env',
     };
   }
 
-  const existing = readTokenFile(root);
-  if (existing) {
-    const { reuse } = await prompt([
-      { type: 'confirm', name: 'reuse', message: 'Use them as is?', default: true },
-    ]);
-    if (reuse) {
-      const v = await verify(existing, { fetch });
+  // Silent check of whatever is already on this machine or in this project.
+  const found = findCredentials(root, { home });
+  let presetEmail = null;
+  if (found) {
+    presetEmail = found.email;
+    if (found.email && found.token) {
+      const pair = { email: found.email, token: found.token };
+      const v = await verify(pair, { fetch });
       if (v.status === 'ok') {
-        writeTokenFile(root, existing); // normalises the file (base URL, header)
         return {
-          ...existing,
+          ...pair,
           verified: true,
           displayName: v.displayName,
-          written: true,
-          source: 'file',
+          ...settle(root, pair, { home }),
+          source: found.source,
         };
       }
       if (v.status === 'network') {
         log(`Could not reach JIRA to verify (${v.detail}). Keeping the saved credentials.`);
-        return { ...existing, verified: false, displayName: null, written: false, source: 'file' };
+        const written =
+          found.source === 'home' ? false : Boolean(writeCredentialsFile(pair, { home }));
+        return {
+          ...pair,
+          verified: false,
+          displayName: null,
+          written,
+          removedProjectFile: false,
+          source: found.source,
+        };
       }
       log(`Saved credentials no longer work (${v.detail}). Enter new ones.`);
     }
   }
 
-  // Upgrade from v4: bmad-docs/.bmad-tokens/.env carries the same keys. A pair that
-  // still verifies is carried over silently; otherwise only the token is asked and
-  // the old email is kept. A network error counts as "not verified" here, so nothing
-  // unverified is carried over.
-  let legacyEmail = null;
-  if (!existing) {
-    const legacy = readLegacyTokenFile(root);
-    if (legacy) {
-      legacyEmail = legacy.email;
-      if (legacy.email && legacy.token) {
-        const pair = { email: legacy.email, token: legacy.token };
-        const v = await verify(pair, { fetch });
-        if (v.status === 'ok') {
-          writeTokenFile(root, pair);
-          return {
-            ...pair,
-            verified: true,
-            displayName: v.displayName,
-            written: true,
-            source: 'legacy',
-          };
-        }
-      }
-    }
-  }
-
+  log(EXPIRY_TIP);
   let last = null;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const keepLegacyEmail = Boolean(legacyEmail && !last);
-    const answers = await prompt(
-      keepLegacyEmail
-        ? [tokenQuestion()]
-        : [
-            emailQuestion(
-              (last && last.email) || (existing && existing.email) || legacyEmail || undefined,
-            ),
-            tokenQuestion(),
-          ],
-    );
-    const creds = { email: keepLegacyEmail ? legacyEmail : answers.email, token: answers.token };
+    const answers = await prompt([
+      emailQuestion((last && last.email) || presetEmail || undefined),
+      tokenQuestion(),
+    ]);
+    const creds = { email: answers.email, token: answers.token };
     const v = await verify(creds, { fetch });
     if (v.status === 'ok' || v.status === 'network') {
       if (v.status === 'network')
         log(`Could not reach JIRA to verify (${v.detail}). Saving anyway.`);
-      writeTokenFile(root, creds);
       return {
         ...creds,
         verified: v.status === 'ok',
         displayName: v.displayName,
-        written: true,
+        ...settle(root, creds, { home }),
         source: 'prompt',
       };
     }
@@ -264,10 +289,17 @@ async function run(
 module.exports = {
   run,
   verify,
-  readTokenFile,
+  findCredentials,
+  readCredentialsFile,
+  readProjectTokenFile,
   readLegacyTokenFile,
-  writeTokenFile,
-  tokenFilePath,
+  writeCredentialsFile,
+  removeProjectTokenDir,
+  credentialsFile,
+  projectTokenDir,
+  projectTokenFilePath,
   legacyTokenFilePath,
   parseDotenv,
+  CREDENTIALS_FILE_LABEL,
+  EXPIRY_TIP,
 };

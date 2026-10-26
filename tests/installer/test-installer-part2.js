@@ -122,6 +122,9 @@ const scripted = (answers) => {
   };
 };
 const userHooks = async () => ({ status: 'current', changed: false });
+// credentials go to a throwaway home, never the real one
+const HOME = tmp('home');
+const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.env');
 
 (async () => {
   const root = tmp('cycle');
@@ -148,6 +151,7 @@ const userHooks = async () => ({ status: 'current', changed: false });
   let s = scripted(['dev@stella.com', 'tok-abcdefghijklmnop', 'LEADRSC']);
   let sum = await installer.install(root, {
     mcp: mcpMock,
+    home: HOME,
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -353,9 +357,10 @@ const userHooks = async () => ({ status: 'current', changed: false });
     path.join(root, '_bmad', 'custom', 'stella', 'friction.json'),
     '{"triggerStatuses":["in-review"]}',
   );
-  s = scripted([true, 'LEADRSC']);
+  s = scripted(['LEADRSC']);
   sum = await installer.install(root, {
     mcp: mcpMock,
+    home: HOME,
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -365,8 +370,8 @@ const userHooks = async () => ({ status: 'current', changed: false });
     isTTY: true,
   });
   ok(
-    sum.rerun && s.asked.join(',') === 'reuse,choice',
-    're-run: detected; credentials reuse question + project list (always shown)',
+    sum.rerun && s.asked.join(',') === 'choice',
+    're-run: detected; credentials silent, project list (always shown)',
   );
   ok(
     sum.removed.includes('_bmad') &&
@@ -419,8 +424,9 @@ const userHooks = async () => ({ status: 'current', changed: false });
   ok(
     exists(root, '_bmad-output/stella/reviewer/keep.md') &&
       exists(root, '_bmad-output/stella/domain-knowledge/api-contracts.md') &&
-      exists(root, '_bmad-output/stella/.bmad-tokens/.env'),
-    'uninstall: _bmad-output untouched',
+      !exists(root, '_bmad-output/stella/.bmad-tokens') &&
+      fs.existsSync(homeCredentials()),
+    'uninstall: _bmad-output untouched, credentials stay in the home file',
   );
   settings = JSON.parse(read(root, '.claude/settings.local.json'));
   ok(
@@ -442,9 +448,10 @@ const userHooks = async () => ({ status: 'current', changed: false });
   );
 
   // ================= 4. install again =================
-  s = scripted([true, 'LEADRSC']);
+  s = scripted(['LEADRSC']);
   sum = await installer.install(root, {
     mcp: mcpMock,
+    home: HOME,
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -454,8 +461,8 @@ const userHooks = async () => ({ status: 'current', changed: false });
     isTTY: true,
   });
   ok(
-    !sum.rerun && s.asked.join(',') === 'reuse,choice',
-    'reinstall: not a re-run (no _bmad), saved creds reused, project picked again',
+    !sum.rerun && s.asked.join(',') === 'choice',
+    'reinstall: not a re-run (no _bmad), saved creds silent, project picked again',
   );
   const tree4 = listTree(root).filter((f) => f !== '_bmad-output/stella/reviewer/keep.md');
   ok(tree4.join('\n') === tree1.join('\n'), 'reinstall: tree identical to the first install');
