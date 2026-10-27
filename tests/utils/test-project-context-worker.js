@@ -88,11 +88,7 @@ function makeRoot({ withContext = true } = {}) {
   );
   fs.mkdirSync(path.join(root, ...CTX), { recursive: true });
   if (withContext) {
-    fs.writeFileSync(path.join(root, ...CTX, 'project.md'), `${PROV}\n\n# demo\n`);
-    fs.writeFileSync(
-      path.join(root, ...CTX, 'architecture.md'),
-      `${PROV}\n\n# Architecture — demo\n`,
-    );
+    fs.writeFileSync(path.join(root, ...CTX, 'context.md'), `${PROV}\n\n# demo\n`);
   }
   const bin = path.join(root, 'bin');
   fs.mkdirSync(bin);

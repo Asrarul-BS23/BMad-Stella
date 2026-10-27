@@ -43,7 +43,7 @@ ok(
 // present → nothing started
 {
   const root = tmp();
-  touch(root, `${C.PROJECT_CONTEXT_DIR}/project.md`);
+  touch(root, `${C.PROJECT_CONTEXT_DIR}/context.md`);
   touch(root, WORKER);
   let spawned = 0;
   const r = startIfMissing(root, { cliPresent: () => true, spawnDetached: () => spawned++ });

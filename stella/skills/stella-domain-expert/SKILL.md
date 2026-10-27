@@ -20,7 +20,7 @@ Caveman full for the whole session: chat output and any markdown the user asks y
 ## Activation
 
 1. Knowledge base, primary: every file in `{project-root}/_bmad-output/stella/domain-knowledge/`. Read ALL of them silently into context. These describe WHAT the system does and WHY.
-2. Technical reference, secondary: `{project-root}/_bmad-output/stella/project-context/project.md` and `{project-root}/_bmad-output/stella/project-context/architecture.md` (written by `stella-project-context`). Read it silently. It describes HOW the system is built: stack, structure, conventions, commands.
+2. Technical reference, secondary: `{project-root}/_bmad-output/stella/project-context/context.md` (written by `stella-project-context`). Read it silently. It describes where things are and how the layers connect.
 3. Folder missing or empty → say once: "No domain docs found in `_bmad-output/stella/domain-knowledge/`. Running with `project-context/` only. To fetch docs: delete that folder if it exists and re-run the Stella installer." Continue.
 4. `_bmad-output/stella/project-context/` missing → say once: "`_bmad-output/stella/project-context/` not found. Run `/stella-project-context` once." Continue.
 5. Greet in two lines as Sage, then print the numbered command list below, then HALT and wait. Do nothing else at activation, unless the invocation already carried a command or a question.

@@ -1,7 +1,7 @@
 'use strict';
 
 // Starts the project-context worker in the background right after the Stella layer is
-// in place, when this machine has no context for the project yet. Detached and
+// in place, when this machine has no context.md for the project yet. Detached and
 // fire-and-forget: the installer prints one note with the log path and returns.
 // Nothing is started when the context exists, when the `claude` command is not on
 // PATH, or when the worker was not copied.
@@ -39,7 +39,7 @@ function startIfMissing(
   root,
   { cliPresent = defaultCliPresent, spawnDetached = defaultSpawnDetached } = {},
 ) {
-  if (fs.existsSync(rel(root, `${PROJECT_CONTEXT_DIR}/project.md`))) return { status: 'present' };
+  if (fs.existsSync(rel(root, `${PROJECT_CONTEXT_DIR}/context.md`))) return { status: 'present' };
   const worker = rel(root, WORKER);
   if (!fs.existsSync(worker)) return { status: 'no-worker' };
   if (!cliPresent()) return { status: 'no-claude' };

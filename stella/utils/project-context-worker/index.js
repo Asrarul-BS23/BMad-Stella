@@ -1,7 +1,7 @@
 'use strict';
 
 // project-context-worker — generates the per-machine project context in the background.
-// Started detached by the installer when _bmad-output/stella/project-context/project.md is
+// Started detached by the installer when _bmad-output/stella/project-context/context.md is
 // missing. Runs the stella-project-context skill headless:
 //   claude -p "/stella-project-context setup" --permission-mode dontAsk ...
 // with edits allowed only under the context folder, read-only git, and the skill's own
