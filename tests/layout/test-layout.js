@@ -17,6 +17,7 @@ const MUST_EXIST = [
   'stella/hooks/project/pr-review-guard/lib/policy.js',
   'stella/hooks/project/pr-review-guard/lib/review-state.js',
   'stella/hooks/project/memory/daily-job.js',
+  'stella/hooks/project/memory/user-prompt-expansion.js',
   'stella/hooks/project/personalization-inject/user-prompt-expansion.js',
   'stella/hooks/user/notification/index.js',
   'stella/hooks/user/personalization/index.js',

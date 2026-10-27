@@ -76,6 +76,9 @@ const CLAUDE_DIR = '.claude';
 const CLAUDE_SKILLS_DIR = `${CLAUDE_DIR}/skills`;
 const STELLA_CLAUDE_DIR = `${CLAUDE_DIR}/stella`; // project hooks live in .claude/stella/hooks/
 const STELLA_HOOKS_DIR = `${STELLA_CLAUDE_DIR}/hooks`;
+// Pre-v6 project-hook location. No longer written, but a prior install may still have
+// registered commands under it in settings.local.json — cleaned up on re-install.
+const LEGACY_BMAD_HOOKS_DIR = `${CLAUDE_DIR}/bmad-hooks`;
 const SETTINGS_LOCAL = `${CLAUDE_DIR}/settings.local.json`;
 
 const STELLA_SKILLS = [
@@ -109,18 +112,15 @@ const PROJECT_HOOKS = [
     },
   },
   {
-    name: 'personalization-inject',
-    events: {
-      UserPromptExpansion: { file: 'user-prompt-expansion.js' },
-    },
-  },
-  {
     name: 'memory',
     events: {
-      // Sole trigger: checks for a new calendar day and spawns daily-job.js
-      // detached when so. No UserPromptExpansion entry — the planner reads
-      // domain-map/episodic/semantic files on demand now, not via injection.
+      // Checks for a new calendar day and spawns daily-job.js detached when so.
       UserPromptSubmit: { file: 'user-prompt-submit.js' },
+      // Injects MEMORY.md + domain-map.md (verbatim, if present) once per session,
+      // on stella-build kickoff only. Replaces personalization-inject, which is no
+      // longer registered (source kept at stella/hooks/project/personalization-inject/,
+      // unused).
+      UserPromptExpansion: { file: 'user-prompt-expansion.js' },
     },
   },
 ];
@@ -141,6 +141,7 @@ module.exports = {
   CLAUDE_SKILLS_DIR,
   STELLA_CLAUDE_DIR,
   STELLA_HOOKS_DIR,
+  LEGACY_BMAD_HOOKS_DIR,
   SETTINGS_LOCAL,
   STELLA_SKILLS,
   BMAD_SKILLS_REMOVED,

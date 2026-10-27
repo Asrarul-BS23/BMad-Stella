@@ -13,6 +13,7 @@ const {
   CLAUDE_SKILLS_DIR,
   STELLA_CLAUDE_DIR,
   STELLA_HOOKS_DIR,
+  LEGACY_BMAD_HOOKS_DIR,
   SETTINGS_LOCAL,
   STELLA_SKILLS,
   BMAD_SKILLS_REMOVED,
@@ -81,6 +82,8 @@ function copySkills(root) {
 
 // ---- step 11: project hooks ----
 function copyHooks(root) {
+  // Pre-v6 project-hook location — best-effort cleanup, not an error if already absent.
+  rmIfPresent(rel(root, LEGACY_BMAD_HOOKS_DIR));
   for (const hook of PROJECT_HOOKS) {
     copyDir(path.join(SRC.hooks, hook.name), rel(root, `${STELLA_HOOKS_DIR}/${hook.name}`));
   }
@@ -94,9 +97,16 @@ function copyHooks(root) {
 // subfolder and the guard is silently skipped. The variable keeps the file portable.
 const hookCommand = (hook, file) =>
   `node "\${CLAUDE_PROJECT_DIR}/${STELLA_HOOKS_DIR}/${hook.name}/${file}"`;
+// Legacy commands predate ${CLAUDE_PROJECT_DIR} anchoring: absolute Windows paths with
+// backslashes, pointing straight at node.exe (e.g. "C:\Program Files\nodejs\node.exe"
+// "D:\...\.claude\bmad-hooks\user-prompt-submit.js"). Match the directory on either
+// separator, anywhere in the command and under any hook name or file beneath it — not
+// anchored to a specific prefix (${CLAUDE_PROJECT_DIR}, a drive path, or anything else).
+const LEGACY_BMAD_HOOKS_RE = /\.claude[\\/]bmad-hooks[\\/]/;
 const isOurHookEntry = (entry) => {
   const cmd = entry && Array.isArray(entry.hooks) && entry.hooks[0] && entry.hooks[0].command;
-  return typeof cmd === 'string' && cmd.includes(`${STELLA_HOOKS_DIR}/`);
+  if (typeof cmd !== 'string') return false;
+  return cmd.includes(`${STELLA_HOOKS_DIR}/`) || LEGACY_BMAD_HOOKS_RE.test(cmd);
 };
 
 function readSettings(root) {
