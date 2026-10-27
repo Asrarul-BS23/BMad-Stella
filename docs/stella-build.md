@@ -32,6 +32,6 @@ Plain text also works. Nothing is fetched from Jira.
 
 ## Good to know
 
-- Project context from `project-context/` is loaded on every run when it exists: [project-context.md](project-context.md).
+- The memory files `_bmad-output/stella/memory/domain-map.md` and `_bmad-output/stella/memory/patterns.md` are loaded on every run when they exist.
 - The skill never checks the branch or the working tree. Changes already uncommitted before the run appear in the review diff.
 - The ticket is fetched with your Jira token. If the token has expired, the run says so and continues through the Atlassian MCP without attachments; if that is not authenticated either, it stops and tells you to run `/mcp` or fix the token.

@@ -20,7 +20,7 @@ Two questions (Atlassian credentials, project), about a minute. Details: [Instal
 | `/stella-security <spec>`    | Security audit of what a build changed.                |
 | `/stella-pr-review <PR url>` | Reviews a pull request against its ticket. Read-only.  |
 | `/stella-domain-expert`      | Answers questions from the project's domain docs.      |
-| `/stella-project-context`    | Writes the project context every session loads.        |
+| `/stella-project-context`    | Redo the project context the installer generates.      |
 | `/caveman`                   | Terse chat mode.                                       |
 
 ## Docs
@@ -30,7 +30,6 @@ Two questions (Atlassian credentials, project), about a minute. Details: [Instal
 - [User guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1167622152/BMAD+Stella+User+Guide), the daily loop from ticket to PR
 - [stella-build](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1650950184/Stella+Build)
 - [PR review](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1609760769/PR+Review+Guide)
-- [Project context](docs/project-context.md)
 
 ## Requirements
 

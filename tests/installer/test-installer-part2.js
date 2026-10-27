@@ -204,6 +204,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   let sum = await installer.install(root, {
     mcp: mcpMock,
     home: HOME,
+    projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -264,10 +265,8 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     'layer: summary lists the removed official skills',
   );
   ok(
-    installer
-      .layerNotes(sum)
-      .some((n) => /removed bmad-build, bmad-build-auto, bmad-project-context/.test(n.text)),
-    'layer: note row names them',
+    !installer.layerNotes(sum).some((n) => /removed bmad-build/.test(n.text)),
+    'layer: removal is silent, no note row',
   );
   ok(
     /^name: stella-build/m.test(read(root, '.claude/skills/stella-build/SKILL.md')),
@@ -441,6 +440,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   sum = await installer.install(root, {
     mcp: mcpMock,
     home: HOME,
+    projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -533,6 +533,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   sum = await installer.install(root, {
     mcp: mcpMock,
     home: HOME,
+    projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -574,6 +575,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     await installer.install(tmp('ni'), {
       mcp: mcpMock,
       home: HOME,
+      projectContext: () => ({ status: 'present' }),
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: fakeBmad,
@@ -596,6 +598,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     await installer.install(failRoot, {
       mcp: mcpMock,
       home: HOME,
+      projectContext: () => ({ status: 'present' }),
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: async () => 2,

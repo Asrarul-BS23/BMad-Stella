@@ -53,7 +53,7 @@ ok(
   'checklist: guard paths',
 );
 ok(
-  /project-context\/project\.md/.test(skill) && !/AGENTS\.md/.test(skill),
+  /project-context\/context\.md/.test(skill) && !/AGENTS\.md/.test(skill),
   'skill: context from project-context/, no AGENTS.md',
 );
 ok(/_bmad-output\/stella\/domain-knowledge\//.test(skill), 'skill: domain knowledge folder');

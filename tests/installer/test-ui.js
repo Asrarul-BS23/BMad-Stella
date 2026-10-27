@@ -173,11 +173,16 @@ ok(
   installer.layerDetail(sum) === '5 skills   3 hooks   permissions',
   'detail: skipped docs + failed user hooks left out',
 );
+ok(!notes.some((n) => /Domain docs skipped/.test(n.text)), 'notes: docs already present → silent');
+sum.domainDocs = { status: 'skipped', reason: 'no Confluence page for this project (Other)' };
 ok(
-  notes[1].kind === 'warn' &&
-    notes[1].text === 'Domain docs skipped — domain-knowledge already has files' &&
-    notes[1].cont === 'delete the folder and re-run to refresh',
-  'notes: skipped reason split into warn + continuation',
+  !installer.layerNotes(sum).some((n) => /Domain docs skipped/.test(n.text)),
+  'notes: every skip reason is silent',
+);
+sum.removedBmadSkills = ['bmad-build'];
+ok(
+  !installer.layerNotes(sum).some((n) => /removed bmad-build/.test(n.text)),
+  'notes: removed official skills not shown',
 );
 
 console.log(`installer ui: ${total - fails}/${total} passed${fails ? ` — ${fails} FAILED` : ''}`);
