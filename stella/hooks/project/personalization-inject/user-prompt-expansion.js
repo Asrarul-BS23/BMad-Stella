@@ -4,7 +4,7 @@
 // Injects ~/.claude/personalization.md once per session, but only for Stella's own
 // commands (`/stella-*`). Official, unmodified BMad agents (`/bmad-*`) are left
 // untouched — BMad v6 is installed unchanged by the official installer (see
-// docs/maintaining.md), and personalization is a Stella-specific customization that
+// the repo README), and personalization is a Stella-specific customization that
 // has no business reaching into vanilla upstream skills.
 //
 // Zero dependencies. State lives in _bmad-output/stella/memory/.state/.injection-state.json.

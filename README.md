@@ -10,7 +10,7 @@ Run in the project folder, with Claude Code already installed:
 npx github:Asrarul-BS23/BMad-Stella#v6 install
 ```
 
-Two questions (Atlassian credentials, project), about a minute. Details: [docs/installation.md](docs/installation.md).
+Two questions (Atlassian credentials, project), about a minute. Details: [Installation Guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1649147911/Installation-Guide).
 
 ## Skills
 
@@ -25,16 +25,12 @@ Two questions (Atlassian credentials, project), about a minute. Details: [docs/i
 
 ## Docs
 
-- [Installation](docs/installation.md)
-- [Atlassian token](docs/atlassian-token.md)
-- [User guide](docs/user-guide.md), the daily loop from ticket to PR
-- [stella-build](docs/stella-build.md)
-- [stella-security](docs/stella-security.md)
-- [PR review](docs/pr-review.md)
-- [Domain expert](docs/domain-expert.md)
-- [Friction logger](docs/friction-logger.md)
+- [Installation](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1649147911/Installation-Guide)
+- [Atlassian token](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1544486919/Atlassian-Token-Guide)
+- [User guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1167622152/BMAD+Stella+User+Guide), the daily loop from ticket to PR
+- [stella-build](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1650950184/Stella+Build)
+- [PR review](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1609760769/PR+Review+Guide)
 - [Project context](docs/project-context.md)
-- [Maintaining](docs/maintaining.md), for whoever maintains this repo
 
 ## Requirements
 
