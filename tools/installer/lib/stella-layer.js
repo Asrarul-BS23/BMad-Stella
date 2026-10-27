@@ -13,6 +13,7 @@ const {
   CLAUDE_SKILLS_DIR,
   STELLA_CLAUDE_DIR,
   STELLA_HOOKS_DIR,
+  LEGACY_BMAD_HOOKS_DIR,
   SETTINGS_LOCAL,
   STELLA_SKILLS,
   BMAD_SKILLS_REMOVED,
@@ -76,6 +77,8 @@ function copySkills(root) {
 
 // ---- step 11: project hooks ----
 function copyHooks(root) {
+  // Pre-v6 project-hook location — best-effort cleanup, not an error if already absent.
+  rmIfPresent(rel(root, LEGACY_BMAD_HOOKS_DIR));
   for (const hook of PROJECT_HOOKS) {
     copyDir(path.join(SRC.hooks, hook.name), rel(root, `${STELLA_HOOKS_DIR}/${hook.name}`));
   }
@@ -91,7 +94,8 @@ const hookCommand = (hook, file) =>
   `node "\${CLAUDE_PROJECT_DIR}/${STELLA_HOOKS_DIR}/${hook.name}/${file}"`;
 const isOurHookEntry = (entry) => {
   const cmd = entry && Array.isArray(entry.hooks) && entry.hooks[0] && entry.hooks[0].command;
-  return typeof cmd === 'string' && cmd.includes(`${STELLA_HOOKS_DIR}/`);
+  if (typeof cmd !== 'string') return false;
+  return cmd.includes(`${STELLA_HOOKS_DIR}/`) || cmd.includes(`${LEGACY_BMAD_HOOKS_DIR}/`);
 };
 
 function readSettings(root) {

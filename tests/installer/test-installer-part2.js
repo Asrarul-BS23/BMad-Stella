@@ -141,13 +141,32 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     JSON.stringify(
       {
         permissions: { allow: ['Bash(npm test)', 'Read(bmad-docs/**)'], deny: ['Bash(rm -rf *)'] },
-        hooks: { SessionStart: [{ hooks: [{ type: 'command', command: 'node my-own-hook.js' }] }] },
+        hooks: {
+          SessionStart: [
+            { hooks: [{ type: 'command', command: 'node my-own-hook.js' }] },
+            {
+              hooks: [
+                {
+                  type: 'command',
+                  command:
+                    'node "${CLAUDE_PROJECT_DIR}/.claude/bmad-hooks/friction-logger/session-start.js"',
+                },
+              ],
+            },
+          ],
+        },
       },
       null,
       2,
     ),
   );
   fs.writeFileSync(path.join(root, '.gitignore'), 'node_modules/\n');
+  // pre-v6 project-hook location — must be cleaned up on install, not merely left alone
+  fs.mkdirSync(path.join(root, '.claude', 'bmad-hooks', 'friction-logger'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, '.claude', 'bmad-hooks', 'friction-logger', 'session-start.js'),
+    '',
+  );
   // v4 leftovers
   fs.mkdirSync(path.join(root, '.bmad-core'), { recursive: true });
   fs.mkdirSync(path.join(root, 'bmad-docs', 'memory', 'episodes'), { recursive: true });
@@ -323,9 +342,22 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   );
   ok(
     settings.hooks.UserPromptExpansion.some((e) =>
-      e.hooks[0].command.includes('personalization-inject'),
+      e.hooks[0].command.includes('memory/user-prompt-expansion.js'),
     ),
-    'settings: personalization-inject on UserPromptExpansion',
+    'settings: memory context injection on UserPromptExpansion',
+  );
+  ok(
+    !Object.values(settings.hooks)
+      .flat()
+      .some((e) => e.hooks[0].command.includes('personalization-inject')),
+    'settings: personalization-inject no longer registered',
+  );
+  ok(!exists(root, '.claude/bmad-hooks'), 'layer: legacy .claude/bmad-hooks/ removed');
+  ok(
+    !Object.values(settings.hooks)
+      .flat()
+      .some((e) => e.hooks[0].command.includes('.claude/bmad-hooks/')),
+    'settings: legacy bmad-hooks entries removed',
   );
   // step 12
   ok(
