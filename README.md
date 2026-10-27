@@ -30,7 +30,6 @@ Two questions (Atlassian credentials, project), about a minute. Details: [Instal
 - [User guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1167622152/BMAD+Stella+User+Guide), the daily loop from ticket to PR
 - [stella-build](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1650950184/Stella+Build)
 - [PR review](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1609760769/PR+Review+Guide)
-- [Project context](docs/project-context.md)
 
 ## Requirements
 

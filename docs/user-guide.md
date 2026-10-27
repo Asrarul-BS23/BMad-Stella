@@ -2,16 +2,6 @@
 
 Open Claude Code at the project root first.
 
-## Project context (automatic)
-
-The installer generates `_bmad-output/stella/project-context/context.md` in the background, a few minutes after install, and every `stella-build` run on this machine loads it. Nothing to run or commit. To redo it after a big change:
-
-```
-/stella-project-context
-```
-
-Details: [project-context.md](project-context.md).
-
 ## Standard dev flow
 
 ```

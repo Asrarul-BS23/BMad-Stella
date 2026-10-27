@@ -47,7 +47,6 @@ ok(
 const skill = read(SKILL, 'SKILL.md');
 const template = read(SKILL, 'references', 'template.md');
 const practices = read(SKILL, 'references', 'best-practices.md');
-const docs = read(REPO, 'docs', 'project-context.md');
 for (const [name, text] of [
   ['SKILL.md', skill],
   ['template.md', template],
@@ -176,10 +175,6 @@ ok(/quote the check's `ok` line/.test(skill), 'check: close quotes ok');
 // ---- git ----
 ok(/\*\*Git is read only:\*\*/.test(skill), 'guard: git read only');
 ok(!/\blead\b/i.test(skill + template), 'no lead wording');
-
-// ---- docs ----
-ok(docs.includes(OUT), 'docs: one file named');
-ok(/facts only, never rules/.test(docs), 'docs: facts only');
 
 // ---- installer ----
 ok(C.STELLA_SKILLS.includes('stella-project-context'), 'installer: in STELLA_SKILLS');
