@@ -54,6 +54,18 @@ ok(
 );
 ok(!/domain-knowledge/.test(skill), 'skill: no domain-knowledge grep');
 ok(
+  /Every finding cites a line you read at the head SHA that proves it\. What you could not read is not a finding\./.test(
+    skill,
+  ),
+  'rules: evidence rule (PR #152 guessed Blocker)',
+);
+ok(
+  /Not a git repository → find the repo folder in `_bmad-output\/stella\/project-context\/context\.md` and prefix git commands with `cd <repo> &&`\./.test(
+    skill,
+  ) && /`cd <project root or repo> &&` is tolerated/.test(skill),
+  'step 5: repo found from context.md when the folder is not a repo',
+);
+ok(
   /\n7\. Read `_bmad-output\/stella\/project-context\/context\.md`/.test(skill) &&
     !/Load context first/.test(skill),
   'skill: context read as step 7, after the fetch steps, not in the Guard',
