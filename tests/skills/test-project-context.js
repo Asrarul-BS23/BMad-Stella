@@ -125,6 +125,11 @@ ok(/1\. \*\*Read what is already known\.\*\*/.test(skill), 'known: setup reads s
 // ---- accuracy ----
 ok(/\*\*Every path cited exists\*\*/.test(skill), 'accuracy: paths verified');
 ok(
+  /written in full from `\{project-root\}`; a bare file name is not a path/.test(skill) &&
+    /a bare file name is not a path/.test(template),
+  'accuracy: full paths, no bare file names',
+);
+ok(
   /"only", "none", "every" or a specific value is written only after reading the line that proves it/.test(
     skill,
   ),

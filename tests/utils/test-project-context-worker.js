@@ -58,6 +58,13 @@ const PROV =
   );
   ok(!/Bash\(git (add|commit|push)/.test(cmd), 'command: no git writes');
   ok(
+    worker.ALLOWED_TOOLS.filter((t) => t.startsWith('Bash(')).every((t) =>
+      worker.ALLOWED_TOOLS.includes(t.replace(/^Bash/, 'PowerShell')),
+    ) && worker.ALLOWED_TOOLS.some((t) => t.startsWith('PowerShell(node ')),
+    'command: every shell rule has a PowerShell twin',
+  );
+  ok(!/PowerShell\(git (add|commit|push)/.test(cmd), 'command: no git writes in PowerShell either');
+  ok(
     /"Bash\(node \.claude\/skills\/stella-project-context\/scripts\/check-context\.js \*\)"/.test(
       cmd,
     ),

@@ -102,17 +102,15 @@ ok(
     'note: none when present',
   );
   ok(
-    texts({ status: 'started', log: C.PROJECT_CONTEXT_LOG }).some((t) =>
-      t.includes(`generating in the background (log: ${C.PROJECT_CONTEXT_LOG})`),
+    !texts({ status: 'started', log: C.PROJECT_CONTEXT_LOG }).some((t) =>
+      /Project context/.test(t),
     ),
-    'note: started names the log',
+    'note: none when started (silent background)',
   );
-  const noClaude = installer
-    .layerNotes({ ...base, projectContext: { status: 'no-claude' } })
-    .find((n) => /Project context/.test(n.text));
   ok(
-    noClaude && noClaude.kind === 'warn' && /run \/stella-project-context once/.test(noClaude.cont),
-    'note: no-claude warns with the manual command',
+    !texts({ status: 'no-claude' }).some((t) => /Project context/.test(t)) &&
+      !texts({ status: 'no-worker' }).some((t) => /Project context/.test(t)),
+    'note: silent when claude or the worker is missing',
   );
 }
 

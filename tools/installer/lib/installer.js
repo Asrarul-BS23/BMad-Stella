@@ -282,31 +282,10 @@ function mcpNote(m) {
   return { kind: 'warn', text: `Atlassian MCP not registered — ${m.detail}`, cont: null };
 }
 
-/** One line about the background project-context worker; null when the context already exists. */
-function projectContextNote(p) {
-  if (!p || p.status === 'present') return null;
-  if (p.status === 'started')
-    return { kind: 'note', text: `Project context → generating in the background (log: ${p.log})` };
-  if (p.status === 'no-claude')
-    return {
-      kind: 'warn',
-      text: 'Project context not generated — claude command not found',
-      cont: 'run /stella-project-context once in Claude Code',
-    };
-  return { kind: 'warn', text: 'Project context not generated — worker missing', cont: null };
-}
-
-/** "already has files (delete …)" → warn + how-to continuation; other reasons stay whole. */
-function skippedNote(reason) {
-  const howTo = /\((delete[^)]*)\)$/.exec(reason);
-  return {
-    kind: 'warn',
-    text: `Domain docs skipped — ${howTo ? reason.slice(0, howTo.index).trim() : reason}`,
-    cont: howTo ? howTo[1] : null,
-  };
-}
-
-/** Lines under step 5: only what is new, skipped or failed. */
+/**
+ * Lines under step 5: only what is new or failed. Skipped domain docs and the background
+ * project-context worker stay silent (user decision 2026-10-27); their state is in the summary.
+ */
 function layerNotes(s) {
   const d = s.domainDocs;
   return [
@@ -316,16 +295,8 @@ function layerNotes(s) {
     d.status === 'fetched'
       ? { kind: 'note', text: `Domain docs → ${path.relative(s.root, d.dir)}` }
       : null,
-    d.status === 'skipped' ? skippedNote(d.reason) : null,
     d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
     mcpNote(s.mcp),
-    projectContextNote(s.projectContext),
-    s.removedBmadSkills && s.removedBmadSkills.length > 0
-      ? {
-          kind: 'note',
-          text: `removed ${s.removedBmadSkills.join(', ')} (Stella versions installed)`,
-        }
-      : null,
     s.created.length > 0 ? { kind: 'note', text: `created ${s.created.join(', ')}` } : null,
   ].filter(Boolean);
 }

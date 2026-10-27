@@ -6,7 +6,7 @@ One file: `{project-root}/_bmad-output/stella/project-context/context.md`, at mo
 
 **Only what is not already known.** Leave out anything in `CLAUDE.md`, `AGENTS.md`, rule files, `_bmad-output/stella/memory/` or `_bmad-output/stella/domain-knowledge/`. Leave out anything one look at the code shows: stack, directory trees, base classes, attributes.
 
-Every path exists at the verified commit. Omit a section with nothing to say.
+Every path exists at the verified commit and is written in full from the project root; a bare file name is not a path. Omit a section with nothing to say.
 
 Line 1 is the provenance line:
 

@@ -25,14 +25,20 @@ const CHECK_SCRIPT = '.claude/skills/stella-project-context/scripts/check-contex
 const PROMPT = '/stella-project-context setup';
 const TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes, then the claude process is killed
 const MAX_TURNS = 400;
+// Shell commands the skill may run. Each is allowed in both shell tools: on Windows
+// Claude Code may pick PowerShell, and under dontAsk an unlisted call is refused.
+const SHELL_COMMANDS = Object.freeze([
+  'git log *',
+  'git rev-parse *',
+  'git ls-files *',
+  'git status *',
+  `node ${CHECK_SCRIPT}`,
+  `node ${CHECK_SCRIPT} *`,
+]);
 const ALLOWED_TOOLS = Object.freeze([
   'Edit(_bmad-output/stella/project-context/**)',
-  'Bash(git log *)',
-  'Bash(git rev-parse *)',
-  'Bash(git ls-files *)',
-  'Bash(git status *)',
-  `Bash(node ${CHECK_SCRIPT})`,
-  `Bash(node ${CHECK_SCRIPT} *)`,
+  ...SHELL_COMMANDS.map((c) => `Bash(${c})`),
+  ...SHELL_COMMANDS.map((c) => `PowerShell(${c})`),
 ]);
 const DISALLOWED_TOOLS = Object.freeze(['WebFetch', 'WebSearch', 'NotebookEdit']);
 

@@ -36,7 +36,7 @@ It asks nothing, writes from evidence, checks the result with `scripts/check-con
 1. **One write:** `{context-dir}/context.md`. Everything else is read only.
 2. **Facts only.** No line instructs: no "never", "always", "must", "should" or "don't".
 3. **Nothing already known.** What `CLAUDE.md`, `AGENTS.md`, rule files, the memory files or the domain-knowledge docs say stays out.
-4. **Every path cited exists**, verified by listing. A fact with "only", "none", "every" or a specific value is written only after reading the line that proves it.
+4. **Every path cited exists** and is written in full from `{project-root}`; a bare file name is not a path. A fact with "only", "none", "every" or a specific value is written only after reading the line that proves it.
 5. **Budget holds:** at most 60 lines. Over budget means the weakest line goes.
 6. **No questions.**
 7. **Git is read only:** `git log`, `git rev-parse`, `git ls-files`.
