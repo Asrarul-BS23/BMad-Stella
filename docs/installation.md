@@ -6,7 +6,7 @@ One-time setup on your machine. Nothing here is repeated per project.
 
 - Node 20.10+, `git`. `gh` if you will use PR review. uv and Python are installed for you if missing.
 - Claude Code.
-- An Atlassian API token: [atlassian-token.md](atlassian-token.md).
+- An Atlassian API token: [Atlassian Token Guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1544486919/Atlassian-Token-Guide).
 
 ## Install
 

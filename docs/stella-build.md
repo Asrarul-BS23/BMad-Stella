@@ -14,12 +14,6 @@ Or paste the Jira URL. The ticket, its comments and attachments (images and PDFs
 /stella-build _bmad-output/implementation-artifacts/spec-leadrsc-4901-....md
 ```
 
-Resumes an existing spec.
-
-```
-/stella-build add a cancel button to the export dialog
-```
-
 Plain text also works. Nothing is fetched from Jira.
 
 ## What it does
@@ -33,7 +27,7 @@ Plain text also works. Nothing is fetched from Jira.
 ## After it ends
 
 - The changes are in your working tree, uncommitted. Review them.
-- Run [stella-security](stella-security.md) on the spec if the ticket touches input, auth or data.
+- Run `/stella-security` on the spec if the ticket touches input, auth or data.
 - Commit by hand before the next ticket.
 
 ## Good to know
