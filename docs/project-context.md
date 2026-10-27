@@ -1,24 +1,22 @@
 # Project context
 
-Two small files that every Claude Code session and every `stella-build` run loads, plus one line in `CLAUDE.md` that loads them:
+One short file of facts, per machine, that every `stella-build` run loads:
 
 ```
-project-context/project.md        orientation, policy, where things are, running and verifying,
-                                  conventions that differ from defaults, known pitfalls   (≤ 60 lines)
-project-context/architecture.md   layers, request flow, data, wiring, integrations,
-                                  cross-component rules, canonical files                (≤ 90 lines)
-CLAUDE.md                         @project-context/project.md, appended; created if missing
+_bmad-output/stella/project-context/context.md   where things are, layers, files to copy the shape from   (≤ 60 lines)
 ```
 
-Anyone runs it. Everything is committed by you; the skill never commits.
+It holds facts only, never rules, so it cannot contradict your team's `CLAUDE.md` or your own memory. It leaves out what the memory files already say: `stella-build` loads `_bmad-output/stella/memory/domain-map.md` and `_bmad-output/stella/memory/patterns.md` beside it.
 
-## First time
+The file lives under `_bmad-output`, git-ignored: generated on your machine, edited by you, never committed.
+
+## After install
+
+The installer starts the generation in the background and returns. A few minutes later the file exists. Progress and the final report are in `_bmad-output/stella/project-context/.state/worker.log`. If the installer said `claude command not found`, run it yourself:
 
 ```
 /stella-project-context
 ```
-
-Finds the repo (also from a folder above it, also without git), scans it, reads `CLAUDE.md`, docs and your own Claude memory as sources, and writes. No questions. What only a human can confirm appears as a line starting with `Unverified:`, at most three. Edit or delete those, then commit `project-context/` and `CLAUDE.md`.
 
 ## After a big change
 
@@ -26,29 +24,11 @@ Finds the repo (also from a folder above it, also without git), scans it, reads 
 /stella-project-context
 ```
 
-With the folder present this is a refresh: every path is re-verified against the current code, both files are rewritten, and you get a diff of what changed.
+With the file present this is a refresh: every path is re-verified against the current code, the file is rewritten, and you get a diff of what changed.
 
-## When an agent gets something wrong
+## What the skill checks
 
-```
-/stella-project-context the agent used BeginTransactionAsync in a handler, it must use the transaction factory
-```
-
-Records one observed mistake as one line and names a lint rule or test that would catch it, when one exists.
-
-## Once in a while
-
-```
-/stella-project-context audit
-```
-
-Re-checks every line. Only removes or fixes. The files end smaller or equal.
-
-## Rules the skill follows
-
-- Every path is verified. Code and architecture tests beat any doc.
-- Pitfalls come only from observed mistakes, never from guesses.
-- No git rules in Policy: developers commit by hand.
-- `CLAUDE.md` gets one appended line and nothing else; `AGENTS.md` and rule files are never edited and never repeated.
-- Over budget means a line goes, never a bigger file.
-- A check script verifies both files and the `CLAUDE.md` line before the skill says done.
+- Every path exists. Code beats any doc.
+- No line states a rule: no never, always, must, should, don't.
+- Nothing already in `CLAUDE.md`, rule files, the memory files or the domain docs is repeated.
+- At most 60 lines. A check script verifies all of this before the skill says done.

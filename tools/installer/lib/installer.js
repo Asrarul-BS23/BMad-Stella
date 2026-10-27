@@ -18,6 +18,7 @@ const runner = require('./bmad-runner');
 const gitignore = require('./gitignore');
 const layer = require('./stella-layer');
 const memoryBootstrap = require('./memory-bootstrap');
+const projectContextBootstrap = require('./project-context-bootstrap');
 const domain = require('./domain-knowledge-fetcher');
 const { silentUi } = require('./ui');
 
@@ -43,6 +44,7 @@ async function install(root, deps) {
     runBmad = (r, o) => runner.install(r, o),
     userHooks = defaultUserHooks,
     bootstrapMemory = (r) => memoryBootstrap.bootstrapIfMissing(r),
+    projectContext = (r) => projectContextBootstrap.startIfMissing(r),
     check = preflight.check,
     tools = toolInstaller,
     mcp = mcpRegistrar,
@@ -214,6 +216,9 @@ async function install(root, deps) {
   // daily-job.js's first weekly run.
   summary.memoryBootstrap = bootstrapMemory(root);
 
+  // Per-machine project context, generated in the background by the worker (silent, never fatal)
+  summary.projectContext = projectContext(root);
+
   // Atlassian MCP in Claude Code's local scope (silent; login happens later via /mcp)
   s5.update('registering Atlassian MCP…');
   summary.mcp = mcp.register(root);
@@ -277,17 +282,10 @@ function mcpNote(m) {
   return { kind: 'warn', text: `Atlassian MCP not registered — ${m.detail}`, cont: null };
 }
 
-/** "already has files (delete …)" → warn + how-to continuation; other reasons stay whole. */
-function skippedNote(reason) {
-  const howTo = /\((delete[^)]*)\)$/.exec(reason);
-  return {
-    kind: 'warn',
-    text: `Domain docs skipped — ${howTo ? reason.slice(0, howTo.index).trim() : reason}`,
-    cont: howTo ? howTo[1] : null,
-  };
-}
-
-/** Lines under step 5: only what is new, skipped or failed. */
+/**
+ * Lines under step 5: only what is new or failed. Skipped domain docs and the background
+ * project-context worker stay silent (user decision 2026-10-27); their state is in the summary.
+ */
 function layerNotes(s) {
   const d = s.domainDocs;
   return [
@@ -297,15 +295,8 @@ function layerNotes(s) {
     d.status === 'fetched'
       ? { kind: 'note', text: `Domain docs → ${path.relative(s.root, d.dir)}` }
       : null,
-    d.status === 'skipped' ? skippedNote(d.reason) : null,
     d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
     mcpNote(s.mcp),
-    s.removedBmadSkills && s.removedBmadSkills.length > 0
-      ? {
-          kind: 'note',
-          text: `removed ${s.removedBmadSkills.join(', ')} (Stella versions installed)`,
-        }
-      : null,
     s.created.length > 0 ? { kind: 'note', text: `created ${s.created.join(', ')}` } : null,
   ].filter(Boolean);
 }

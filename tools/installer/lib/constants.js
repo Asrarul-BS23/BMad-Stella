@@ -31,6 +31,9 @@ const PROJECT_TOKEN_ENV_FILE = `${PROJECT_TOKEN_DIR}/.env`;
 // v4 kept the same keys here; read once on upgrade, then removed with bmad-docs/.
 const LEGACY_TOKEN_ENV_FILE = 'bmad-docs/.bmad-tokens/.env';
 const PROJECT_JSON_FILE = `${STELLA_OUTPUT_DIR}/project.json`;
+// Per-machine project context, generated in the background by the worker after install.
+const PROJECT_CONTEXT_DIR = `${STELLA_OUTPUT_DIR}/project-context`;
+const PROJECT_CONTEXT_LOG = `${PROJECT_CONTEXT_DIR}/.state/worker.log`;
 
 // Lines the installer guarantees in .gitignore (each on its own line, added once).
 const GITIGNORE_LINES = ['_bmad/', '_bmad-output/', '.claude/', '.env'];
@@ -161,6 +164,8 @@ module.exports = {
   PROJECT_TOKEN_ENV_FILE,
   LEGACY_TOKEN_ENV_FILE,
   PROJECT_JSON_FILE,
+  PROJECT_CONTEXT_DIR,
+  PROJECT_CONTEXT_LOG,
   GITIGNORE_LINES,
   GITIGNORE_HEADER,
   V4_LEFTOVERS,
