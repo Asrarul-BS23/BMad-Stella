@@ -1,11 +1,12 @@
 'use strict';
 
 // stella-project-context/scripts/check-context.js — the deterministic check the skill
-// runs after writing. Fixtures are built in a temp folder: a good pair of files passes;
-// a missing path, an over-budget file, four marked lines, a bad provenance line, a
-// missing CLAUDE.md line and a missing context file each fail with a named reason.
-// Also: path extraction ignores commands, placeholders, URLs and generics; globs are
-// checked by their fixed prefix; the CLI prints `ok` / `FAIL:` lines with exit codes 0 / 1 / 10.
+// runs after writing. Fixtures are built in a temp folder: a good pair of files under
+// _bmad-output/stella/project-context/ passes; a missing path, an over-budget file, four
+// marked lines, a bad provenance line and a missing context file each fail with a named
+// reason. Also: path extraction ignores commands, placeholders, URLs and generics; globs
+// are checked by their fixed prefix; the CLI prints `ok` / `FAIL:` lines with exit codes
+// 0 / 1 / 10.
 
 const fs = require('node:fs');
 const os = require('node:os');
@@ -22,6 +23,8 @@ const SCRIPT = path.join(
   'check-context.js',
 );
 const check = require(SCRIPT);
+const CTX = ['_bmad-output', 'stella', 'project-context'];
+const LABEL = CTX.join('/');
 
 let fails = 0;
 let total = 0;
@@ -72,20 +75,18 @@ const ARCH = [
 
 function makeRoot(overrides = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ctx-check-'));
-  fs.mkdirSync(path.join(root, 'project-context'));
+  fs.mkdirSync(path.join(root, ...CTX), { recursive: true });
   fs.mkdirSync(path.join(root, 'src', 'generated'), { recursive: true });
   fs.mkdirSync(path.join(root, 'docs'));
   fs.mkdirSync(path.join(root, 'legacy'));
   fs.writeFileSync(path.join(root, 'src', 'app.js'), '');
   fs.writeFileSync(path.join(root, 'Order.cs'), '');
   fs.writeFileSync(path.join(root, '.env'), '');
+  fs.writeFileSync(path.join(root, 'CLAUDE.md'), '# Rules\n');
   const project = overrides.project === undefined ? PROJECT.join('\n') + '\n' : overrides.project;
   const arch = overrides.arch === undefined ? ARCH.join('\n') + '\n' : overrides.arch;
-  if (project !== null) fs.writeFileSync(path.join(root, 'project-context', 'project.md'), project);
-  if (arch !== null) fs.writeFileSync(path.join(root, 'project-context', 'architecture.md'), arch);
-  const claude =
-    overrides.claude === undefined ? '# Rules\n\n@project-context/project.md\n' : overrides.claude;
-  if (claude !== null) fs.writeFileSync(path.join(root, 'CLAUDE.md'), claude);
+  if (project !== null) fs.writeFileSync(path.join(root, ...CTX, 'project.md'), project);
+  if (arch !== null) fs.writeFileSync(path.join(root, ...CTX, 'architecture.md'), arch);
   return root;
 }
 
@@ -96,8 +97,11 @@ const failuresOf = (root) => check.checkContext(root).failures;
   const root = makeRoot();
   const r = check.checkContext(root);
   ok(r.ok, `good: passes (${r.failures.join(' | ')})`);
-  const sha = makeRoot({ project: PROJECT.map((l, i) => (i === 0 ? PROV('none') : l)).join('\n') });
+  const sha = makeRoot({
+    project: PROJECT.map((l, i) => (i === 0 ? PROV('none') : l)).join('\n'),
+  });
   ok(check.checkContext(sha).ok, 'good: provenance sha `none` accepted');
+  ok(check.CONTEXT_LABEL === LABEL, 'constants: context folder under _bmad-output/stella');
 }
 
 // ---- missing path ----
@@ -118,7 +122,7 @@ const failuresOf = (root) => check.checkContext(root).failures;
   while (lines.length < 61) lines.push('- filler line');
   const f = failuresOf(makeRoot({ project: lines.join('\n') + '\n' }));
   ok(
-    f.some((x) => x.includes('project-context/project.md has 61 lines, budget 60')),
+    f.some((x) => x.includes(`${LABEL}/project.md has 61 lines, budget 60`)),
     `budget: 61 lines fails (${f.join(' | ')})`,
   );
   const lines90 = [...ARCH];
@@ -171,43 +175,33 @@ const failuresOf = (root) => check.checkContext(root).failures;
   );
   const f = failuresOf(makeRoot({ project: old.join('\n') + '\n' }));
   ok(
-    f.includes('project-context/project.md line 1 is not the provenance line'),
+    f.includes(`${LABEL}/project.md line 1 is not the provenance line`),
     `provenance: old wording fails (${f.join(' | ')})`,
   );
   const none = failuresOf(makeRoot({ arch: ['# Architecture', ...ARCH.slice(1)].join('\n') }));
   ok(
-    none.includes('project-context/architecture.md line 1 is not the provenance line'),
+    none.includes(`${LABEL}/architecture.md line 1 is not the provenance line`),
     'provenance: missing line fails',
   );
 }
 
-// ---- CLAUDE.md ----
+// ---- no CLAUDE.md requirement ----
 {
-  const noFile = failuresOf(makeRoot({ claude: null }));
-  ok(
-    noFile.some((x) => x.startsWith('CLAUDE.md missing')),
-    `claude: missing file fails (${noFile.join(' | ')})`,
-  );
-  const noLine = failuresOf(makeRoot({ claude: '# Rules\n\nSome text.\n' }));
-  ok(
-    noLine.includes('CLAUDE.md does not contain the line @project-context/project.md'),
-    'claude: missing line fails',
-  );
-  ok(
-    check.checkContext(makeRoot({ claude: '  @project-context/project.md  \n' })).ok,
-    'claude: line with surrounding spaces accepted',
-  );
-  ok(
-    !check.checkContext(makeRoot({ claude: 'see @project-context/project.md for context\n' })).ok,
-    'claude: line must stand alone',
-  );
+  const root = makeRoot({
+    project:
+      PROJECT.map((l) => l.replace('Team rules in `CLAUDE.md`.', 'Team rules in the README.')).join(
+        '\n',
+      ) + '\n',
+  });
+  fs.unlinkSync(path.join(root, 'CLAUDE.md'));
+  ok(check.checkContext(root).ok, 'claude: no CLAUDE.md needed');
 }
 
 // ---- missing context files ----
 {
   const f = failuresOf(makeRoot({ project: null, arch: null }));
-  ok(f.includes('project-context/project.md missing'), 'missing: project.md reported');
-  ok(f.includes('project-context/architecture.md missing'), 'missing: architecture.md reported');
+  ok(f.includes(`${LABEL}/project.md missing`), 'missing: project.md reported');
+  ok(f.includes(`${LABEL}/architecture.md missing`), 'missing: architecture.md reported');
 }
 
 // ---- path extraction ----
@@ -228,7 +222,7 @@ const failuresOf = (root) => check.checkContext(root).failures;
   const io = { log: (s) => lines.push(s) };
   ok(check.main([makeRoot()], io) === 0 && lines.join('') === 'ok', 'main: good root → 0 and `ok`');
   const bad = [];
-  const code = check.main([makeRoot({ claude: null })], { log: (s) => bad.push(s) });
+  const code = check.main([makeRoot({ arch: null })], { log: (s) => bad.push(s) });
   ok(code === 1 && bad.every((l) => l.startsWith('FAIL: ')), 'main: failures → 1 and FAIL lines');
   const usage = [];
   ok(
@@ -256,11 +250,12 @@ const failuresOf = (root) => check.checkContext(root).failures;
   ok(r.status === 0 && r.stdout.trim() === 'ok', `cli: ok on good root (${r.stdout.trim()})`);
   const cwd = spawnSync(process.execPath, [SCRIPT], { encoding: 'utf8', cwd: good });
   ok(cwd.status === 0 && cwd.stdout.trim() === 'ok', 'cli: defaults to cwd');
-  const bad = spawnSync(process.execPath, [SCRIPT, makeRoot({ claude: null })], {
+  const bad = spawnSync(process.execPath, [SCRIPT, makeRoot({ arch: null })], {
     encoding: 'utf8',
   });
   ok(
-    bad.status === 1 && /^FAIL: CLAUDE\.md missing/m.test(bad.stdout),
+    bad.status === 1 &&
+      new RegExp(`^FAIL: ${LABEL}/architecture\\.md missing`, 'm').test(bad.stdout),
     'cli: exit 1 with FAIL line',
   );
 }

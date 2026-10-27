@@ -56,8 +56,8 @@ const ALLOWED = {
       from: 'persistent_facts = []',
       to: [
         'persistent_facts = [',
-        '  "file:project-context/project.md",',
-        '  "file:project-context/architecture.md",',
+        '  "file:_bmad-output/stella/project-context/project.md",',
+        '  "file:_bmad-output/stella/project-context/architecture.md",',
         '  "Step 02 investigation runs in this session, no subagents: start from memory and project-context, then read the code yourself.",',
         '  "Review patches are applied in this session, the same way the implementation was.",',
         '  "Step 01 reads the ticket and the artifact listing only; code reading starts in step 02.",',

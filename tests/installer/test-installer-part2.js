@@ -166,6 +166,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   let sum = await installer.install(root, {
     mcp: mcpMock,
     home: HOME,
+    projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -390,6 +391,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   sum = await installer.install(root, {
     mcp: mcpMock,
     home: HOME,
+    projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -482,6 +484,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   sum = await installer.install(root, {
     mcp: mcpMock,
     home: HOME,
+    projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
@@ -523,6 +526,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     await installer.install(tmp('ni'), {
       mcp: mcpMock,
       home: HOME,
+      projectContext: () => ({ status: 'present' }),
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: fakeBmad,
@@ -545,6 +549,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     await installer.install(failRoot, {
       mcp: mcpMock,
       home: HOME,
+      projectContext: () => ({ status: 'present' }),
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: async () => 2,

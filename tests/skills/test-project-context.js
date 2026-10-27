@@ -70,8 +70,14 @@ ok(fm && /Anyone runs it/.test(fm[1]), 'frontmatter: anyone runs it');
 ok(fm && /^disable-model-invocation: true$/m.test(fm[1]), 'frontmatter: typed command only');
 
 // ---- outputs and budgets ----
-ok(skill.includes('project-context/project.md'), 'output: project.md path');
-ok(skill.includes('project-context/architecture.md'), 'output: architecture.md path');
+ok(
+  skill.includes('_bmad-output/stella/project-context/'),
+  'output: per-machine folder under _bmad-output',
+);
+ok(
+  /\{context-dir\}\/project\.md/.test(skill) && /\{context-dir\}\/architecture\.md/.test(skill),
+  'output: both files named',
+);
 ok(/≤ 60 lines/.test(skill) && /≤ 90 lines/.test(skill), 'output: budgets 60 and 90 in SKILL.md');
 ok(/## project\.md \(≤ 60 lines\)/.test(template), 'template: project.md budget');
 ok(/## architecture\.md \(≤ 90 lines\)/.test(template), 'template: architecture.md budget');
@@ -82,30 +88,29 @@ ok(/Without git, `<short sha>` is `none`/.test(template), 'template: provenance 
 ok(/git rev-parse --short HEAD/.test(skill), 'skill: SHA from git rev-parse');
 ok(!/AGENTS\.md` block|<!-- bmad:context -->/.test(skill), 'output: not an AGENTS.md block');
 
-// ---- CLAUDE.md import line ----
-ok(/`@project-context\/project\.md`/.test(skill), 'import: the CLAUDE.md line is named');
-ok(
-  /append `@project-context\/project\.md` as the last line of `\{project-root\}\/CLAUDE\.md`/.test(
-    skill,
-  ),
-  'import: appended as the last line',
-);
-ok(/creating the file with only that line when it does not exist/.test(skill), 'import: created');
-ok(/skipping when the line is already there/.test(skill), 'import: idempotent');
-ok(/Three writes only/.test(skill), 'guard: three writes only');
-ok(
-  /`AGENTS\.md`, rule files, docs and source are read only/.test(skill),
-  'guard: other files read only',
-);
-ok(/@project-context\/project\.md, appended; created if missing/.test(docs), 'docs: import line');
+// ---- two writes, no CLAUDE.md ----
+ok(/Two writes only/.test(skill), 'guard: two writes only');
+ok(!/append `@/.test(skill) && !/CLAUDE\.md` line/.test(skill), 'guard: no CLAUDE.md write');
+ok(/git-ignored/.test(skill), 'output: per machine, git-ignored');
 
 // ---- root rule ----
-ok(/The working directory is a git repository root → use it/.test(skill), 'root: git root here');
 ok(
-  /folders one level down are git roots/.test(skill) && /list them, ask which one/.test(skill),
-  'root: repos one level down, ask once',
+  /The working directory is a git repository root → `\{repo\}` is the working directory/.test(
+    skill,
+  ),
+  'root: git root here',
 );
-ok(/No git anywhere → use the working directory/.test(skill), 'root: no git at all');
+ok(
+  /Several git roots one level down: `\{repo\}` is the main repo, the one named like the project in `_bmad-output\/stella\/project\.json`, else the one the others depend on\. Say which and why\./.test(
+    skill,
+  ),
+  'root: several repos, main repo chosen, no question',
+);
+ok(
+  /each other repo gets one line under Background and integrations/.test(skill),
+  'root: supporting repos one line each',
+);
+ok(/No git anywhere → `\{repo\}` is the working directory/.test(skill), 'root: no git at all');
 ok(
   !/HALT/.test(skill.slice(skill.indexOf('## Resolution'), skill.indexOf('## Style'))),
   'root: no halt',
@@ -254,7 +259,7 @@ for (const l of ['`pointer`', '`carry`', '`contradicts`', '`skip`']) {
   ok(skill.includes(l) && practices.includes(l), `ledger: ${l} in skill and practices`);
 }
 ok(/persistent_facts/.test(skill), 'close: tells how stella-build loads it');
-ok(/commit `project-context\/` and the `CLAUDE\.md` line\./.test(skill), 'close: runner commits');
+ok(/They stay on this machine; nothing to commit\./.test(skill), 'close: nothing to commit');
 ok(!/caveman/i.test(skill), 'style: no caveman');
 
 // ---- check script wiring ----
@@ -276,6 +281,10 @@ ok(/^Contents: Marked lines/m.test(template), 'template: table of contents');
 
 // ---- one term for the person ----
 ok(/The runner → the person who invoked this skill/.test(skill), 'term: runner defined');
+ok(
+  /The only question this skill ever asks is in `record`/.test(skill),
+  'guard: record is the only question',
+);
 for (const [name, text] of [
   ['SKILL.md', skill],
   ['template.md', template],

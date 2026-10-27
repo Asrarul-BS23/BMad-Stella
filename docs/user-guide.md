@@ -2,13 +2,15 @@
 
 Open Claude Code at the project root first.
 
-## Project context (once per repo)
+## Project context (automatic)
+
+The installer generates `_bmad-output/stella/project-context/` in the background, a few minutes after install, and every `stella-build` run on this machine loads it. Nothing to run or commit. To redo it after a big change:
 
 ```
 /stella-project-context
 ```
 
-Better done first, by anyone. It writes `project-context/` and one import line in `CLAUDE.md`, asks nothing, and every session and every `stella-build` run loads it from then on. Review the two files and commit them. `stella-build` still works without it.
+Details: [project-context.md](project-context.md).
 
 ## Standard dev flow
 

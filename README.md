@@ -20,7 +20,7 @@ Two questions (Atlassian credentials, project), about a minute. Details: [Instal
 | `/stella-security <spec>`    | Security audit of what a build changed.                |
 | `/stella-pr-review <PR url>` | Reviews a pull request against its ticket. Read-only.  |
 | `/stella-domain-expert`      | Answers questions from the project's domain docs.      |
-| `/stella-project-context`    | Writes the project context every session loads.        |
+| `/stella-project-context`    | Redo the project context the installer generates.      |
 | `/caveman`                   | Terse chat mode.                                       |
 
 ## Docs

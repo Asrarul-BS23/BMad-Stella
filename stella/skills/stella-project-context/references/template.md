@@ -2,7 +2,7 @@
 
 Contents: Marked lines · Provenance line · project.md (Orientation, Policy, Where things are, Running and verifying, Conventions that differ from defaults, Known pitfalls) · architecture.md (Layers, Request flow, Data, Wiring, Background and integrations, Cross-component rules, Canonical files) · Worked fragment.
 
-Two files under `{project-root}/project-context/`. Sections in the order given. **Omit any section with nothing that passes its rule; never write an empty one.** Admission rules: `best-practices.md`.
+Two files under `{project-root}/_bmad-output/stella/project-context/`. Sections in the order given. **Omit any section with nothing that passes its rule; never write an empty one.** Admission rules: `best-practices.md`.
 
 Style for both: terse imperative lines under plain headings. No prose beyond Orientation, no introduction, no summary. A bare fact appears only as the justification clause of an instruction: "Exclude `vendor/` from searches, it is 60% of tracked files", never "`vendor/` is 60% of tracked files". A prohibition names the alternative in the same line. At most two emphasis markers per file. Every path exists at the verified SHA.
 

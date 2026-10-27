@@ -5,8 +5,8 @@
 //   node .claude/skills/stella-project-context/scripts/check-context.js [project-root]
 //
 // Checks, with no AI involved: both files exist, line 1 is the provenance line, the
-// line budgets hold, at most three `- Unverified:` lines across both files, every
-// backtick path exists in the repo, and CLAUDE.md carries the import line.
+// line budgets hold, at most three `- Unverified:` lines across both files, and every
+// backtick path exists in the project.
 // Prints `ok` and exits 0, or one `FAIL: ...` line per problem and exits 1.
 // Exit 10 means the project root could not be used at all.
 
@@ -14,14 +14,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const EXIT_CODES = Object.freeze({ OK: 0, FAIL: 1, USAGE: 10 });
-const CONTEXT_DIR = 'project-context';
+const CONTEXT_DIR = ['_bmad-output', 'stella', 'project-context'];
+const CONTEXT_LABEL = CONTEXT_DIR.join('/');
 const FILES = Object.freeze({
   'project.md': 60,
   'architecture.md': 90,
 });
 const MARKED_PREFIX = '- Unverified:';
 const MARKED_MAX = 3;
-const IMPORT_LINE = '@project-context/project.md';
 const PROVENANCE_RE =
   /^<!-- Verified \d{4}-\d{2}-\d{2} against (?:[0-9a-f]{7,40}|none)\. Managed by stella-project-context; refresh re-verifies every line\. -->$/;
 
@@ -64,8 +64,8 @@ function pathCandidates(text) {
 }
 
 function checkFile(root, name, budget, state) {
-  const file = path.join(root, CONTEXT_DIR, name);
-  const label = `${CONTEXT_DIR}/${name}`;
+  const file = path.join(root, ...CONTEXT_DIR, name);
+  const label = `${CONTEXT_LABEL}/${name}`;
   if (!fs.existsSync(file)) {
     state.failures.push(`${label} missing`);
     return;
@@ -87,19 +87,6 @@ function checkFile(root, name, budget, state) {
   }
 }
 
-function checkImportLine(root, state) {
-  const file = path.join(root, 'CLAUDE.md');
-  if (!fs.existsSync(file)) {
-    state.failures.push(`CLAUDE.md missing; it must contain the line ${IMPORT_LINE}`);
-    return;
-  }
-  const present = fs
-    .readFileSync(file, 'utf8')
-    .split('\n')
-    .some((line) => line.trim() === IMPORT_LINE);
-  if (!present) state.failures.push(`CLAUDE.md does not contain the line ${IMPORT_LINE}`);
-}
-
 /** Runs every check. Returns { ok, failures }. */
 function checkContext(root) {
   const state = { failures: [], marked: 0 };
@@ -109,7 +96,6 @@ function checkContext(root) {
       `${state.marked} Unverified lines across both files, at most ${MARKED_MAX}`,
     );
   }
-  checkImportLine(root, state);
   return { ok: state.failures.length === 0, failures: state.failures };
 }
 
@@ -135,7 +121,7 @@ module.exports = {
   EXIT_CODES,
   FILES,
   MARKED_MAX,
-  IMPORT_LINE,
+  CONTEXT_LABEL,
   PROVENANCE_RE,
 };
 

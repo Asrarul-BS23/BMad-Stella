@@ -35,7 +35,7 @@ Your project, from the list. This selects the domain docs that are fetched.
 └ Ready.  LEADRS is set up in LEADRS_CORE_SR
 ```
 
-Done. Open Claude Code in the same folder and run `/mcp`. If `atlassian` shows as not authenticated, pick it and finish the browser login.
+Done. Open Claude Code in the same folder and run `/mcp`. If `atlassian` shows as not authenticated, pick it and finish the browser login. The project context is generated in the background over the next minutes; its log is `_bmad-output/stella/project-context/.state/worker.log`.
 
 ## Re-run
 
