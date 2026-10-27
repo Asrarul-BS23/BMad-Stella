@@ -70,12 +70,12 @@ Review every added/modified hunk of the diff. When a hunk needs surrounding code
 2. **Logical correctness** — edge cases; null handling; error paths; off-by-one; async ordering; no dead branches. Data integrity: transaction boundaries for multi-entity writes; idempotency under retry; race conditions. Time stored/compared in one consistent zone per project convention; money/decimal math uses the project's rounding rule, no float.
 3. **Security** — input validation; authentication on every new entry point (endpoint, handler, job, command) unless the ticket says public; authorization matches the role/permission the ticket names; no injection; secrets/PII never logged; timeouts; resources released.
 4. **Performance** — no N+1 or query-in-loop; no unbounded work over user-controlled input; no blocking I/O on a hot path; pagination/indexes where volume needs them.
-5. **API & data contracts** — no unintended breaking change to public APIs, response shapes, enums, events, shared types; migrations additive-first and reversible.
+5. **API & data contracts** — no unintended breaking change to public APIs, response shapes, enums, events, shared types; migrations additive-first and reversible. Dependencies: a new package the existing stack already covers; a manifest change without its lockfile.
 6. **Observability** — logs at the right level with context; no noisy logs; metrics/spans for new behavior where the project uses them.
 7. **Coding standards** — consistent with the existing style in the codebase: naming, formatting, error-handling pattern (result type vs exception, never mixed), comments, file headers. Learn the style from sibling files at the head SHA, not from assumption.
-8. **Architecture** — consistent with the existing structure: file location, layering, dependency direction, pattern reuse. Mirror the closest sibling feature already on the pattern.
-9. **Tests** — right levels present (unit; integration where behavior crosses a boundary); tests assert the AC / actual behavior, not smoke calls; edge and error paths covered; existing tests updated; deterministic (no real clock/network/randomness). Report `OK` or `MISSING — {exactly what lacks a test}`. Skip only for markup, CSS, trivial passthroughs.
-10. **Code smells** — duplicated logic that should be shared; over-long or deeply nested methods; god handlers; magic numbers/strings; long parameter lists or boolean-flag params; dead code; repeated if/else a guard clause would simplify.
+8. **Architecture** — consistent with the existing structure: file location, layering, dependency direction, pattern reuse. Mirror the closest sibling feature already on the pattern. Feature logic placed in a shared module; a near-duplicate of a helper that already exists (find it with `git grep`).
+9. **Tests** — right levels present (unit; integration where behavior crosses a boundary); tests assert the AC / actual behavior, not smoke calls; a test would fail if the new condition were inverted; edge and error paths covered; existing tests updated; deterministic (no real clock/network/randomness). Report `OK` or `MISSING — {exactly what lacks a test}`. Skip only for markup, CSS, trivial passthroughs.
+10. **Code smells** — duplicated logic that should be shared; over-long or deeply nested methods; god handlers; magic numbers/strings; long parameter lists or boolean-flag params; dead code; repeated if/else a guard clause would simplify; a new condition bolted onto an unrelated flow; a refactor that moves complexity instead of removing it; a silent fallback that hides an unclear invariant; a file grown past ~1000 lines without splitting; code left unused by this change.
 
 **Stack-dependent criteria** — apply only where the project's stack has the concept; learn the mechanism from sibling code at the head SHA. No concept → skip silently, never report "N/A":
 
@@ -140,6 +140,8 @@ After all three files are written, print `review.md` in chat exactly as written,
 
 Rules: only findings the dev must fix — no cosmetic nits, no open questions, no theoretical concerns, no praise, no explaining what is fine. Every finding title is `` `File:LINE` `` (or `:START-END`) from the PR diff's new-file line numbers; something missing → `` `File` (missing) `` and say where it should go. Number findings continuously across groups. One blank line between findings. Omit a group heading when it has no findings.
 
+A design finding is a Blocker only when the change makes the structure worse; a different style than you would write is not a finding.
+
 Keep it short — a long report is a second review job:
 
 - Summary: two sentences max. What / Why / Fix: one line each.
@@ -176,7 +178,7 @@ Format:
 
 - What: {what is wrong}
 - Why: {impact, one clause}
-- Fix: {specific action, or sibling to mirror}
+- Fix: {specific action: the helper to reuse, the sibling to mirror, or the restructuring to make}
 
 ### 🟡 Minor
 

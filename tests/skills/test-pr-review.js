@@ -136,12 +136,52 @@ ok(/\/stella-pr-review/.test(skill), 'skill names its own command');
 ok(/by stella-pr-review/.test(skill), 'report header credits stella-pr-review');
 ok(!/caveman/i.test(skill), 'no caveman for the reviewer');
 
+// ---- design and dependency checks (from addyosmani/agent-skills code-review-and-quality) ----
+ok(
+  /Dependencies: a new package the existing stack already covers; a manifest change without its lockfile\./.test(
+    skill,
+  ),
+  'crit 5: dependency review',
+);
+ok(
+  /Feature logic placed in a shared module; a near-duplicate of a helper that already exists/.test(
+    skill,
+  ),
+  'crit 8: shared-module logic and duplicate helpers',
+);
+ok(
+  /a test would fail if the new condition were inverted/.test(skill),
+  'crit 9: inverted-condition test check',
+);
+ok(
+  /a new condition bolted onto an unrelated flow; a refactor that moves complexity instead of removing it; a silent fallback that hides an unclear invariant; a file grown past ~1000 lines without splitting; code left unused by this change\./.test(
+    skill,
+  ),
+  'crit 10: structural smells',
+);
+ok(
+  /Fix: \{specific action: the helper to reuse, the sibling to mirror, or the restructuring to make\}/.test(
+    skill,
+  ),
+  'report: Fix names the concrete move',
+);
+ok(
+  /A design finding is a Blocker only when the change makes the structure worse/.test(skill),
+  'rules: design blocker standard',
+);
+
 // ---- checklist content ----
 ok(
   (checklist.match(/^- \[ \]/gm) || []).length === 18,
   'checklist: 17 validation items + final confirmation',
 );
 ok(/All 10 universal criteria/.test(checklist), 'checklist: criteria item kept');
+ok(
+  /dependencies \(5\), the inverted-condition test check \(9\) and the structural smells \(8, 10\)/.test(
+    checklist,
+  ),
+  'checklist: new checks named',
+);
 
 console.log(
   `pr-review skill: ${total - fails}/${total} passed${fails ? ` — ${fails} FAILED` : ''}`,

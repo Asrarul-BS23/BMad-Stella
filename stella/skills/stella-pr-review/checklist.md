@@ -24,7 +24,7 @@ The goal is dev-actionable output ready to write — not just a finished review.
 - [ ] Verification scripts, if any, were pure computation under `_bmad-output/stella/reviewer/.scratch/` or inline `node -e` / `python -c` — no file, process, or network access, no PR code with side effects.
 - [ ] Every changed file reviewed; surrounding code read with `git show {sha}:{path}` at the head SHA, never from the working tree.
 - [ ] Domain knowledge accessed by targeted Grep only — no bulk-read of `_bmad-output/stella/domain-knowledge/`.
-- [ ] All 10 universal criteria evaluated; criterion 11 (wiring & registration) applied only where the stack has the concept, skipped silently otherwise.
+- [ ] All 10 universal criteria evaluated, including dependencies (5), the inverted-condition test check (9) and the structural smells (8, 10); criterion 11 (wiring & registration) applied only where the stack has the concept, skipped silently otherwise.
 - [ ] Scope drift checked both ways: PR changes not in the ticket, and AC with no matching code/test. "Acceptance criteria missing" flagged if the ticket has none.
 - [ ] Test coverage stated as `OK` or `MISSING — {exactly what}`.
 - [ ] Ripple check done with `git grep -e` at the head SHA; result stated.
