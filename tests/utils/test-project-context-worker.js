@@ -46,6 +46,10 @@ const PROV =
   ok(/--output-format json/.test(cmd), 'command: json envelope');
   ok(/--max-turns 400/.test(cmd), 'command: turn cap');
   ok(
+    /--model claude-opus-5-5 /.test(cmd) && worker.MODEL === 'claude-opus-5-5',
+    'command: model pinned to Opus 5.5',
+  );
+  ok(
     /"Edit\(_bmad-output\/stella\/project-context\/\*\*\)"/.test(cmd) &&
       !/Edit\(\*\*\)|Write\(/.test(cmd),
     'command: edits only under the context folder',

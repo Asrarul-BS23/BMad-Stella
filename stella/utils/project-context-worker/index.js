@@ -25,6 +25,8 @@ const CHECK_SCRIPT = '.claude/skills/stella-project-context/scripts/check-contex
 const PROMPT = '/stella-project-context setup';
 const TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes, then the claude process is killed
 const MAX_TURNS = 400;
+// Pinned so every machine builds the context with the same model (user decision 2026-10-27).
+const MODEL = 'claude-opus-5-5';
 // Shell commands the skill may run. Each is allowed in both shell tools: on Windows
 // Claude Code may pick PowerShell, and under dontAsk an unlisted call is refused.
 const SHELL_COMMANDS = Object.freeze([
@@ -55,6 +57,8 @@ function command() {
     'claude',
     '-p',
     quoted(PROMPT),
+    '--model',
+    MODEL,
     '--permission-mode',
     'dontAsk',
     '--output-format',
@@ -264,6 +268,7 @@ module.exports = {
   PROMPT,
   TIMEOUT_MS,
   MAX_TURNS,
+  MODEL,
   LOG_LABEL,
 };
 
