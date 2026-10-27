@@ -136,6 +136,16 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   fs.mkdirSync(path.join(root, '.git'));
   // foreign settings that must survive
   fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
+  // Real-world legacy format, found live on a pre-v6 project: an absolute path straight
+  // to node.exe, not anchored to ${CLAUDE_PROJECT_DIR}, with OS-native (here, backslash)
+  // separators — not just the ${CLAUDE_PROJECT_DIR}/forward-slash form.
+  const legacyAbsPath = path.join(
+    root,
+    '.claude',
+    'bmad-hooks',
+    'friction-logger',
+    'session-start.js',
+  );
   fs.writeFileSync(
     path.join(root, '.claude', 'settings.local.json'),
     JSON.stringify(
@@ -148,9 +158,18 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
               hooks: [
                 {
                   type: 'command',
-                  command:
-                    'node "${CLAUDE_PROJECT_DIR}/.claude/bmad-hooks/friction-logger/session-start.js"',
+                  command: `"C:\\Program Files\\nodejs\\node.exe" "${legacyAbsPath}"`,
                 },
+              ],
+            },
+          ],
+          // Bare relative command, no leading separator before ".claude", no hook-name
+          // subfolder (flat under bmad-hooks/, as the old memory hooks were) — proves the
+          // match isn't anchored to a prefix or scoped to a specific known hook name.
+          SessionEnd: [
+            {
+              hooks: [
+                { type: 'command', command: 'node .claude/bmad-hooks/user-prompt-submit.js' },
               ],
             },
           ],

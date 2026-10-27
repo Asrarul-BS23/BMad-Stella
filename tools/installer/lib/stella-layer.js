@@ -92,10 +92,16 @@ function copyHooks(root) {
 // subfolder and the guard is silently skipped. The variable keeps the file portable.
 const hookCommand = (hook, file) =>
   `node "\${CLAUDE_PROJECT_DIR}/${STELLA_HOOKS_DIR}/${hook.name}/${file}"`;
+// Legacy commands predate ${CLAUDE_PROJECT_DIR} anchoring: absolute Windows paths with
+// backslashes, pointing straight at node.exe (e.g. "C:\Program Files\nodejs\node.exe"
+// "D:\...\.claude\bmad-hooks\user-prompt-submit.js"). Match the directory on either
+// separator, anywhere in the command and under any hook name or file beneath it — not
+// anchored to a specific prefix (${CLAUDE_PROJECT_DIR}, a drive path, or anything else).
+const LEGACY_BMAD_HOOKS_RE = /\.claude[\\/]bmad-hooks[\\/]/;
 const isOurHookEntry = (entry) => {
   const cmd = entry && Array.isArray(entry.hooks) && entry.hooks[0] && entry.hooks[0].command;
   if (typeof cmd !== 'string') return false;
-  return cmd.includes(`${STELLA_HOOKS_DIR}/`) || cmd.includes(`${LEGACY_BMAD_HOOKS_DIR}/`);
+  return cmd.includes(`${STELLA_HOOKS_DIR}/`) || LEGACY_BMAD_HOOKS_RE.test(cmd);
 };
 
 function readSettings(root) {
