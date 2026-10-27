@@ -49,14 +49,15 @@ ok(skill.includes(`${scratch}/`), 'skill: scratch folder = guard scratch dir');
 ok(skill.includes(`node ${helper} {folder}/findings.json`), 'skill: helper path = guard helper');
 ok(skill.includes(`node ${helper} {folder}/findings.json --post`), 'skill: --post via helper');
 ok(
-  checklist.includes(`${reviewer}/`) && checklist.includes(`${scratch}/`),
-  'checklist: guard paths',
-);
-ok(
   /project-context\/context\.md/.test(skill) && !/AGENTS\.md/.test(skill),
   'skill: context from project-context/, no AGENTS.md',
 );
-ok(/_bmad-output\/stella\/domain-knowledge\//.test(skill), 'skill: domain knowledge folder');
+ok(!/domain-knowledge/.test(skill), 'skill: no domain-knowledge grep');
+ok(
+  /\n7\. Read `_bmad-output\/stella\/project-context\/context\.md`/.test(skill) &&
+    !/Load context first/.test(skill),
+  'skill: context read as step 7, after the fetch steps, not in the Guard',
+);
 ok(
   /node _bmad\/custom\/stella\/utils\/jira-attachments \{KEY\}/.test(skill) &&
     /Exit 20: print its `message`, then fetch the ticket through the Atlassian MCP/.test(skill) &&
@@ -171,9 +172,14 @@ ok(
 );
 
 // ---- checklist content ----
+ok((checklist.match(/^- \[ \]/gm) || []).length === 6, 'checklist: 6 items');
+ok(!/\[\[LLM:/.test(checklist), 'checklist: no v4 LLM block');
 ok(
-  (checklist.match(/^- \[ \]/gm) || []).length === 18,
-  'checklist: 17 validation items + final confirmation',
+  !/^- NEVER, even if it looks harmless/m.test(skill) &&
+    /Anything else is blocked by the `pr-review-guard` hook while this skill is active\./.test(
+      skill,
+    ),
+  'guard: allowed list plus one hook line, no NEVER list',
 );
 ok(/All 10 universal criteria/.test(checklist), 'checklist: criteria item kept');
 ok(
