@@ -35,7 +35,6 @@ activation_steps_append = []
 persistent_facts = [
   "file:_bmad-output/stella/project-context/context.md",
   "file:_bmad-output/stella/memory/patterns.md",
-  "Review patches are applied in this session, the same way the implementation was.",
   "Step 01 reads the ticket and the artifact listing only; code reading starts in step 02.",
 ]
 
@@ -75,8 +74,8 @@ Jira comment (Stella). If `{jira_key}` is empty, read `jira_key` from the spec f
 #
 open_spec = ""
 
-# Handoff for the implementation subagent in step 03. The whole execution
-# recipe — a subagent by default, but an override may run it any other way
+# Handoff for the implementation in step 03. The whole execution
+# recipe — an override may run it any other way
 # (a different model, an external coding tool via bash). {spec_file} is
 # substituted at run time.
 
