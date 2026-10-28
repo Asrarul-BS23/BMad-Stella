@@ -34,6 +34,20 @@ const ALLOWED = {
     },
   ],
 
+  // 2026-10-28 — step 02 reads a bounded set of files instead of open-ended investigation (dev feedback: unnecessary searching).
+  'step-02-plan.md': [
+    {
+      line: 12,
+      from: '2. Investigate the codebase. When you can, send deep searches to subagents and wait for them in this turn. Tell them to return short summaries only, so this session does not fill up with their notes. Keep only what the work needs: the specific files, symbols or lines, what to reuse, and what not to change. Write that into the Code Map. Do not retell the investigation when implementation starts — the spec already has it.',
+      to: '2. Find the code to change. Start from what is already loaded: CLAUDE.md, auto memory, Stella memory, project context. Then read only: the files you will change, their tests, one existing example of the same pattern, and the types they use. Keep only what the work needs: the specific files, symbols or lines, what to reuse, and what not to change. Write that into the Code Map. Do not retell the investigation when implementation starts — the spec already has it.',
+    },
+    {
+      line: 14,
+      from: '   Do not ask the human during investigation. When something is unclear, look in the repository, planning artifacts, or history first. Keep looking until you know, or until those sources have nothing more to say. Leave any remaining choice for the next step.',
+      to: '   Do not ask the human during investigation. When something is unclear, look in the repository, planning artifacts, or history first. Leave any remaining choice for the next step.',
+    },
+  ],
+
   // Task 6b-2 — settings only; every official key keeps its place.
   'customize.toml': [
     {
@@ -58,7 +72,6 @@ const ALLOWED = {
         'persistent_facts = [',
         '  "file:_bmad-output/stella/project-context/context.md",',
         '  "file:_bmad-output/stella/memory/patterns.md",',
-        '  "Step 02 investigation runs in this session, no subagents: start from memory and project-context, then read the code yourself.",',
         '  "Review patches are applied in this session, the same way the implementation was.",',
         '  "Step 01 reads the ticket and the artifact listing only; code reading starts in step 02.",',
         ']',
