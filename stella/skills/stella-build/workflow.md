@@ -4,8 +4,7 @@
 
 **CRITICAL:** If a step directs you to another snapshot file, read it fully and follow it. No exceptions.
 
-Subagents, when the capability is available, are an important part of this workflow. Use them as directed by the workflow steps.
-If you need an explicit user instruction to run them, ask once now for the whole workflow run.
+Subagents run only the review layers. Everything else (planning, epic context, spec review, implementation, review fixes) runs in this session.
 
 ## READY FOR DEVELOPMENT STANDARD
 

@@ -288,16 +288,13 @@ function mcpNote(m) {
  */
 function layerNotes(s) {
   const d = s.domainDocs;
+  // .gitignore lines added and folders created are not printed (user decision 2026-10-28).
   return [
-    s.gitignoreAdded.length > 0
-      ? { kind: 'note', text: `.gitignore  added ${s.gitignoreAdded.join(', ')}` }
-      : null,
     d.status === 'fetched'
       ? { kind: 'note', text: `Domain docs → ${path.relative(s.root, d.dir)}` }
       : null,
     d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
     mcpNote(s.mcp),
-    s.created.length > 0 ? { kind: 'note', text: `created ${s.created.join(', ')}` } : null,
   ].filter(Boolean);
 }
 

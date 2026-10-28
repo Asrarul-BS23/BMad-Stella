@@ -25,12 +25,117 @@ const NO_COMMIT =
 const ALLOWED = {
   'SKILL.md': [{ line: 2, from: 'name: bmad-build', to: 'name: stella-build' }],
 
+  // 2026-10-28 — subagents only for the review layers; stated once, here (AIL-552 run used subagents for search and implementation).
+  'workflow.md': [
+    {
+      line: 7,
+      from: 'Subagents, when the capability is available, are an important part of this workflow. Use them as directed by the workflow steps.',
+      to: 'Subagents run only the review layers. Everything else (planning, epic context, spec review, implementation, review fixes) runs in this session.',
+    },
+    {
+      line: 8,
+      from: 'If you need an explicit user instruction to run them, ask once now for the whole workflow run.',
+      to: null,
+    },
+  ],
+
   // 2026-10-26 — no version-control check: the developer manages git (one place, no fact).
   'step-01-clarify-and-route.md': [
+    // 2026-10-28 — epic context compiled in this session; subagents only for review (workflow.md line 7).
+    {
+      line: 61,
+      from: '     3. **Compile epic context.** Produce `{{.implementation_artifacts}}/epic-<N>-context.md` by following `[[bmad-snapshot:compile-epic-context.md]]`, in order of preference:',
+      to: '     3. **Compile epic context.** Produce `{{.implementation_artifacts}}/epic-<N>-context.md` yourself, in this session: read `[[bmad-snapshot:compile-epic-context.md]]` and follow its instructions.',
+    },
+    {
+      line: 62,
+      from: '        - **Preferred — subagent:** spawn a subagent synchronously (wait for it to return in this turn) with `[[bmad-snapshot:compile-epic-context.md]]` as its prompt. Pass it the epic number, the epics file path, the `{{.planning_artifacts}}` directory, and the output path `{{.implementation_artifacts}}/epic-<N>-context.md`.',
+      to: null,
+    },
+    {
+      line: 63,
+      from: '        - **Fallback — inline** (for runtimes without subagent support, e.g. Copilot, Codex, local Ollama, older Claude): if your runtime cannot spawn subagents, or the spawn fails/times out, read `[[bmad-snapshot:compile-epic-context.md]]` yourself and follow its instructions to produce the same output file.',
+      to: null,
+    },
     {
       line: 80,
       from: '3. Version control sanity check. Is the working tree clean? Does the current branch make sense for this intent — considering its name and recent history? If the tree is dirty or the branch is an obvious mismatch, HALT and ask the human before proceeding. If version control is unavailable, skip this check.',
       to: '3. No version-control check: the developer manages branches and the working tree. Continue.',
+    },
+  ],
+
+  // 2026-10-28 — step 02 reads a bounded set of files instead of open-ended investigation (dev feedback: unnecessary searching).
+  'step-02-plan.md': [
+    // 2026-10-28 — spec review in this session; subagents only for review layers (workflow.md line 7).
+    {
+      line: 56,
+      from: '- **Review spec** — review the spec, use a subagent if available, and discuss the findings and revisions with the user until the user is ready to approve, then either stop or continue.',
+      to: '- **Review spec** — review the spec yourself and discuss the findings and revisions with the user until the user is ready to approve, then either stop or continue.',
+    },
+    {
+      line: 12,
+      from: '2. Investigate the codebase. When you can, send deep searches to subagents and wait for them in this turn. Tell them to return short summaries only, so this session does not fill up with their notes. Keep only what the work needs: the specific files, symbols or lines, what to reuse, and what not to change. Write that into the Code Map. Do not retell the investigation when implementation starts — the spec already has it.',
+      to: '2. Find the code to change. Start from what is already loaded: CLAUDE.md, auto memory, Stella memory, project context. Then read only: the files you will change, their tests, one existing example of the same pattern, and the types they use. Keep only what the work needs: the specific files, symbols or lines, what to reuse, and what not to change. Write that into the Code Map. Do not retell the investigation when implementation starts — the spec already has it.',
+    },
+    {
+      line: 14,
+      from: '   Do not ask the human during investigation. When something is unclear, look in the repository, planning artifacts, or history first. Keep looking until you know, or until those sources have nothing more to say. Leave any remaining choice for the next step.',
+      to: '   Do not ask the human during investigation. When something is unclear, look in the repository, planning artifacts, or history first. Leave any remaining choice for the next step.',
+    },
+  ],
+
+  // 2026-10-28 — implementation in this session; the dispatch and subagent lines go (AIL-552 run launched an implementer subagent).
+  'step-03-implement.md': [
+    {
+      line: 33,
+      from: "Do not add goal restatements, file lists, ownership boundaries, investigation detail, acceptance criteria, or CLAUDE.md/house-style rules to the dispatch — the spec is the subagent's sole source of truth, and that material already lives in it (investigation findings in its Code Map, the rest in the spec body). One line of sanctioned hedging belongs in the spec at planning time, not in the dispatch. If no subagents are available, implement directly from the spec. If the platform allows, keep the subagent available for re-engagement after it returns — step-04 may send it review fixes.",
+      to: 'Implement it yourself, in this session. The spec is the source of truth.',
+    },
+    { line: 34, from: '', to: null },
+    {
+      line: 35,
+      from: "The handoff directs the subagent to load the spec's `context:` files itself, so never pre-load and paste those files into the dispatch. Only when you implement directly (no subagent available) do you load a non-empty `context:` list yourself before starting.",
+      to: null,
+    },
+    {
+      line: 41,
+      from: "Stage the diff and read it first: using the repository's version-control tooling, write a unified diff of all changes since `{baseline_commit}` (from `{spec_file}` frontmatter) — untracked files included — to a uniquely-named file in the system temp directory, set `{diff_file}` to its absolute path, and read that file into your own context. Judge against the diff, not against the implementation subagent's report.",
+      to: "Stage the diff and read it first: using the repository's version-control tooling, write a unified diff of all changes since `{baseline_commit}` (from `{spec_file}` frontmatter) — untracked files included — to a uniquely-named file in the system temp directory, set `{diff_file}` to its absolute path, and read that file into your own context. Judge against the diff, not against what you remember implementing.",
+    },
+  ],
+
+  // 2026-10-28 — review patches applied in this session: the subagent re-engagement and its message are removed (deletions only).
+  'step-04-review.md': [
+    {
+      line: 65,
+      from: '   - **patch** — Auto-fix. These are the only findings that survive loopbacks. Re-engage the step-03 implementation subagent — the same one, addressed by the name or id its launch returned; a fresh launch is not re-engagement. Send it one message, exactly this, with the findings filled in:',
+      to: '   - **patch** — Auto-fix. These are the only findings that survive loopbacks.',
+    },
+    { line: 66, from: '', to: null },
+    { line: 67, from: '     ```text', to: null },
+    {
+      line: 68,
+      from: '     Review of your implementation found problems. Fix each one below with the smallest change that does the job.',
+      to: null,
+    },
+    { line: 69, from: '', to: null },
+    {
+      line: 70,
+      from: '     Run only the tests that cover the files you edit — nothing wider. Full verification runs on my side after you return. Reply with what you changed.',
+      to: null,
+    },
+    { line: 71, from: '', to: null },
+    {
+      line: 72,
+      from: '     - <file> — <what is wrong> — <what the smallest fix must do>',
+      to: null,
+    },
+    { line: 73, from: '     ```', to: null },
+    { line: 74, from: '', to: null },
+    {
+      line: 75,
+      from: "     If it cannot be continued, apply the patches yourself. Then re-run the checks in `{spec_file}`'s `## Verification` section, if present; if verification fails and the failure cannot be fixed, HALT and escalate to the human. Rewrite `{diff_file}` so it reflects the patched tree.",
+      to: "     Apply the patches yourself. Then re-run the checks in `{spec_file}`'s `## Verification` section, if present; if verification fails and the failure cannot be fixed, HALT and escalate to the human. Rewrite `{diff_file}` so it reflects the patched tree.",
     },
   ],
 
@@ -58,8 +163,6 @@ const ALLOWED = {
         'persistent_facts = [',
         '  "file:_bmad-output/stella/project-context/context.md",',
         '  "file:_bmad-output/stella/memory/patterns.md",',
-        '  "Step 02 investigation runs in this session, no subagents: start from memory and project-context, then read the code yourself.",',
-        '  "Review patches are applied in this session, the same way the implementation was.",',
         '  "Step 01 reads the ticket and the artifact listing only; code reading starts in step 02.",',
         ']',
       ],
@@ -74,6 +177,17 @@ const ALLOWED = {
       ],
     },
     // 2026-10-26 — implementation in the main session (dev feedback: slow, lost knowledge).
+    // 2026-10-28 — comment only: subagent words removed (the run never sees it; kept consistent for maintainers).
+    {
+      line: 63,
+      from: '# Handoff for the implementation subagent in step 03. The whole execution',
+      to: '# Handoff for the implementation in step 03. The whole execution',
+    },
+    {
+      line: 64,
+      from: '# recipe — a subagent by default, but an override may run it any other way',
+      to: '# recipe — an override may run it any other way',
+    },
     {
       line: 69,
       from: 'Launch a subagent with no prior conversation context, with this prompt:',
