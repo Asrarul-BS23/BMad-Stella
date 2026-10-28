@@ -149,8 +149,8 @@ const sum = {
     dir: 'C:\\proj\\_bmad-output\\stella\\domain-knowledge',
   },
   userHooks: { status: 'current' },
-  gitignoreAdded: ['_bmad/'],
-  created: [],
+  gitignoreAdded: ['_bmad/', '_bmad-output/'],
+  created: ['domain-knowledge', 'reviewer', 'bmad-logs', 'cache/jira'],
 };
 ok(
   installer.layerDetail(sum) === '5 skills   3 hooks   permissions   2 domain pages   user hooks',
@@ -160,8 +160,8 @@ ok(
   installer
     .layerNotes(sum)
     .map((n) => n.text)
-    .join('|') === '.gitignore  added _bmad/|Domain docs → _bmad-output\\stella\\domain-knowledge',
-  'notes: gitignore + domain folder',
+    .join('|') === 'Domain docs → _bmad-output\\stella\\domain-knowledge',
+  'notes: domain folder only; .gitignore lines and created folders are not printed',
 );
 sum.domainDocs = {
   status: 'skipped',
