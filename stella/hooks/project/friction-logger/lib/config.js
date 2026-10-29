@@ -9,7 +9,7 @@ const paths = require('./paths');
 
 const DEFAULTS = {
   triggerStatuses: ['done'], // spec frontmatter `status:` values that make a plan fireable
-  model: 'claude-sonnet-5', // 'default' = no --model flag on claude --print
+  model: 'claude-sonnet-5-5', // 'default' = no --model flag on claude --print
   confluence: { enabled: false, logsPageUrl: '' }, // publishing is opt-in via installer
 };
 
