@@ -237,10 +237,12 @@ ok(pf.found.python === false, 'preflight: python 3.8 counts as missing');
     found: { node: true, uv: false, python: false, gh: true, git: true },
     versions: { node: '24.0.0', uv: null, python: null, gh: '2.98.0', git: '2.51.0' },
   };
+  // As on a real machine (2026-10-29 run): uv's own Python is not on PATH, so the
+  // re-check still reports python missing; the ✓ line must show it anyway.
   const pfAfter = {
     ...pfMissing,
-    found: { ...pfMissing.found, uv: true, python: true },
-    versions: { ...pfMissing.versions, uv: '0.9.4', python: '3.12.8' },
+    found: { ...pfMissing.found, uv: true },
+    versions: { ...pfMissing.versions, uv: '0.9.4' },
   };
   let checks = 0;
   const toolCalls = [];
@@ -285,8 +287,8 @@ ok(pf.found.python === false, 'preflight: python 3.8 counts as missing');
     `step 1: ✓ line tags what was installed (${lines.find((l) => l.startsWith('ok:'))})`,
   );
   ok(
-    lines.some((l) => l.startsWith('note:') && /new terminals/.test(l)),
-    'step 1: note about reopening terminals',
+    !lines.some((l) => l.startsWith('note:')),
+    'step 1: no note under the ✓ line (uv install note removed 2026-10-29)',
   );
 
   // uv install fails → the run stops with the URL
