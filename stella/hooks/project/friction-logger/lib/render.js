@@ -10,7 +10,7 @@ function renderMarkdown(friction) {
   const st = friction.stats || {};
 
   lines.push(
-    `# Friction Log — ${friction.plan_id} · ${friction.plan_title || ''}`.trim(),
+    `# Friction Log — ${friction.display_id || friction.plan_id} · ${friction.plan_title || ''}`.trim(),
     `Generated: ${(friction.generated_at || '').slice(0, 10)} · generation ${friction.generation} · sessions: ${sessions}`,
     '',
     '## Summary',

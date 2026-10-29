@@ -236,7 +236,8 @@ async function publishReport(cwd, confluenceConfig, friction, log) {
   }
   const spaceKey = parent.json.space && parent.json.space.key;
 
-  const title = `${friction.plan_id} — ${friction.plan_title || 'Friction Report'}`.slice(0, 255);
+  const shownId = friction.display_id || friction.plan_id;
+  const title = `${shownId} — ${friction.plan_title || 'Friction Report'}`.slice(0, 255);
   const storage = renderStorageFormat(friction);
   const bodyBlock = { storage: { value: storage, representation: 'storage' } };
 

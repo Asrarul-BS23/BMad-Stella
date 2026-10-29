@@ -33,9 +33,47 @@ function readStatus(planFileAbsPath) {
   return m ? m[1].trim() : null;
 }
 
+// One frontmatter scalar (`key: value`), quotes optional, trailing comment ignored.
+function readFrontmatterValue(planFileAbsPath, key) {
+  let text;
+  try {
+    text = fs.readFileSync(planFileAbsPath, 'utf8');
+  } catch {
+    return '';
+  }
+  const normalized = text.replaceAll('\r\n', '\n');
+  if (!normalized.startsWith('---\n')) return '';
+  const end = normalized.indexOf('\n---', 4);
+  if (end === -1) return '';
+  const frontmatter = normalized.slice(4, end);
+  const line = new RegExp(String.raw`^${key}:[ \t]*(.*)$`, 'm').exec(frontmatter);
+  if (!line) return '';
+  let value = line[1].trim();
+  const quoted = /^(['"])(.*)\1/.exec(value);
+  if (quoted) value = quoted[2];
+  else value = value.replace(/\s+#.*$/, '');
+  return value.trim();
+}
+
+// How people see a plan: the Jira key in upper case (from the spec's `jira_key`, else from the
+// plan id when it is a key), or the plan id itself for a spec written from raw text; and the
+// spec's `title` without that key repeated at its start. plan_id itself is never changed.
+function describePlan(planFileAbsPath, planId) {
+  const fromFrontmatter = readFrontmatterValue(planFileAbsPath, 'jira_key');
+  let displayId = planId;
+  if (fromFrontmatter && JIRA_KEY_RE.test(fromFrontmatter))
+    displayId = fromFrontmatter.toUpperCase();
+  else if (new RegExp(`${JIRA_KEY_RE.source}$`).test(planId)) displayId = planId.toUpperCase();
+
+  let title = readFrontmatterValue(planFileAbsPath, 'title');
+  const escaped = displayId.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+  title = title.replace(new RegExp(String.raw`^${escaped}(?![A-Za-z0-9])[\s:\-–—]*`, 'i'), '');
+  return { displayId, title: title.trim() };
+}
+
 // plan_id becomes the tracker key AND the output folder name — keep it fs-safe.
 function sanitizeId(id) {
   return id.replaceAll(/[^A-Za-z0-9._-]+/g, '-').replaceAll(/^-+|-+$/g, '') || 'unknown-plan';
 }
 
-module.exports = { resolvePlanId, readStatus };
+module.exports = { resolvePlanId, readStatus, describePlan };

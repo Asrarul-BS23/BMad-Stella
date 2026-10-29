@@ -155,6 +155,62 @@ const writeTranscript = (name, lines) => {
   );
   fs.writeFileSync(SPEC, '# no frontmatter\n\n## Status\n\ndone\n');
   ok(readStatus(SPEC) === null, 'planfile: no frontmatter -> null');
+
+  // ---- page title: describePlan (v6 frontmatter title + jira_key) ----
+  const { describePlan } = require(path.join(FL, 'lib', 'planfile.js'));
+  const fm = (lines) => `---\n${lines.join('\n')}\nstatus: 'done'\n---\n\n## Intent\n`;
+  const described = (lines, planId) => {
+    fs.writeFileSync(SPEC, fm(lines));
+    return describePlan(SPEC, planId);
+  };
+  let dp = described(
+    [
+      "title: 'AIL-518: Settings sidebar closes on outside click and other navbar icons'",
+      'jira_key: AIL-518',
+    ],
+    'ail-518',
+  );
+  ok(
+    dp.displayId === 'AIL-518' &&
+      dp.title === 'Settings sidebar closes on outside click and other navbar icons',
+    'title: jira_key upper case, "KEY: " stripped from the title',
+  );
+  dp = described(["title: 'MJHDASH-2827 - CCI changes'", 'jira_key: MJHDASH-2827'], 'mjhdash-2827');
+  ok(dp.title === 'CCI changes', 'title: "KEY - " stripped');
+  dp = described(['title: "MJHDASH-2827 CCI changes in Bulk Edit"'], 'mjhdash-2827');
+  ok(
+    dp.displayId === 'MJHDASH-2827' && dp.title === 'CCI changes in Bulk Edit',
+    'title: no jira_key -> key from plan id, upper case; "KEY " stripped; double quotes',
+  );
+  dp = described(['title: Chat sidebar # comment'], 'ail-518');
+  ok(
+    dp.displayId === 'AIL-518' && dp.title === 'Chat sidebar',
+    'title: unquoted title, comment dropped',
+  );
+  dp = described(["title: 'Add CSV export to the reports page'"], 'add-csv-export');
+  ok(
+    dp.displayId === 'add-csv-export' && dp.title === 'Add CSV export to the reports page',
+    'title: raw-text spec keeps its plan id as the shown id',
+  );
+  dp = described(["title: 'AIL-5180 is a different ticket'", 'jira_key: AIL-518'], 'ail-518');
+  ok(dp.title === 'AIL-5180 is a different ticket', 'title: a longer key is not stripped');
+  dp = described(['jira_key: AIL-518'], 'ail-518');
+  ok(
+    dp.displayId === 'AIL-518' && dp.title === '',
+    'title: missing -> empty (publisher falls back)',
+  );
+  const { renderMarkdown } = require(path.join(FL, 'lib', 'render.js'));
+  ok(
+    renderMarkdown({
+      plan_id: 'ail-518',
+      display_id: 'AIL-518',
+      plan_title: 'Chat sidebar',
+      sessions_analyzed: [],
+      entries: [],
+      stats: {},
+    }).startsWith('# Friction Log — AIL-518 · Chat sidebar'),
+    'render: local report heading uses the shown id and title',
+  );
   fs.writeFileSync(SPEC, specWith('done'));
 }
 

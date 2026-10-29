@@ -46,12 +46,12 @@ function releaseLock() {
 
 // Guarded requires: a broken install (missing/invalid lib) must log + release
 // the lock instead of dying silently before the try/finally below exists.
-let makeLogger, readTracker, writeTracker, readStatus, buildScreenplays, callClaude;
+let makeLogger, readTracker, writeTracker, readStatus, describePlan, buildScreenplays, callClaude;
 let renderMarkdown, readLoggingConfig, publishReport, buildExtractionPrompt;
 try {
   ({ makeLogger } = require('./lib/state'));
   ({ readTracker, writeTracker } = require('./lib/tracker'));
-  ({ readStatus } = require('./lib/planfile'));
+  ({ readStatus, describePlan } = require('./lib/planfile'));
   ({ buildScreenplays } = require('./lib/reducer'));
   ({ callClaude } = require('./lib/llm'));
   ({ renderMarkdown } = require('./lib/render'));
@@ -144,12 +144,12 @@ async function analyzePlan(planId, entry, log, model) {
   }
 
   // envelope metadata + recomputed stats (don't trust model arithmetic)
-  // "# Implementation Plan: AIL-518 - Chat Sidebar" -> "Chat Sidebar"
-  // (\S+ eats the JIRA key so hyphens inside it, e.g. AIL-518, don't split the title)
-  const titleMatch = planText.match(/^#\s*Implementation Plan:\s*\S+\s*-\s*(.+)$/m);
+  // Title from the v6 spec frontmatter (`title:`, `jira_key:`); plan_id stays the tracker key.
+  const shown = describePlan(planFileAbs, planId);
   const friction = {
     plan_id: planId,
-    plan_title: titleMatch ? titleMatch[1].trim() : '',
+    display_id: shown.displayId,
+    plan_title: shown.title,
     generated_at: new Date().toISOString(),
     generation: (entry.generationCount || 0) + 1,
     sessions_analyzed: entry.sessions.map((s) => ({ sessionId: s.sessionId, agents: s.agents })),
