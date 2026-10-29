@@ -1,0 +1,76 @@
+# Test Architect workflow: stella-tea-testing
+name: stella-tea-testing
+# prettier-ignore
+description: 'QA ticket/module testing flow: design scenarios with test-design, lock them, generate tabular test cases, and execute them live via Playwright MCP. Also a dev-mode bug hunt for implemented tickets. Use when the user says "test this ticket", "QA this module", or "bug-hunt my implementation"'
+
+# Config (test_artifacts, user_name, languages) is resolved at activation in SKILL.md from modules.tea and core.
+date: system-generated
+
+# Workflow components
+installed_path: "."
+instructions: "./instructions.md"
+validation: "./checklist.md"
+template: "./templates/test-cases-template.md"
+
+# Variables and inputs
+variables:
+  flow_mode: "auto-detect" # auto-detect (default), qa, dev — see SKILL.md Flow Mode priority order
+  environment: "" # execution environment name; empty = {workflow.defaults.environment}, ask if unset
+  user: "" # role-keyed login user; empty = {workflow.defaults.user}, ask if unset
+  viewports: "" # empty = desktop only (default); comma list enables on-request responsive runs,
+  # e.g. "desktop-1920,tablet-768,mobile-390" or Playwright device descriptor names
+
+# Output configuration
+# All per-key outputs live under {test_artifacts}/stella/{key}/ — {key} is a Jira
+# ticket key or a slugified module name, resolved at intake.
+outputs:
+  - id: ticket-brief
+    description: "Jira ticket summary, description, and acceptance criteria (ticket runs only)"
+    path: "{test_artifacts}/stella/{key}/ticket-brief.md"
+    flow: qa
+
+  - id: scenarios
+    description: "Test scenarios copied from bmad-tea-test-design output; frontmatter status gates the flow (draft -> approved)"
+    path: "{test_artifacts}/stella/{key}/scenarios.md"
+    flow: qa
+
+  - id: test-cases
+    description: "Tabular test cases (9-column team format), sectioned by sub-feature; generated only from an approved scenarios file"
+    path: "{test_artifacts}/stella/{key}/test-cases.md"
+    flow: qa
+
+  - id: test-execution-report
+    description: "One timestamped report per execution run (QA and dev); the locked test-case file is never touched by runs"
+    path: "{test_artifacts}/stella/{key}/test-execution-{env}-{datetime}.md"
+    flow: both
+
+  - id: live-verification-results
+    description: "Live coverage evidence merged into the root-level file TEA trace reads; QA runs only, never dev runs"
+    path: "{test_artifacts}/live-verification-results.json"
+    flow: qa
+
+  - id: progress-checkpoint
+    description: "Per-key resume checkpoint; also stores flowMode and the Confluence page id"
+    path: "{test_artifacts}/stella/{key}/progress.md"
+    flow: qa
+
+# Required tools
+required_tools:
+  - read_file # Read specs, scenarios, config
+  - write_file # Write briefs, scenarios copy, cases, reports, checkpoint
+  - list_files # Discover artifacts and resume checkpoints
+  - search_repo # Locate code paths and implementation specs
+  - playwright_mcp # Live browser execution and UI exploration — verified at activation, refuse execution without it
+  - jira_mcp # Atlassian MCP: ticket fetch (ticket runs) and on-request publication — verified at intake for ticket runs
+
+tags:
+  - qa
+  - test-execution
+  - test-architect
+  - playwright
+  - jira
+
+execution_hints:
+  interactive: true # Approval gates are human loops; dev flow minimizes prompts
+  autonomous: false # QA flow halts at lock gates by design
+  iterative: true

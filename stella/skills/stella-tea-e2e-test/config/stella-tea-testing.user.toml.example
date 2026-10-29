@@ -1,0 +1,39 @@
+# Copy to {project-root}/_bmad/custom/stella-tea-testing.user.toml and fill in.
+# This file is personal and gitignored — nothing under _bmad/custom/ is committed.
+# Secret VALUES never go here: reference them by name via password_env, and put
+# the values in stella-tea-testing.secrets.env beside this file.
+
+[workflow.environments.staging]
+base_url = "https://staging.example.com"
+
+# Users are role-keyed so a test case can say "login as admin" / "as customer".
+[workflow.environments.staging.users.admin]
+role = "admin"
+username = "qa_admin"
+password_env = "QA_STAGING_ADMIN_PASSWORD"
+
+[workflow.environments.staging.users.customer]
+role = "customer"
+username = "qa_customer"
+password_env = "QA_STAGING_CUSTOMER_PASSWORD"
+
+[workflow.defaults]
+environment = "staging"
+user = "admin"
+# flow_mode = "dev"          # optional personal default flow (qa | dev)
+# module_publish = ""        # saved by the skill: confluence | jira | files
+# jira_publish_project = ""  # saved by the skill on first module publish to a Jira ticket
+# spec_path = ""             # dev mode: saved by the skill after you point it at specs once
+
+# Saved by the skill on first module publish; edit only to re-point.
+# [workflow.confluence]
+# space_key = ""
+# parent_page_id = ""
+
+# Dev mode: saved by the skill after it detects and you confirm how to run the app.
+# [workflow.app]
+# install_command = "npm install"
+# run_command = "npm run dev"
+# url = "http://localhost:3000"
+# ready_check = "GET http://localhost:3000/health returns 200"
+# depends_on = ["docker compose up -d db"]
