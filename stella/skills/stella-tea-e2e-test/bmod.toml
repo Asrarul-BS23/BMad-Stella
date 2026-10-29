@@ -1,0 +1,5 @@
+[skill]
+bmod = "bmod-tea"
+# TODO: placeholder — replace with the real internal repo once it exists
+# (design doc: rnd_docs/qa-custom-skill-design-decision.md, section 10 / open item 6).
+source = "github:stella-internal/stella-tea-testing"

@@ -1,0 +1,71 @@
+# DO NOT EDIT -- overwritten on every update.
+#
+# Workflow customization surface for stella-tea-testing. Mirrors the
+# TEA workflow customization shape under the [workflow] namespace.
+#
+# Project overrides live in {project-root}/_bmad/custom/stella-tea-testing.toml
+# (team) and {project-root}/_bmad/custom/stella-tea-testing.user.toml (personal).
+# Both are gitignored in consuming projects; committed .example templates for
+# the personal file and its secrets sidecar ship in this skill's config/ folder.
+
+[workflow]
+
+# --- Configurable below. Overrides merge per BMad structural rules: ---
+#   scalars: override wins • arrays (persistent_facts, activation_steps_*): append
+
+# Steps to run before the standard activation (config load, greet).
+# Overrides append. Use for pre-flight loads, compliance checks, etc.
+
+activation_steps_prepend = []
+
+# Steps to run after greet but before the workflow begins.
+# Overrides append.
+
+activation_steps_append = []
+
+# Persistent facts the workflow keeps in mind for the whole run.
+# Each entry is either:
+#   - a literal sentence, e.g. "Every test runs against staging unless told otherwise."
+#   - a file reference prefixed with `file:`, e.g. "file:{project-root}/docs/test-standards.md"
+#     (glob patterns are supported; matching files load in lexical path order as facts).
+# Overrides append.
+
+persistent_facts = []
+
+# Scalar: executed when the workflow reaches its terminal step in any
+# mode (create, validate, edit), after the final outputs are produced.
+# Override wins. Leave empty for no custom post-completion behavior.
+
+on_complete = ""
+
+# --- Keys normally set in the personal .user.toml (not here) ------------
+#
+# [workflow.defaults]
+#   environment      = "staging"      # default execution environment
+#   user             = "admin"        # default role-keyed login user
+#   flow_mode        = ""             # "", "qa", or "dev" — personal default flow
+#   module_publish   = ""             # "", "confluence", "jira", or "files"
+#   jira_publish_project = ""         # saved by the skill on first module publish to a Jira ticket
+#   spec_path        = ""             # dev mode: where bmad-builder specs live
+#
+# [workflow.environments.<name>]
+#   base_url = "https://..."
+#   [workflow.environments.<name>.users.<role>]
+#     role         = "admin"
+#     username     = "qa_admin"
+#     password_env = "QA_STAGING_ADMIN_PASSWORD"   # name of a secret, never the value
+#
+# [workflow.confluence]
+#   space_key      = ""               # saved on first module publish
+#   parent_page_id = ""               # saved on first module publish
+#
+# [workflow.app]                      # dev mode: saved app-run commands
+#   install_command = ""
+#   run_command     = ""
+#   url             = ""
+#   ready_check     = ""
+#   depends_on      = []
+#
+# Secret values never live in any TOML file. They live in
+# {project-root}/_bmad/custom/stella-tea-testing.secrets.env (gitignored),
+# referenced by name through `password_env` keys.
