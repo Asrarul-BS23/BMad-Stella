@@ -112,7 +112,7 @@ function evaluateGates(planId, entry, triggerStatuses) {
   return null; // all gates pass
 }
 
-async function analyzePlan(planId, entry, log) {
+async function analyzePlan(planId, entry, log, model) {
   const planFileAbs = path.join(cwd, entry.planFile);
   const planText = fs.readFileSync(planFileAbs, 'utf8');
   const screenplays = buildScreenplays(entry.sessions);
@@ -123,7 +123,7 @@ async function analyzePlan(planId, entry, log) {
     sessions: entry.sessions.length,
     attempt: (entry.analysisAttempts || 0) + 1,
   });
-  const text = await callClaude(prompt, log);
+  const text = await callClaude(prompt, log, model);
   if (text === null) return false;
 
   // parse friction JSON (strip accidental fences)
@@ -296,7 +296,7 @@ function prune(tracker, log, publishEnabled) {
         log(`worker: skip ${planId} — ${blocked}`);
         continue;
       }
-      const ok = await analyzePlan(planId, entry, log);
+      const ok = await analyzePlan(planId, entry, log, config.model);
       touchLock(); // progress heartbeat — one LLM call can take minutes
       recordAnalysisOutcome(planId, ok, log);
     }

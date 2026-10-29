@@ -10,10 +10,15 @@ const { spawn } = require('node:child_process');
 const TIMEOUT_MS = 300_000;
 const MAX_RETRIES = 2;
 
+// Model names come from friction.json — only accept plain identifiers so the
+// shell:true command string below cannot be injected through the config file.
+const MODEL_PATTERN = /^[A-Za-z0-9._-]+$/;
+
 // Returns the model's text output (envelope.result) or null. Never throws.
-async function callClaude(prompt, log) {
+// `model` comes from config.model; 'default' (or an invalid value) adds no --model flag.
+async function callClaude(prompt, log, model) {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const res = await _spawnClaude(prompt, log);
+    const res = await _spawnClaude(prompt, log, model);
     if (res !== null) return res;
     if (attempt < MAX_RETRIES) await new Promise((r) => setTimeout(r, 2000 * attempt));
   }
@@ -21,13 +26,15 @@ async function callClaude(prompt, log) {
   return null;
 }
 
-function _spawnClaude(prompt, log) {
+function _spawnClaude(prompt, log, model) {
   return new Promise((resolve) => {
     let proc;
+    const modelArg =
+      model && model !== 'default' && MODEL_PATTERN.test(model) ? ` --model ${model}` : '';
     try {
       // shell:true because on Windows `claude` is a .cmd shim; args are fixed
-      // literals (no user input), so concatenation is safe here.
-      proc = spawn('claude --print --output-format json', {
+      // literals plus a pattern-validated model name, so concatenation is safe here.
+      proc = spawn(`claude --print --output-format json${modelArg}`, {
         env: { ...process.env, BMAD_HOOK_SUBPROCESS: '1' }, // recursion guard convention
         stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true,

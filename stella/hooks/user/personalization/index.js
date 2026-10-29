@@ -178,7 +178,7 @@ function callClaude(prompt) {
   return new Promise((resolve) => {
     let proc;
     try {
-      proc = spawn('claude', ['--print', '--output-format', 'text'], {
+      proc = spawn('claude', ['--print', '--output-format', 'text', '--model', 'claude-sonnet-5'], {
         env: { ...process.env, BMAD_HOOK_SUBPROCESS: '1' },
         stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true,

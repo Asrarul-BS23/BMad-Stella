@@ -3,6 +3,7 @@
 const { spawn } = require('node:child_process');
 const { log } = require('./state');
 
+const MODEL = 'claude-sonnet-5'; // headless hook calls don't need the session's default model
 const MAX_RETRIES = 3;
 const TIMEOUT_MS = 300_000; // 5 min — a tight timeout with a short backoff left no room for transient contention to clear
 const RETRY_BACKOFF_MS = 10_000; // 10s, 20s between attempts
@@ -46,7 +47,7 @@ function _spawnClaude(
   { timeoutMs = TIMEOUT_MS, allowedTools = null, disallowedTools = null } = {},
 ) {
   return new Promise((resolve) => {
-    const args = ['--print', '--output-format', 'text'];
+    const args = ['--print', '--output-format', 'text', '--model', MODEL];
     if (allowedTools) args.push('--allowedTools', allowedTools.join(','));
     if (disallowedTools) args.push('--disallowedTools', disallowedTools.join(','));
     let proc;

@@ -100,7 +100,7 @@ const writeTranscript = (name, lines) => {
   const d = readLoggingConfig(ROOT);
   ok(
     JSON.stringify(d.triggerStatuses) === '["done"]' &&
-      d.model === 'default' &&
+      d.model === 'claude-sonnet-5' &&
       d.confluence.enabled === false,
     'config: defaults when friction.json missing',
   );
@@ -135,7 +135,7 @@ const writeTranscript = (name, lines) => {
   fs.writeFileSync(CONFIG, JSON.stringify({ triggerStatuses: [], model: '' }));
   ok(
     JSON.stringify(readLoggingConfig(ROOT).triggerStatuses) === '["done"]' &&
-      readLoggingConfig(ROOT).model === 'default',
+      readLoggingConfig(ROOT).model === 'claude-sonnet-5',
     'config: empty values -> defaults',
   );
   fs.rmSync(CONFIG);
