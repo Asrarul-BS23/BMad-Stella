@@ -129,6 +129,22 @@ const PROJECT_HOOKS = [
 const OUTPUT_FOLDERS = ['domain-knowledge', 'reviewer', 'bmad-logs', 'cache/jira', 'memory/.state'];
 
 const FRICTION_DEFAULTS = { triggerStatuses: ['done'] };
+// Friction-log Confluence page per project, keyed by the project page id the picker saves.
+// The log pages are the children of BMAD SEMANTIC LOGS
+// (https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1481244674). A project not listed
+// here, and "Other", keep their friction reports local only.
+// [project page id, logs page id]
+const FRICTION_LOGS_PAGES = Object.freeze(
+  Object.fromEntries([
+    ['1626308638', '1481277441'], // LEADRSC → LEADRS-LOGS
+    ['1626669098', '1481080837'], // RISK MONITOR → RM-LOGS
+    ['1626177572', '1481244689'], // SAFV → SAFV-LOGS
+    ['1626472481', '1481244697'], // QuarryConnect → QuarryConnect-LOGS
+    ['1626243144', '1481113604'], // DRE → DRE-LOGS
+    ['1626177587', '1536819234'], // SLS → SLS-Backend-LOGS (backend only, user decision 2026-10-29)
+    ['1626439720', '1536426002'], // TEC → TEC-LOGS
+  ]),
+);
 const GUARD_DEFAULTS = { enabled: true };
 
 // Written next to our hooks and helpers so Node runs them as CommonJS even when
@@ -148,6 +164,7 @@ module.exports = {
   PROJECT_HOOKS,
   OUTPUT_FOLDERS,
   FRICTION_DEFAULTS,
+  FRICTION_LOGS_PAGES,
   GUARD_DEFAULTS,
   BMAD_VERSION,
   BMAD_PACKAGE,

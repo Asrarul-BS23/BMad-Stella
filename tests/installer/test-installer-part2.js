@@ -250,6 +250,36 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     JSON.parse(read(root, '_bmad/custom/stella/friction.json')).triggerStatuses[0] === 'done',
     'layer: friction.json default',
   );
+  {
+    const fj = JSON.parse(read(root, '_bmad/custom/stella/friction.json'));
+    ok(
+      fj.confluence &&
+        fj.confluence.enabled === true &&
+        fj.confluence.logsPageUrl ===
+          'https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1481277441',
+      'layer: friction.json publishes LEADRSC reports to LEADRS-LOGS',
+    );
+    const { frictionConfig } = require(path.join(LIB, 'stella-layer.js'));
+    const logsId = (pageId) => {
+      const c = frictionConfig({ name: 'x', pageId });
+      return c.confluence ? c.confluence.logsPageUrl.split('/').pop() : null;
+    };
+    ok(
+      logsId('1626669098') === '1481080837' &&
+        logsId('1626177572') === '1481244689' &&
+        logsId('1626472481') === '1481244697' &&
+        logsId('1626243144') === '1481113604' &&
+        logsId('1626439720') === '1536426002',
+      'friction: RISK MONITOR, SAFV, QuarryConnect, DRE and TEC map to their logs pages',
+    );
+    ok(logsId('1626177587') === '1536819234', 'friction: SLS publishes to SLS-Backend-LOGS');
+    ok(
+      !frictionConfig({ name: 'Other', pageId: null }).confluence &&
+        !frictionConfig({ name: 'x', pageId: '999' }).confluence &&
+        !frictionConfig(null).confluence,
+      'friction: Other, unknown page id and no project stay local only',
+    );
+  }
   ok(
     JSON.parse(read(root, '_bmad/custom/stella/guard.json')).enabled === true,
     'layer: guard.json default',

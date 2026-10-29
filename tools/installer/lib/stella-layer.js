@@ -21,9 +21,27 @@ const {
   STELLA_OUTPUT_DIR,
   OUTPUT_FOLDERS,
   FRICTION_DEFAULTS,
+  FRICTION_LOGS_PAGES,
   GUARD_DEFAULTS,
   COMMONJS_PACKAGE_JSON,
+  JIRA_BASE_URL,
 } = require('./constants');
+
+/**
+ * friction.json for the picked project: Confluence publishing on when the project has a
+ * logs page, local only otherwise ("Other", unknown page id, no project).
+ */
+function frictionConfig(project) {
+  const logsPageId = project && project.pageId ? FRICTION_LOGS_PAGES[project.pageId] : null;
+  if (!logsPageId) return { ...FRICTION_DEFAULTS };
+  return {
+    ...FRICTION_DEFAULTS,
+    confluence: {
+      enabled: true,
+      logsPageUrl: `${JIRA_BASE_URL}/wiki/spaces/AIL/pages/${logsPageId}`,
+    },
+  };
+}
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const SRC = {
@@ -52,7 +70,7 @@ function rmIfPresent(target) {
 }
 
 // ---- step 9: _bmad/custom/stella/ ----
-function copyStellaFiles(root) {
+function copyStellaFiles(root, { project = null } = {}) {
   const dest = rel(root, STELLA_CUSTOM_DIR);
   copyDir(SRC.checklists, path.join(dest, 'checklists'));
   for (const util of [
@@ -65,7 +83,7 @@ function copyStellaFiles(root) {
   }
   fs.writeFileSync(
     path.join(dest, 'friction.json'),
-    JSON.stringify(FRICTION_DEFAULTS, null, 2) + '\n',
+    JSON.stringify(frictionConfig(project), null, 2) + '\n',
   );
   fs.writeFileSync(path.join(dest, 'guard.json'), JSON.stringify(GUARD_DEFAULTS, null, 2) + '\n');
   fs.writeFileSync(path.join(dest, 'package.json'), COMMONJS_PACKAGE_JSON); // helpers are CommonJS
@@ -250,6 +268,7 @@ function removeBmadSkills(root) {
 }
 
 module.exports = {
+  frictionConfig,
   copyStellaFiles,
   copySkills,
   copyHooks,

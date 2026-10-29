@@ -204,7 +204,7 @@ async function install(root, deps) {
   // 9-13. Stella layer
   ui.step(5);
   const s5 = ui.spin('copying skills, hooks and helpers…');
-  layer.copyStellaFiles(root);
+  layer.copyStellaFiles(root, { project });
   summary.skills = layer.copySkills(root);
   summary.removedBmadSkills = layer.removeShadowedBmadSkills(root);
   summary.hooks = layer.copyHooks(root);
