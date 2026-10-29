@@ -1,41 +1,10 @@
 # PR Review Checklist
 
-Validate that the review completed correctly and findings are ready to be written. Runs between the Review and Write Outputs sections of `SKILL.md`.
+Runs between Review the Change Set and Write Outputs. Mark each item PASS or FAIL with one sentence. Any FAIL: go back, fix, run this again.
 
-[[LLM: INITIALIZATION INSTRUCTIONS - PR REVIEW VALIDATION
-
-This checklist is for the reviewer (stella-pr-review) to self-validate the PR review before writing outputs.
-
-IMPORTANT: Mark each item PASS, FAIL, or N/A with a one-sentence rationale. Every FAIL must be remediated before writing.
-
-EXECUTION APPROACH:
-
-1. Go through each item in order
-2. Verify against the actual review work just completed
-3. If any item fails, return to the relevant section of SKILL.md, fix, and re-run this checklist
-
-The goal is dev-actionable output ready to write — not just a finished review.]]
-
-## Validation
-
-- [ ] JIRA key taken from the PR title (or given by the user) and the ticket fetched: summary, description, acceptance criteria, comments. Thin ticket → parent used, else the user asked once; requirements source recorded in the header.
-- [ ] PR fetched via `gh` only; head SHA captured; `git fetch origin pull/{N}/head` done and the SHA resolves locally. Diff from `gh pr diff`, or from `git diff {base} {head}` only when GitHub refused (over 300 files).
-- [ ] Only the Guard's allowed commands were run; no Edit/MultiEdit, no Write outside `_bmad-output/stella/reviewer/`, no `gh api`, no other `gh pr` subcommand, no git write command.
-- [ ] Verification scripts, if any, were pure computation under `_bmad-output/stella/reviewer/.scratch/` or inline `node -e` / `python -c` — no file, process, or network access, no PR code with side effects.
-- [ ] Every changed file reviewed; surrounding code read with `git show {sha}:{path}` at the head SHA, never from the working tree.
-- [ ] Domain knowledge accessed by targeted Grep only — no bulk-read of `_bmad-output/stella/domain-knowledge/`.
-- [ ] All 10 universal criteria evaluated; criterion 11 (wiring & registration) applied only where the stack has the concept, skipped silently otherwise.
-- [ ] Scope drift checked both ways: PR changes not in the ticket, and AC with no matching code/test. "Acceptance criteria missing" flagged if the ticket has none.
-- [ ] Test coverage stated as `OK` or `MISSING — {exactly what}`.
-- [ ] Ripple check done with `git grep -e` at the head SHA; result stated.
-- [ ] Every finding has `File:LINE` from the diff's new-file numbers (or `File (missing)`), What / Why / Fix, grouped 🔴 Blockers / 🟡 Minor, numbered continuously. No nits, no open questions, no praise.
-- [ ] Same head SHA as the existing `review.md` → review skipped, report shown, Post offered only if not yet posted (unless the user typed `again`).
-- [ ] One folder per PR under `_bmad-output/stella/reviewer/` with `review.md`, `findings.json` (matching ids, paths, lines; `fix` present but never posted) and `reproduce.md`.
-- [ ] `reproduce.md`: header says steps are derived from code, not executed; behavior findings have Preconditions / Steps / Expected / Actual; non-behavior findings have the one-line `No runtime repro`; no invented steps.
-- [ ] Post to PR: preview shown, no `LONG` lines left, user asked once and answered `y` before `--post`; never `gh api` directly, never `--submit` without the user typing "submit".
-- [ ] `review.md` printed in chat verbatim, followed by the folder path — no separate prose version.
-- [ ] Report is short: two-sentence summary, Checked list ≤ 8 bare names, one-line Ripple, one line per What / Why / Fix, repeated issues merged into one finding, Minor capped at 5, plain words.
-
-## Final Confirmation
-
-- [ ] I, the reviewer, confirm that every item above was evaluated and findings are ready to be written.
+- [ ] Requirements source recorded; scope drift checked both ways; "Acceptance criteria missing" flagged if the ticket has none.
+- [ ] Every changed hunk reviewed; surrounding code read at the head SHA, never from the working tree.
+- [ ] All 10 universal criteria evaluated, including dependencies (5), the inverted-condition test check (9) and the structural smells (8, 10); criterion 11 only where the stack has the concept.
+- [ ] Test coverage stated as `OK` or `MISSING — {what}`; ripple check done with `git grep -e` at the head SHA.
+- [ ] Every finding has `File:LINE` from the new-file numbers (or `File (missing)`), What / Why / Fix, sits in Blockers or Minor, numbered continuously; no nits, open questions or praise.
+- [ ] Report is short: two-sentence summary, at most 8 Checked names, one-line ripple, at most 5 Minor; `findings.json` and `reproduce.md` use the same numbers.

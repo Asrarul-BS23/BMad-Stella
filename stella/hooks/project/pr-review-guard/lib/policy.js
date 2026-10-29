@@ -44,7 +44,8 @@ const ALLOWED_COMMANDS = [
   { name: 'git show {sha}:{path}', re: /^git show [0-9a-fA-F]{7,40}:\S/, flags: new Set() },
   {
     name: 'git grep -n -e',
-    re: /^git grep -n -e\s+\S/,
+    // -i / -w / -F / -E may sit between -n and -e; -e stays mandatory
+    re: /^git grep -n(?: -[iwFE])* -e\s+\S/,
     // the token after -e is a pattern, never an option — even if it starts with '-'
     valueFlags: new Set(['-e']),
     flags: new Set([
@@ -70,11 +71,14 @@ const ALLOWED_COMMANDS = [
   {
     name: 'git log',
     re: /^git log(?:\s|$)/,
+    // -<number> is the short form of -n <number>
+    countFlag: true,
     flags: new Set([
       '--oneline',
       '-n',
       '--max-count',
       '--stat',
+      '--name-only',
       '--no-pager',
       '--format',
       '--pretty',
@@ -323,6 +327,7 @@ function checkBash(rawCommand, readScript) {
     }
     if (valueFlags.has(bare)) nextIsValue = true;
     if (i < prefixLen || !bare.startsWith('-')) continue;
+    if (rule.countFlag && /^-\d+$/.test(bare)) continue;
     if (!rule.flags.has(flagName(bare))) {
       return { allow: false, reason: `option '${bare}' is not allowed with ${rule.name}` };
     }

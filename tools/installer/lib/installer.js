@@ -77,6 +77,7 @@ async function install(root, deps) {
     throw new Error(pf.errors.join('\n'));
   }
   const installed = {};
+  const installedVersions = {};
   const earlyWarnings = [];
   if (!pf.found.uv) {
     s1.update('installing uv…');
@@ -92,8 +93,10 @@ async function install(root, deps) {
   if (!pf.found.python) {
     s1.update(`installing python ${constants.PYTHON_INSTALL_VERSION} for uv…`);
     const r = tools.ensurePython();
-    if (r.status === 'installed') installed.python = true;
-    else if (r.status !== 'present')
+    if (r.status === 'installed') {
+      installed.python = true;
+      installedVersions.python = r.version;
+    } else if (r.status !== 'present')
       earlyWarnings.push(
         `Python ${constants.PYTHON_INSTALL_VERSION} was not installed (${r.detail}). uv will download one on first use.`,
       );
@@ -107,20 +110,17 @@ async function install(root, deps) {
     throw new Error(pf.errors.join('\n'));
   }
   s1.succeed(
+    // uv's own Python is not on PATH, so the re-check misses it; show it when we installed it.
     ['node', 'uv', 'python', 'gh', 'git']
-      .filter((t) => pf.found[t])
+      .filter((t) => pf.found[t] || installed[t])
       .map((t) => {
-        const v = pf.versions[t] ? `${t} ${pf.versions[t]}` : t;
+        const ver = pf.versions[t] || installedVersions[t];
+        const v = ver ? `${t} ${ver}` : t;
         if (!installed[t]) return v;
         return `${v} (installed${t === 'python' ? ' for uv' : ''})`;
       })
       .join('   '),
   );
-  if (installed.uv)
-    ui.line(
-      'note',
-      'uv was installed to ~/.local/bin — new terminals see it after you reopen them',
-    );
   for (const w of earlyWarnings) ui.line('warn', w);
 
   // 2. re-run detection
@@ -288,16 +288,11 @@ function mcpNote(m) {
  */
 function layerNotes(s) {
   const d = s.domainDocs;
+  // .gitignore lines added, folders created and the domain docs folder are not printed;
+  // the summary row already counts the domain pages (user decision 2026-10-28/29).
   return [
-    s.gitignoreAdded.length > 0
-      ? { kind: 'note', text: `.gitignore  added ${s.gitignoreAdded.join(', ')}` }
-      : null,
-    d.status === 'fetched'
-      ? { kind: 'note', text: `Domain docs → ${path.relative(s.root, d.dir)}` }
-      : null,
     d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
     mcpNote(s.mcp),
-    s.created.length > 0 ? { kind: 'note', text: `created ${s.created.join(', ')}` } : null,
   ].filter(Boolean);
 }
 
