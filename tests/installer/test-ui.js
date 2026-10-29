@@ -157,11 +157,8 @@ ok(
   'detail: full line',
 );
 ok(
-  installer
-    .layerNotes(sum)
-    .map((n) => n.text)
-    .join('|') === 'Domain docs → _bmad-output\\stella\\domain-knowledge',
-  'notes: domain folder only; .gitignore lines and created folders are not printed',
+  installer.layerNotes(sum).length === 0,
+  'notes: nothing printed for .gitignore lines, created folders or fetched domain docs',
 );
 sum.domainDocs = {
   status: 'skipped',

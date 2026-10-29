@@ -38,6 +38,7 @@ Line 80: the version-control sanity check is replaced by "No version-control che
 
 - Line 12: "Investigate the codebase. When you can, send deep searches to subagents…" becomes "Find the code to change. Start from what is already loaded: CLAUDE.md, auto memory, Stella memory, project context. Then read only: the files you will change, their tests, one existing example of the same pattern, and the types they use." The rest of the line is official. A bounded list in the session itself, after the pre-task reading list of addyosmani/agent-skills `context-engineering`; the planner that writes the Code Map is the one that read the code (dev feedback: unnecessary searching, 2026-10-28).
 - Line 14: "Keep looking until you know, or until those sources have nothing more to say." is removed; it had no stopping point (2026-10-28).
+- Line 55, the "Approve and stop" checkpoint option: "a fresh `bmad-build` session" → "a fresh `stella-build` session". The installer removes `bmad-build`, so the official name pointed at a skill that is not there (2026-10-29).
 - Line 56, the "Review spec" checkpoint option: "use a subagent if available" is removed; the spec is reviewed in this session (workflow.md line 7, 2026-10-28).
 
 ### step-03-implement.md

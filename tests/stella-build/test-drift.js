@@ -66,6 +66,12 @@ const ALLOWED = {
 
   // 2026-10-28 — step 02 reads a bounded set of files instead of open-ended investigation (dev feedback: unnecessary searching).
   'step-02-plan.md': [
+    // 2026-10-29 — skill name: bmad-build is removed by the installer; resume with stella-build.
+    {
+      line: 55,
+      from: '- **Approve and stop** — approve the spec, leave it `ready-for-dev`, and stop so a fresh `bmad-build` session can resume at implementation.',
+      to: '- **Approve and stop** — approve the spec, leave it `ready-for-dev`, and stop so a fresh `stella-build` session can resume at implementation.',
+    },
     // 2026-10-28 — spec review in this session; subagents only for review layers (workflow.md line 7).
     {
       line: 56,

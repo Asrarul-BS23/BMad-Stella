@@ -288,11 +288,9 @@ function mcpNote(m) {
  */
 function layerNotes(s) {
   const d = s.domainDocs;
-  // .gitignore lines added and folders created are not printed (user decision 2026-10-28).
+  // .gitignore lines added, folders created and the domain docs folder are not printed;
+  // the summary row already counts the domain pages (user decision 2026-10-28/29).
   return [
-    d.status === 'fetched'
-      ? { kind: 'note', text: `Domain docs → ${path.relative(s.root, d.dir)}` }
-      : null,
     d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
     mcpNote(s.mcp),
   ].filter(Boolean);
