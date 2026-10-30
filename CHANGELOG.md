@@ -1,14 +1,24 @@
-## [Unreleased]
+## [3.0.0] (2026-10-30)
+
+Migration to the BMad v6 skill-based architecture. Breaking: projects installed from 2.x must re-run the installer; `.bmad-core/` and the 14-agent system are gone.
 
 ### Features
 
-- **installer**: architecture docs are now prefetched from Confluence at install time (`tools/installer/lib/architecture-docs-fetcher.js`), alongside domain knowledge. Direct child pages of `architectureFolderUrl` (excluding `Domain-Knowledge`) are saved to `bmad-docs/architecture/` with canonical names (`coding-standards`, `tech-stack`, `project-structure`, `git-workflow`) plus a `.metadata.json` manifest (`pageId`, `title`, `version`, `lastModified`, `localFile`) so the planner's activation cache check passes. Planner MCP fetch remains as fallback when credentials are missing.
-- **planner**: activation cache check now costs one `getConfluencePageDescendants` call and never fetches page bodies (previously re-fetched every page just to read its version, ~15k tokens per activation). Cache miss is incremental — only new/changed pages are fetched, removed pages deleted, unchanged files left untouched.
-- **installer**: shared Confluence REST helpers extracted to `tools/installer/lib/confluence-client.js`; `domain-knowledge-fetcher.js` now uses them (behaviour unchanged).
+- **stella/skills**: new skill layer replaces agents — `stella-build` (clarify → plan → implement → review → present, plus oneshot), `stella-pr-review`, `stella-security`, `stella-domain-expert`, `stella-project-context`, `caveman`
+- **stella/hooks**: cross-session memory (episodic, semantic, lessons, constraints, domain map, patterns), friction logger with Confluence publishing, pr-review guard
+- **installer**: rewritten around the Stella layer — MCP registrar, per-machine Atlassian credentials with silent verify, memory bootstrap, background project-context generation, legacy memory and plan migration, creates all memory subfolders at install time
+- **packaging**: `.npmignore` limits the npm package to `stella/`, `tools/` and standard package files
 
 ### Removed
 
-- **scribe**: removed the scribe notes feature entirely — `scribe-protocol.md`, `scribe-rules.yaml`, installer notes setup, `bmad-notes` permission allowlist entries, `scribe.notesFile` config, and the TURN-END capture rule from all agents. Existing `bmad-docs/bmad-notes/` and `bmad-ledger/` directories remain as historical orphans (no migration).
+- **bmad-core**: all 14 agent personas, agent teams, tasks, templates, checklists and the `*command` system
+- **expansion packs**: game dev, creative writing, devops
+- **legacy tooling**: v3-to-v4 upgrader, web bundles/builders, version sync scripts, yaml-format
+- **docs**: local user guides replaced by Confluence-linked pages
+
+## [2.0.0] — Stella fork (hooks, memory, friction logging)
+
+Fork of BMAD-METHOD 4.44.1. Added background memory and personalization collection/injection via hooks, friction (semantic) logger, lesson collection, Atlassian MCP migration, JIRA credential relocation, architecture docs prefetch from Confluence; removed scribe notes. History before this point is the upstream BMAD-METHOD changelog.
 
 ## [4.36.2](https://github.com/bmadcode/BMAD-METHOD/compare/v4.36.1...v4.36.2) (2025-08-10)
 
