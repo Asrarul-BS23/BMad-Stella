@@ -1,0 +1,4 @@
+# Byte-for-byte copies of the official BMad bmad-build skill (migration Task 6).
+# Formatting must never touch them; the drift test compares them by hash.
+stella/skills/stella-build/
+tests/fixtures/

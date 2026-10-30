@@ -1,0 +1,44 @@
+# The published package needs only: stella/ (deployable layer), tools/
+# (CLI, installer, builders), package.json, README, LICENSE, CHANGELOG.
+# Note: when .npmignore exists, npm ignores .gitignore for packing,
+# so secrets and local artifacts must be repeated here.
+
+# Development and CI
+.github/
+.husky/
+.vscode/
+tests/
+docs/
+
+# AI assistant and editor configs
+.claude/
+.gemini/
+.iflow/
+.ai/
+.cursor/
+.windsurf/
+.trae/
+CLAUDE.md
+
+# Lint and format configs (not needed at runtime)
+eslint.config.mjs
+prettier.config.mjs
+.prettierignore
+.prettierrc
+.gitattributes
+.gitignore
+
+# Contributor docs
+CONTRIBUTING.md
+
+# Secrets and local artifacts — never publish
+.env
+*.log
+logs/
+web-bundles/
+.bmad*/
+.bmad-core/
+test-project-install/
+sample-project/
+flattened-codebase.xml
+*.stats.md

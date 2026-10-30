@@ -7,30 +7,49 @@ const cjson = require('comment-json');
 class ClaudePermissionsManager {
   constructor() {
     // Define BMAD required permissions for Claude Code
+    // Define the permissions Stella needs in Claude Code (BMad v6 layout).
+    // Allow rules are narrow on purpose: each names one tool shape. Anything not
+    // listed falls back to Claude Code's normal prompt.
     this.bmadPermissions = [
-      // Atlassian MCP tools
-      'mcp__atlassian__getConfluencePage',
-      'mcp__atlassian__getConfluencePageDescendants',
+      // Atlassian — the claude.ai connector (JIRA ticket text, Confluence pages, completion comment)
+      'mcp__claude_ai_Atlassian__getJiraIssue',
+      'mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql',
+      'mcp__claude_ai_Atlassian__addCommentToJiraIssue',
+      'mcp__claude_ai_Atlassian__getConfluencePage',
+      'mcp__claude_ai_Atlassian__getConfluencePageDescendants',
+      'mcp__claude_ai_Atlassian__fetch',
+      // Atlassian — the same server registered per project by the installer
+      // (`claude mcp add atlassian …`, local scope); same tools, other prefix.
       'mcp__atlassian__getJiraIssue',
       'mcp__atlassian__searchJiraIssuesUsingJql',
-      'mcp__atlassian__fetch',
       'mcp__atlassian__addCommentToJiraIssue',
+      'mcp__atlassian__getConfluencePage',
+      'mcp__atlassian__getConfluencePageDescendants',
+      'mcp__atlassian__fetch',
 
       'WebFetch(domain:stellaint.atlassian.net)',
 
-      // Jira attachment helper (fetches binary attachments the MCP cannot return)
-      'Bash(node .bmad-core/utils/jira-attachments)',
-      'Bash(node .bmad-core/utils/jira-attachments *)',
-      'Bash(node .bmad-core/utils/jira-attachments/index.js)',
-      'Bash(node .bmad-core/utils/jira-attachments/index.js *)',
+      // Stella helpers (zero-dep Node scripts installed under _bmad/custom/stella/utils/)
+      'Bash(node _bmad/custom/stella/utils/jira-attachments)',
+      'Bash(node _bmad/custom/stella/utils/jira-attachments *)',
+      'Bash(node _bmad/custom/stella/utils/jira-attachments/index.js)',
+      'Bash(node _bmad/custom/stella/utils/jira-attachments/index.js *)',
+      'Bash(node _bmad/custom/stella/utils/jira-comment *)',
+      'Bash(node _bmad/custom/stella/utils/jira-comment/index.js *)',
+      'Bash(node _bmad/custom/stella/utils/pr-comments *)',
+      'Bash(node _bmad/custom/stella/utils/pr-comments/index.js *)',
+      // stella-project-context verifies its own output with this script
+      'Bash(node .claude/skills/stella-project-context/scripts/check-context.js)',
+      'Bash(node .claude/skills/stella-project-context/scripts/check-context.js *)',
 
-      // Read operations - BMAD system files
-      'Read(.bmad-core/**)',
-      'Read(*/.bmad-core/**)',
-      'Read(bmad-docs/**)',
-      'Read(**/bmad-docs/**)',
+      // BMad + Stella files the agent reads every session
+      'Read(_bmad/**)',
+      'Read(*/_bmad/**)',
+      'Read(_bmad-output/**)',
+      'Read(**/_bmad-output/**)',
+      'Read(AGENTS.md)',
 
-      // Read operations - Source code files
+      // Source and config files (project code the skills investigate)
       'Read(**.cs)',
       'Read(**.js)',
       'Read(**.ts)',
@@ -43,8 +62,6 @@ class ClaudePermissionsManager {
       'Read(**.html)',
       'Read(**.css)',
       'Read(**.scss)',
-
-      // Read operations - Config and documentation
       'Read(**.md)',
       'Read(**.json)',
       'Read(**.yaml)',
@@ -52,57 +69,31 @@ class ClaudePermissionsManager {
       'Read(**.xml)',
       'Read(**.csproj)',
       'Read(**.sln)',
+      'Read(**.toml)',
 
-      // File operations for markdown files (Edit rules cover all file-editing tools,
-      // including Write — a separate Write(...) rule is not matched by permission checks)
-      'Edit(bmad-docs/**)',
-      'Edit(*bmad-docs*)',
+      // Stella output folder: specs, reviews, memory, logs (gitignored)
+      'Edit(_bmad-output/**)',
+      'Edit(*_bmad-output*)',
+      'Bash(mkdir -p _bmad-output/**)',
+      'Bash(mkdir -p **/_bmad-output/**)',
+      'Bash(mkdir _bmad-output/**)',
+      'Bash(mkdir **/_bmad-output/**)',
+      'Bash(ls _bmad-output/**)',
+      'Bash(ls **/_bmad-output/**)',
+      'Bash(test -f _bmad-output/**)',
+      'Bash(test -f **/_bmad-output/**)',
+      'Bash(test -d _bmad-output/**)',
+      'Bash(test -d **/_bmad-output/**)',
 
-      // Bash commands for directory operations (Unix)
-      'Bash(mkdir -p bmad-docs/**)',
-      'Bash(mkdir -p **/bmad-docs/**)',
-      'Bash(mkdir bmad-docs/**)',
-      'Bash(mkdir **/bmad-docs/**)',
-      'Bash(rm -rf *bmad-docs*)',
-      'Bash(rm -rf */bmad-docs/architecture*)',
-      'Bash(rm *bmad-docs*)',
-      'Bash(rm */bmad-docs/architecture*)',
-      'Bash(rm bmad-docs/temporary/*.md)',
-      'Bash(rm **/bmad-docs/temporary/*.md)',
-
-      // Bash commands for directory operations (Windows)
-      'Bash(if exist *bmad-docs* rmdir /s /q *bmad-docs*)',
-      String.raw`Bash(if exist *bmad-docs\architecture* rmdir /s /q *bmad-docs\architecture*)`,
-      'Bash(mkdir *bmad-docs*)',
-
-      // Directory listing and existence checks (Unix)
-      'Bash(ls bmad-docs/**)',
-      'Bash(ls **/bmad-docs/**)',
-      'Bash(ls *bmad-docs*)',
-      'Bash(ls "*bmad-docs*"*)',
-      'Bash(test -f bmad-docs/**)',
-      'Bash(test -f **/bmad-docs/**)',
-      'Bash(test -d bmad-docs/**)',
-      'Bash(test -d **/bmad-docs/**)',
-
-      // Directory listing (Windows)
-      'Bash(dir bmad-docs/**)',
-      'Bash(dir **/bmad-docs/**)',
-      'Bash(dir *bmad-docs*)',
-
-      // Codebase search operations (used by planner and dev agents for pattern discovery)
+      // Read-only shell helpers
       'Bash(find *)',
       'Bash(grep *)',
-
-      // Codebase structure inspection (cross-platform, read-only)
       'Bash(tree)',
       'Bash(tree *)',
       'Bash(dir)',
       'Bash(dir *)',
       'Bash(ls)',
       'Bash(ls *)',
-
-      // Pipeline / text utilities (cross-platform, read-only)
       'Bash(findstr)',
       'Bash(findstr *)',
       'Bash(head)',
@@ -114,12 +105,100 @@ class ClaudePermissionsManager {
       'Bash(cut)',
       'Bash(cut *)',
 
-      // Claude Code built-in search tools (Read rules already cover Glob for these paths —
-      // a separate Glob(...) path rule is not matched by permission checks)
-      'Grep(.bmad-core/**)',
-      'Grep(bmad-docs/**)',
+      // Claude Code built-in search tools
       'Grep(*)',
       'Glob(*)',
+
+      // BMad v6 skills run their render / config scripts through uv
+      'Bash(uv run *)',
+
+      // PR review (stella-pr-review) — GitHub CLI read commands for PR metadata, diff and CI status
+      'Bash(gh auth status)',
+      'Bash(gh auth status *)',
+      'Bash(gh pr view *)',
+      'Bash(gh pr diff *)',
+      'Bash(gh pr checks *)',
+
+      // PR review — local git READ commands at the PR head SHA. `git fetch origin pull/N/head`
+      // only downloads objects into .git (no working-tree or branch change).
+      'Bash(git fetch origin pull/*)',
+      'Bash(git cat-file *)',
+      'Bash(git show *)',
+      'Bash(git grep *)',
+      'Bash(git log *)',
+      'Bash(git diff *)',
+
+      // `cd` changes nothing by itself. Agents prefix commands with `cd <root> &&` when the
+      // shell cwd drifts; Claude Code splits compound commands and checks each part, so
+      // without this rule the harmless `cd` part sends the whole command to a prompt/classifier.
+      'Bash(cd *)',
+
+      // Same rules for the PowerShell tool (Windows sessions may use it instead of Bash).
+      'PowerShell(cd *)',
+      'PowerShell(Set-Location *)',
+      'PowerShell(uv run *)',
+      'PowerShell(gh auth status)',
+      'PowerShell(gh auth status *)',
+      'PowerShell(gh pr view *)',
+      'PowerShell(gh pr diff *)',
+      'PowerShell(gh pr checks *)',
+      'PowerShell(git fetch origin pull/*)',
+      'PowerShell(git cat-file *)',
+      'PowerShell(git show *)',
+      'PowerShell(git grep *)',
+      'PowerShell(git log *)',
+      'PowerShell(git diff *)',
+      'PowerShell(node _bmad/custom/stella/utils/pr-comments *)',
+      'PowerShell(node _bmad/custom/stella/utils/pr-comments/index.js *)',
+      'PowerShell(node _bmad/custom/stella/utils/jira-attachments)',
+      'PowerShell(node _bmad/custom/stella/utils/jira-attachments *)',
+      'PowerShell(node _bmad/custom/stella/utils/jira-attachments/index.js)',
+      'PowerShell(node _bmad/custom/stella/utils/jira-attachments/index.js *)',
+      'PowerShell(node _bmad/custom/stella/utils/jira-comment *)',
+      'PowerShell(node _bmad/custom/stella/utils/jira-comment/index.js *)',
+      'PowerShell(node .claude/skills/stella-project-context/scripts/check-context.js)',
+      'PowerShell(node .claude/skills/stella-project-context/scripts/check-context.js *)',
+    ];
+
+    // Hard-blocked commands (settings.permissions.deny — deny wins over allow in Claude Code).
+    // The *pr-review task is read-only; these are the gh commands that would mutate a PR or
+    // reach arbitrary GitHub endpoints. No BMad agent needs any of them. Git write commands
+    // (commit/push/checkout…) are intentionally NOT denied: they stay on Claude Code's default
+    // prompt so developers can still commit from the same session.
+    this.bmadDenyPermissions = [
+      // The Jira token file: only the helpers read it, as processes. Never the agent's
+      // tools. `Edit(...)` covers Write and MultiEdit too; a `Write(...)` rule never matches.
+      'Read(~/.claude/stella/**)',
+      'Edit(~/.claude/stella/**)',
+      'Bash(gh api)',
+      'Bash(gh api *)',
+      'Bash(gh pr comment *)',
+      'Bash(gh pr review *)',
+      'Bash(gh pr edit *)',
+      'Bash(gh pr merge *)',
+      'Bash(gh pr close *)',
+      'Bash(gh pr reopen *)',
+      'Bash(gh pr ready *)',
+      'Bash(gh pr lock *)',
+      'Bash(gh pr unlock *)',
+      'Bash(gh pr revert *)',
+      'Bash(gh pr update-branch *)',
+      'Bash(gh pr checkout *)',
+      // PowerShell tool equivalents — the block must hold in either shell.
+      'PowerShell(gh api)',
+      'PowerShell(gh api *)',
+      'PowerShell(gh pr comment *)',
+      'PowerShell(gh pr review *)',
+      'PowerShell(gh pr edit *)',
+      'PowerShell(gh pr merge *)',
+      'PowerShell(gh pr close *)',
+      'PowerShell(gh pr reopen *)',
+      'PowerShell(gh pr ready *)',
+      'PowerShell(gh pr lock *)',
+      'PowerShell(gh pr unlock *)',
+      'PowerShell(gh pr revert *)',
+      'PowerShell(gh pr update-branch *)',
+      'PowerShell(gh pr checkout *)',
     ];
 
     // Rules previously generated by older installer versions that are either
@@ -148,6 +227,58 @@ class ClaudePermissionsManager {
       'Glob(bmad-ledger/**)',
       'Bash([ -f bmad-ledger/** ])',
       'Bash([ -d bmad-ledger/** ])',
+      // v4 layout rules (bmad-docs/, .bmad-core/) and the old project-level Atlassian MCP server,
+      // retired in the v6 migration — pruned from existing settings.local.json on re-install.
+      String.raw`Bash(if exist *bmad-docs\architecture* rmdir /s /q *bmad-docs\architecture*)`,
+      'mcp__atlassian__getConfluencePage',
+      'mcp__atlassian__getConfluencePageDescendants',
+      'mcp__atlassian__getJiraIssue',
+      'mcp__atlassian__searchJiraIssuesUsingJql',
+      'mcp__atlassian__fetch',
+      'mcp__atlassian__addCommentToJiraIssue',
+      'Bash(node .bmad-core/utils/jira-attachments)',
+      'Bash(node .bmad-core/utils/jira-attachments *)',
+      'Bash(node .bmad-core/utils/jira-attachments/index.js)',
+      'Bash(node .bmad-core/utils/jira-attachments/index.js *)',
+      'Bash(node .bmad-core/utils/pr-comments *)',
+      'Bash(node .bmad-core/utils/pr-comments/index.js *)',
+      'Read(.bmad-core/**)',
+      'Read(*/.bmad-core/**)',
+      'Read(bmad-docs/**)',
+      'Read(**/bmad-docs/**)',
+      'Edit(bmad-docs/**)',
+      'Edit(*bmad-docs*)',
+      'Bash(mkdir -p bmad-docs/**)',
+      'Bash(mkdir -p **/bmad-docs/**)',
+      'Bash(mkdir bmad-docs/**)',
+      'Bash(mkdir **/bmad-docs/**)',
+      'Bash(rm -rf *bmad-docs*)',
+      'Bash(rm -rf */bmad-docs/architecture*)',
+      'Bash(rm *bmad-docs*)',
+      'Bash(rm */bmad-docs/architecture*)',
+      'Bash(rm bmad-docs/temporary/*.md)',
+      'Bash(rm **/bmad-docs/temporary/*.md)',
+      'Bash(if exist *bmad-docs* rmdir /s /q *bmad-docs*)',
+      'Bash(mkdir *bmad-docs*)',
+      'Bash(ls bmad-docs/**)',
+      'Bash(ls **/bmad-docs/**)',
+      'Bash(ls *bmad-docs*)',
+      'Bash(ls "*bmad-docs*"*)',
+      'Bash(test -f bmad-docs/**)',
+      'Bash(test -f **/bmad-docs/**)',
+      'Bash(test -d bmad-docs/**)',
+      'Bash(test -d **/bmad-docs/**)',
+      'Bash(dir bmad-docs/**)',
+      'Bash(dir **/bmad-docs/**)',
+      'Bash(dir *bmad-docs*)',
+      'Grep(.bmad-core/**)',
+      'Grep(bmad-docs/**)',
+      'PowerShell(node .bmad-core/utils/pr-comments *)',
+      'PowerShell(node .bmad-core/utils/pr-comments/index.js *)',
+      'PowerShell(node .bmad-core/utils/jira-attachments)',
+      'PowerShell(node .bmad-core/utils/jira-attachments *)',
+      'PowerShell(node .bmad-core/utils/jira-attachments/index.js)',
+      'PowerShell(node .bmad-core/utils/jira-attachments/index.js *)',
     ];
   }
 
@@ -252,6 +383,16 @@ class ClaudePermissionsManager {
   }
 
   /**
+   * Get list of missing BMAD deny rules from current settings
+   * @param {object} settings - Current settings object
+   * @returns {string[]} Array of missing deny rule strings
+   */
+  getMissingDenyPermissions(settings) {
+    const existingDeny = new Set(settings?.permissions?.deny || []);
+    return this.bmadDenyPermissions.filter((perm) => !existingDeny.has(perm));
+  }
+
+  /**
    * Check and setup Claude Code permissions
    * @param {string} installDir - Target installation directory
    * @param {object} spinner - Ora spinner instance (optional)
@@ -281,7 +422,7 @@ class ClaudePermissionsManager {
       );
       console.log(
         chalk.dim(
-          '(Only for bmad-docs/ and Atlassian MCP - does NOT include source code changes)\n',
+          '(_bmad-output/ edits, the Atlassian connector, Stella helpers, and read-only gh/git for PR review - does NOT include source code changes)\n',
         ),
       );
 
@@ -306,14 +447,20 @@ class ClaudePermissionsManager {
 
         // Find missing permissions, and stale/unsafe ones from older installer versions
         const missingPermissions = this.getMissingPermissions(settings);
+        const missingDeny = this.getMissingDenyPermissions(settings);
         const { kept, removed: stalePermissions } = this.pruneDeprecatedPermissions(
           settings.permissions.allow,
         );
 
-        if (missingPermissions.length > 0 || stalePermissions.length > 0) {
+        if (
+          missingPermissions.length > 0 ||
+          missingDeny.length > 0 ||
+          stalePermissions.length > 0
+        ) {
           // Ask user before changing permissions
           const parts = [];
           if (missingPermissions.length > 0) parts.push(`add ${missingPermissions.length} missing`);
+          if (missingDeny.length > 0) parts.push(`add ${missingDeny.length} deny`);
           if (stalePermissions.length > 0)
             parts.push(`remove ${stalePermissions.length} stale/unsafe`);
           const { updateSettings } = await inquirer.prompt([
@@ -334,16 +481,24 @@ class ClaudePermissionsManager {
 
           // Rebuild the allow list without the stale entries, then add missing ones
           settings.permissions.allow = [...kept, ...missingPermissions];
+          if (missingDeny.length > 0) {
+            settings.permissions.deny = [...(settings.permissions.deny || []), ...missingDeny];
+          }
 
           const success = await this.writeSettings(installDir, settings);
 
           if (success) {
             results.updated = true;
-            results.permissionsAdded = missingPermissions.length;
+            results.permissionsAdded = missingPermissions.length + missingDeny.length;
             results.permissionsRemoved = stalePermissions.length;
             console.log(chalk.green('✓ Updated .claude/settings.local.json with BMAD permissions'));
             if (missingPermissions.length > 0) {
               console.log(chalk.dim(`  - Added ${missingPermissions.length} new permission rules`));
+            }
+            if (missingDeny.length > 0) {
+              console.log(
+                chalk.dim(`  - Added ${missingDeny.length} deny rules (PR-mutating gh commands)`),
+              );
             }
             if (stalePermissions.length > 0) {
               console.log(
@@ -381,6 +536,7 @@ class ClaudePermissionsManager {
         const settings = {
           permissions: {
             allow: [...this.bmadPermissions],
+            deny: [...this.bmadDenyPermissions],
           },
         };
 
@@ -388,9 +544,14 @@ class ClaudePermissionsManager {
 
         if (success) {
           results.created = true;
-          results.permissionsAdded = this.bmadPermissions.length;
+          results.permissionsAdded = this.bmadPermissions.length + this.bmadDenyPermissions.length;
           console.log(chalk.green('✓ Created .claude/settings.local.json with BMAD permissions'));
           console.log(chalk.dim(`  - Added ${this.bmadPermissions.length} permission rules`));
+          console.log(
+            chalk.dim(
+              `  - Added ${this.bmadDenyPermissions.length} deny rules (PR-mutating gh commands)`,
+            ),
+          );
         } else {
           results.error = 'Failed to create settings file';
         }
@@ -502,6 +663,14 @@ class ClaudePermissionsManager {
    */
   getAllPermissions() {
     return [...this.bmadPermissions];
+  }
+
+  /**
+   * Get all BMAD deny rules
+   * @returns {string[]} Array of all BMAD deny rule strings
+   */
+  getAllDenyPermissions() {
+    return [...this.bmadDenyPermissions];
   }
 }
 

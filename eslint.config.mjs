@@ -7,7 +7,8 @@ import yml from 'eslint-plugin-yml';
 export default [
   // Global ignores for files/folders that should not be linted
   {
-    ignores: ['dist/**', 'coverage/**', '**/*.min.js'],
+    // tests/legacy-scratch holds the v4-era suites copied verbatim; rewritten in migration Tasks 3-5
+    ignores: ['coverage/**', '**/*.min.js', 'tests/legacy-scratch/**'],
   },
 
   // Base JavaScript recommended rules
@@ -52,9 +53,9 @@ export default [
     },
   },
 
-  // CLI/CommonJS scripts under tools/** and bmad-core/utils/** and bmad-core/bmad-hooks/user|project/**
+  // CLI/CommonJS scripts: installer (tools/**), Stella hooks/utils (stella/**), test suites (tests/**)
   {
-    files: ['tools/**/*.js', 'bmad-core/utils/**/*.js', 'bmad-core/bmad-hooks/**/*.js'],
+    files: ['tools/**/*.js', 'stella/**/*.js', 'tests/**/*.js'],
     rules: {
       // Allow CommonJS patterns for Node CLI scripts
       'unicorn/prefer-module': 'off',
@@ -91,14 +92,6 @@ export default [
     files: ['eslint.config.mjs'],
     rules: {
       'n/no-unpublished-import': 'off',
-    },
-  },
-
-  // YAML workflow templates allow empty mapping values intentionally
-  {
-    files: ['bmad-core/workflows/**/*.yaml'],
-    rules: {
-      'yml/no-empty-mapping-value': 'off',
     },
   },
 
