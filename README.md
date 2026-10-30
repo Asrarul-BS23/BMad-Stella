@@ -7,7 +7,7 @@ A thin Stella layer on top of the official [BMad Method](https://github.com/bmad
 Run in the project folder, with Claude Code already installed:
 
 ```
-npx github:Asrarul-BS23/BMad-Stella#v6 install
+npx bmad-stella install
 ```
 
 Two questions (Atlassian credentials, project), about a minute. Details: [Installation Guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1649147911/Installation-Guide).

@@ -126,7 +126,17 @@ const PROJECT_HOOKS = [
 ];
 
 // Folders under _bmad-output/stella/ created when missing (never emptied).
-const OUTPUT_FOLDERS = ['domain-knowledge', 'reviewer', 'bmad-logs', 'cache/jira', 'memory/.state'];
+const OUTPUT_FOLDERS = [
+  'domain-knowledge',
+  'reviewer',
+  'bmad-logs',
+  'cache/jira',
+  'memory/.state',
+  'memory/episodes',
+  'memory/semantic',
+  'memory/lessons',
+  'memory/constraints',
+];
 
 const FRICTION_DEFAULTS = { triggerStatuses: ['done'] };
 // Friction-log Confluence page per project, keyed by the project page id the picker saves.
