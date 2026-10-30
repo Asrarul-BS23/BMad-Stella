@@ -3,7 +3,7 @@ const fsp = require('node:fs/promises');
 
 // Shared Confluence REST helpers used by the install-time prefetchers
 // (domain-knowledge-fetcher, architecture-docs-fetcher).
-// All requests use Basic auth built from bmad-docs/.bmad-tokens/.env.
+// All requests use Basic auth from the credentials the installer verified in step 2.
 // Never include the token or any value derived from it in thrown messages.
 
 const MAX_PAGES = 200;
@@ -33,45 +33,6 @@ async function dirHasFiles(dir) {
     if (error.code === 'ENOENT') return false;
     throw error;
   }
-}
-
-function parseDotenv(contents) {
-  const out = {};
-  for (const raw of contents.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line || line.startsWith('#')) continue;
-    const eq = line.indexOf('=');
-    if (eq === -1) continue;
-    const key = line.slice(0, eq).trim();
-    let value = line.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    if (key) out[key] = value;
-  }
-  return out;
-}
-
-async function readCreds(installDir) {
-  // Tokens live in <project>/bmad-docs/.bmad-tokens/.env (git-ignored via bmad-docs/).
-  const envPath = path.join(installDir, 'bmad-docs', '.bmad-tokens', '.env');
-  let contents;
-  try {
-    contents = await fsp.readFile(envPath, 'utf8');
-  } catch (error) {
-    if (error.code === 'ENOENT') return null;
-    throw error;
-  }
-  const env = parseDotenv(contents);
-  if (!env.JIRA_EMAIL || !env.JIRA_API_TOKEN) return null;
-  return {
-    email: env.JIRA_EMAIL,
-    token: env.JIRA_API_TOKEN,
-    baseUrl: env.JIRA_BASE_URL || null,
-  };
 }
 
 /**
@@ -256,8 +217,6 @@ module.exports = {
   MAX_PAGES,
   MAX_PAGE_BYTES,
   dirHasFiles,
-  parseDotenv,
-  readCreds,
   resolveRoot,
   extractPageId,
   authHeader,
