@@ -88,6 +88,7 @@ const STELLA_SKILLS = [
   'stella-pr-review',
   'stella-domain-expert',
   'stella-project-context',
+  'stella-tea-live-testing',
 ];
 
 // Official skills removed after the BMad install because a Stella version replaces
