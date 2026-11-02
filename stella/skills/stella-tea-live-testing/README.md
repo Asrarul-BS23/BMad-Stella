@@ -1,4 +1,4 @@
-# stella-tea-testing
+# stella-tea-live-testing
 
 A custom TEA skill for the Stella QA team. One run takes one Jira ticket or one system module through: scenario design (via `bmad-tea-test-design`, unmodified) → human lock → tabular test cases → human lock → live execution via Playwright MCP → evidence-backed report and trace coverage record. A second flow, dev mode, is a shift-left bug hunt for an implemented ticket before QA handoff.
 
@@ -24,12 +24,12 @@ Then attach it to Murat's menu — add to `{project-root}/_bmad/custom/bmad-tea.
 [[agent.menu]]
 code = "SQ"
 description = "Stella QA Testing — ticket/module scenarios, locked test cases, live Playwright execution with evidence"
-skill = "stella-tea-testing"
+skill = "stella-tea-live-testing"
 
 [[agent.menu]]
 code = "SD"
 description = "Stella Dev Bug Hunt — test your implemented ticket from its spec before QA handoff"
-skill = "stella-tea-testing"
+skill = "stella-tea-live-testing"
 ```
 
 `SQ` presets the QA flow, `SD` the dev flow; both point at the same skill (`flow_mode` routing). Start a fresh chat so `bmad-tea` picks up the menu.
@@ -38,8 +38,8 @@ skill = "stella-tea-testing"
 
 Copy the two templates from this skill's `config/` folder into `{project-root}/_bmad/custom/` and fill them in:
 
-- `stella-tea-testing.user.toml` — environments (base URLs, role-keyed users), defaults. Gitignored; non-secret only.
-- `stella-tea-testing.secrets.env` — password values, referenced by name (`password_env`) from the TOML. Gitignored.
+- `stella-tea-live-testing.user.toml` — environments (base URLs, role-keyed users), defaults. Gitignored; non-secret only.
+- `stella-tea-live-testing.secrets.env` — password values, referenced by name (`password_env`) from the TOML. Gitignored.
 
 Secret resolution order at run time: `secrets.env` → OS environment variable → ask. Any missing config value is asked for, never fatal; the skill offers to rewrite a wiped config from these templates.
 

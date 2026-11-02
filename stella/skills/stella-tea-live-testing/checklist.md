@@ -1,4 +1,4 @@
-# Validation Checklist — stella-tea-testing
+# Validation Checklist — stella-tea-live-testing
 
 Criteria for Validate mode (`steps-v/step-01-validate.md`). Evaluate each item that applies to the artifacts present; mark PASS / WARN / FAIL per section.
 

@@ -5,8 +5,8 @@ nextStepFile: '{skill-root}/steps-c/step-03-scenarios.md'
 checkpointFile: '{test_artifacts}/stella/{key}/progress.md'
 briefFile: '{test_artifacts}/stella/{key}/ticket-brief.md'
 executionRules: '{skill-root}/resources/execution-rules.md'
-userConfigExample: '{skill-root}/config/stella-tea-testing.user.toml.example'
-secretsExample: '{skill-root}/config/stella-tea-testing.secrets.env.example'
+userConfigExample: '{skill-root}/config/stella-tea-live-testing.user.toml.example'
+secretsExample: '{skill-root}/config/stella-tea-live-testing.secrets.env.example'
 ---
 
 # Step 2: Intake
@@ -100,7 +100,7 @@ Read the merged workflow block:
 
 1. Resolve `environment`: the run variable if set, else `{workflow.defaults.environment}`. Missing → ask which environment this key will execute on.
 2. For that environment, verify `base_url` and at least one role-keyed user exist under `{workflow.environments.{environment}}`.
-3. Any missing value → apply the Config Ask-Fallback in `{executionRules}` (section 6): ask, then offer to write the non-secret answers into `{project-root}/_bmad/custom/stella-tea-testing.user.toml`, creating it from `{userConfigExample}` when absent. Offer secrets into `stella-tea-testing.secrets.env` created from `{secretsExample}`. Do **not** resolve password values now — execution resolves them at step 6; here you only confirm the references exist or are provided.
+3. Any missing value → apply the Config Ask-Fallback in `{executionRules}` (section 6): ask, then offer to write the non-secret answers into `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml`, creating it from `{userConfigExample}` when absent. Offer secrets into `stella-tea-live-testing.secrets.env` created from `{secretsExample}`. Do **not** resolve password values now — execution resolves them at step 6; here you only confirm the references exist or are provided.
 
 ### 4. Save Progress
 

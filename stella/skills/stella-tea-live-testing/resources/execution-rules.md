@@ -48,13 +48,13 @@ Halt until they answer. Skipped dependents are `Not Run` with a comment naming t
 ## 5. Login and Credentials
 
 - Test cases address users by role: "login as admin", "as customer". Resolve the role through `{workflow.environments.{environment}.users.{role}}` from the merged workflow block.
-- Password resolution order: `{project-root}/_bmad/custom/stella-tea-testing.secrets.env` (key named by the user's `password_env`) → OS environment variable of the same name → ask the user.
+- Password resolution order: `{project-root}/_bmad/custom/stella-tea-live-testing.secrets.env` (key named by the user's `password_env`) → OS environment variable of the same name → ask the user.
 - 🚫 Never write a credential value into any file under `{test_artifacts}` or into any report, brief, or checkpoint. Output folders are deliverables that get shared.
 - Set authenticated users up **before** the test body of a case, not as an in-body improvisation.
 
 ## 6. Config Ask-Fallback
 
-When any value a run needs is missing from config (environment, base URL, user, password), **ask the user instead of failing**, then offer to save the non-secret answer back to `{project-root}/_bmad/custom/stella-tea-testing.user.toml` (create it from `{skill-root}/config/stella-tea-testing.user.toml.example` when absent). Secrets are offered into `stella-tea-testing.secrets.env` (from its `.example`) — never into TOML. A wiped `_bmad/custom/` self-heals this way on the next run.
+When any value a run needs is missing from config (environment, base URL, user, password), **ask the user instead of failing**, then offer to save the non-secret answer back to `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml` (create it from `{skill-root}/config/stella-tea-live-testing.user.toml.example` when absent). Secrets are offered into `stella-tea-live-testing.secrets.env` (from its `.example`) — never into TOML. A wiped `_bmad/custom/` self-heals this way on the next run.
 
 ## 7. Viewports and Devices (On Request Only)
 

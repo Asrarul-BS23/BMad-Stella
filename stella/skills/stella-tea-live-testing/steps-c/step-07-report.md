@@ -60,7 +60,7 @@ Every QA run emits live coverage evidence into `{liveResultsFile}` — the root-
    - `status`: map `Pass`→`pass`, `Fail`→`fail`, `Partly Pass`→`fail` (a partly failing requirement is not verified), `Blocked`→`blocked`, `Not Run`→`skipped`. When viewports ran, a case still gets **one** record: its status is the worst of its combinations (worst to best: `fail`, `blocked`, `skipped`, `pass`), with the per-combination outcomes named in `evidence`.
    - `title`: the case title. `evidence`: one line of what was observed, plus the evidence path for failures.
    - `source_sha`: the sha under which **that case** was executed, **per record** (not top-level — records from different keys and commits coexist in this file, and a resumed run may span two commits). `observed_at`: run time, ISO 8601.
-4. Set top-level `observed_at` to now and `producer` to `stella-tea-testing qa run {key} {datetime}`. Do not write a top-level `source_sha`.
+4. Set top-level `observed_at` to now and `producer` to `stella-tea-live-testing qa run {key} {datetime}`. Do not write a top-level `source_sha`.
 5. Write the file back. Tell the user: a requirement covered only by live records caps trace's gate at CONCERNS by design.
 
 **Dev runs never write this file.**

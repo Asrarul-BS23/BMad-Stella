@@ -1,7 +1,7 @@
-# Copy to {project-root}/_bmad/custom/stella-tea-testing.user.toml and fill in.
+# Copy to {project-root}/_bmad/custom/stella-tea-live-testing.user.toml and fill in.
 # This file is personal and gitignored — nothing under _bmad/custom/ is committed.
 # Secret VALUES never go here: reference them by name via password_env, and put
-# the values in stella-tea-testing.secrets.env beside this file.
+# the values in stella-tea-live-testing.secrets.env beside this file.
 
 [workflow.environments.staging]
 base_url = "https://staging.example.com"

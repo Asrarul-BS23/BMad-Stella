@@ -1,5 +1,5 @@
 ---
-name: stella-tea-testing
+name: stella-tea-live-testing
 description: 'QA ticket/module testing flow: design scenarios with test-design, lock them, generate tabular test cases, and execute them live via Playwright MCP. Also a dev-mode bug hunt for implemented tickets. Use when the user says "test this ticket", "QA this module", or "bug-hunt my implementation"'
 ---
 

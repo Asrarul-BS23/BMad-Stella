@@ -1,10 +1,10 @@
 # DO NOT EDIT -- overwritten on every update.
 #
-# Workflow customization surface for stella-tea-testing. Mirrors the
+# Workflow customization surface for stella-tea-live-testing. Mirrors the
 # TEA workflow customization shape under the [workflow] namespace.
 #
-# Project overrides live in {project-root}/_bmad/custom/stella-tea-testing.toml
-# (team) and {project-root}/_bmad/custom/stella-tea-testing.user.toml (personal).
+# Project overrides live in {project-root}/_bmad/custom/stella-tea-live-testing.toml
+# (team) and {project-root}/_bmad/custom/stella-tea-live-testing.user.toml (personal).
 # Both are gitignored in consuming projects; committed .example templates for
 # the personal file and its secrets sidecar ship in this skill's config/ folder.
 
@@ -67,5 +67,5 @@ on_complete = ""
 #   depends_on      = []
 #
 # Secret values never live in any TOML file. They live in
-# {project-root}/_bmad/custom/stella-tea-testing.secrets.env (gitignored),
+# {project-root}/_bmad/custom/stella-tea-live-testing.secrets.env (gitignored),
 # referenced by name through `password_env` keys.

@@ -45,7 +45,7 @@ Locate the implementation spec for the ticket the dev just built, resolve `{key}
 
 1. If the user gave a spec path, use it.
 2. Else, if `{workflow.defaults.spec_path}` is saved, look there for the spec matching the ticket the user named; list candidates when several match.
-3. Else ask: "Where does bmad-builder write your implementation specs?" — then offer to save the answer to `[workflow.defaults] spec_path` in `{project-root}/_bmad/custom/stella-tea-testing.user.toml`.
+3. Else ask: "Where does bmad-builder write your implementation specs?" — then offer to save the answer to `[workflow.defaults] spec_path` in `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml`.
 4. Read the spec completely. Resolve `{key}`: the ticket key the spec names, else a slug of the spec's title (same slug rules as the QA flow). Create `{test_artifacts}/stella/{key}/` — reports and evidence go there, same naming as QA runs, **no `dev/` subfolder**.
 
 ### 2. Get the App Running
