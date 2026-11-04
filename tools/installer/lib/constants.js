@@ -92,6 +92,14 @@ const ATLASSIAN_MCP = {
 };
 const STALE_ATLASSIAN_MCP_URLS = ['https://mcp.atlassian.com/v1/sse']; // retired 2026-06-30
 
+// Playwright MCP servers — browser automation and the Playwright test runner.
+// Registered once per machine (`-s user`), not per project: shared across every
+// project on the machine, so unlike Atlassian MCP they are never removed by uninstall.
+const PLAYWRIGHT_MCP_SERVERS = [
+  { name: 'playwright', command: 'npx', args: ['-y', '@playwright/mcp@latest'] },
+  { name: 'playwright-test', command: 'npx', args: ['playwright', 'run-test-mcp-server'] },
+];
+
 // ---- Stella layer (Task 11) ----
 const STELLA_CUSTOM_DIR = `${BMAD_DIR}/custom/stella`; // checklists, utils, friction.json, guard.json
 const CLAUDE_DIR = '.claude';
@@ -232,5 +240,6 @@ module.exports = {
   UV_INSTALL_URL,
   ATLASSIAN_MCP,
   STALE_ATLASSIAN_MCP_URLS,
+  PLAYWRIGHT_MCP_SERVERS,
   COMMONJS_PACKAGE_JSON,
 };

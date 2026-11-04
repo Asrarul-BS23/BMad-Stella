@@ -28,6 +28,18 @@ const mcpMock = {
     return { status: 'removed', detail: null };
   },
 };
+// Never spawn real `claude mcp add` for the Playwright servers from a test run.
+const playwrightMcpCalls = [];
+const playwrightMcpMock = {
+  register: (root) => {
+    playwrightMcpCalls.push(root);
+    return C.PLAYWRIGHT_MCP_SERVERS.map((s) => ({
+      name: s.name,
+      status: 'registered',
+      detail: null,
+    }));
+  },
+};
 const layer = require(path.join(LIB, 'stella-layer.js'));
 const domain = require(path.join(LIB, 'domain-knowledge-fetcher.js'));
 const gitignore = require(path.join(LIB, 'gitignore.js'));
@@ -205,6 +217,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   let s = scripted(['dev@stella.com', 'tok-abcdefghijklmnop', 'LEADRSC']);
   let sum = await installer.install(root, {
     mcp: mcpMock,
+    playwrightMcp: playwrightMcpMock,
     home: HOME,
     projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
@@ -477,6 +490,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   s = scripted(['LEADRSC']);
   sum = await installer.install(root, {
     mcp: mcpMock,
+    playwrightMcp: playwrightMcpMock,
     home: HOME,
     projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
@@ -577,6 +591,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   s = scripted(['LEADRSC']);
   sum = await installer.install(root, {
     mcp: mcpMock,
+    playwrightMcp: playwrightMcpMock,
     home: HOME,
     projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
@@ -620,6 +635,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   try {
     await installer.install(tmp('ni'), {
       mcp: mcpMock,
+      playwrightMcp: playwrightMcpMock,
       home: HOME,
       projectContext: () => ({ status: 'present' }),
       prompt: async () => ({}),
@@ -644,6 +660,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   try {
     await installer.install(failRoot, {
       mcp: mcpMock,
+      playwrightMcp: playwrightMcpMock,
       home: HOME,
       projectContext: () => ({ status: 'present' }),
       prompt: async () => ({}),
@@ -670,6 +687,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   try {
     await installer.install(teaFailRoot, {
       mcp: mcpMock,
+      playwrightMcp: playwrightMcpMock,
       home: HOME,
       projectContext: () => ({ status: 'present' }),
       prompt: async () => ({}),

@@ -10,6 +10,7 @@ const constants = require('./constants');
 const preflight = require('./preflight');
 const toolInstaller = require('./tool-installer');
 const mcpRegistrar = require('./mcp-registrar');
+const playwrightMcpRegistrar = require('./playwright-mcp-registrar');
 const jira = require('./jira-credentials-manager');
 const picker = require('./project-picker');
 const cleaner = require('./cleaner');
@@ -34,7 +35,8 @@ const seconds = (ms) => Math.max(1, Math.round(ms / 1000));
  * @param {string} root project folder
  * @param {object} deps prompt (required), fetch, verbose, runBmad(root, opts) → status,
  *   runTeaSkill(root, opts) → status, userHooks() → {status},
- *   bootstrapMemory(root) → {domainMap, patterns}, ui, env, isTTY,
+ *   bootstrapMemory(root) → {domainMap, patterns},
+ *   playwrightMcp.register(root) → [{name, status, detail}], ui, env, isTTY,
  *   now, home (credentials file lives under it)
  * @returns {Promise<object>} summary
  */
@@ -51,6 +53,7 @@ async function install(root, deps) {
     check = preflight.check,
     tools = toolInstaller,
     mcp = mcpRegistrar,
+    playwrightMcp = playwrightMcpRegistrar,
     ui = silentUi(),
     env = process.env,
     isTTY = Boolean(process.stdin.isTTY),
@@ -256,6 +259,10 @@ async function install(root, deps) {
   s5.update('registering Atlassian MCP…');
   summary.mcp = mcp.register(root);
 
+  // Playwright MCP servers, user scope (silent, never fatal — same as Atlassian MCP)
+  s5.update('registering Playwright MCP servers…');
+  summary.playwrightMcp = playwrightMcp.register(root);
+
   // 14. domain docs
   s5.update('fetching domain docs…');
   summary.domainDocs = await domain.fetchDomainDocs(root, { project, creds, fetch, log: note });
@@ -295,6 +302,7 @@ function layerDetail(s) {
     `${s.hooks.length} hooks`,
     'permissions',
     mcpOk(s.mcp) ? 'Atlassian MCP' : null,
+    playwrightMcpAnyOk(s.playwrightMcp) ? 'Playwright MCP' : null,
     d.status === 'fetched' ? `${d.files.length} domain pages` : null,
     s.userHooks && s.userHooks.status && s.userHooks.status !== 'error' ? 'user hooks' : null,
   ];
@@ -302,6 +310,8 @@ function layerDetail(s) {
 }
 
 const mcpOk = (m) => Boolean(m && ['registered', 'replaced', 'present'].includes(m.status));
+
+const playwrightMcpAnyOk = (results) => Array.isArray(results) && results.some(mcpOk);
 
 /** Warn line when the Atlassian MCP could not be registered; null when it was. */
 function mcpNote(m) {
@@ -315,6 +325,17 @@ function mcpNote(m) {
   return { kind: 'warn', text: `Atlassian MCP not registered — ${m.detail}`, cont: null };
 }
 
+/** Warn line for one Playwright MCP server that could not be registered. */
+function playwrightMcpNote(r) {
+  if (r.status === 'no-cli')
+    return {
+      kind: 'warn',
+      text: `${r.name} MCP not registered — claude command not found`,
+      cont: 'install the Claude Code CLI and re-run',
+    };
+  return { kind: 'warn', text: `${r.name} MCP not registered — ${r.detail}`, cont: null };
+}
+
 /**
  * Lines under step 5: only what is new or failed. Skipped domain docs and the background
  * project-context worker stay silent (user decision 2026-10-27); their state is in the summary.
@@ -326,6 +347,9 @@ function layerNotes(s) {
   return [
     d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
     mcpNote(s.mcp),
+    ...(Array.isArray(s.playwrightMcp)
+      ? s.playwrightMcp.filter((r) => !mcpOk(r)).map(playwrightMcpNote)
+      : []),
   ].filter(Boolean);
 }
 
