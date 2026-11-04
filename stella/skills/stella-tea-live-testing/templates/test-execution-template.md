@@ -16,13 +16,14 @@ source_sha: '{source_sha}' # git HEAD of the app under test, if resolvable
 
 <!--
 One row per executed case (times viewport combination when viewports were requested).
-Fill Actual Results for every attempted case. Evidence/Comments: screenshot links + notes,
-only for Fail / Partly Pass; for a skipped dependent, name the blocking case.
+Expected Results: copied verbatim from the case, never reworded. Fill Actual Results for
+every attempted case. Evidence/Comments: screenshot links + notes, only for Fail / Partly
+Pass; for a skipped dependent, name the blocking case.
 -->
 
-| ID          | Title   | Status   | Actual Results | Evidence/Comments                     |
-| ----------- | ------- | -------- | -------------- | ------------------------------------- |
-| TC-{key}-01 | {title} | {status} | {observed}     | {evidence/{datetime}/tc-1.png, notes} |
+| ID          | Title   | Expected Results | Actual Results | Status   | Evidence/Comments                     |
+| ----------- | ------- | ---------------- | -------------- | -------- | ------------------------------------- |
+| TC-{key}-01 | {title} | {expected}       | {observed}     | {status} | {evidence/{datetime}/tc-1.png, notes} |
 
 ## Failure Detail
 

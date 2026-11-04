@@ -4,6 +4,7 @@ description: 'Fetch the Jira ticket into a brief (ticket runs) or confirm module
 nextStepFile: '{skill-root}/steps-c/step-03-scenarios.md'
 checkpointFile: '{test_artifacts}/stella/{key}/progress.md'
 briefFile: '{test_artifacts}/stella/{key}/ticket-brief.md'
+attachmentsDir: '{test_artifacts}/stella/{key}/attachments/'
 executionRules: '{skill-root}/resources/execution-rules.md'
 userConfigExample: '{skill-root}/config/stella-tea-live-testing.user.toml.example'
 secretsExample: '{skill-root}/config/stella-tea-live-testing.secrets.env.example'
@@ -52,8 +53,10 @@ Produce the scenario-design input for this `{key}`: a `ticket-brief.md` from Jir
 
 Run this section only when `input_type = ticket`; a module run skips to section 2.
 
-1. Fetch the ticket `{key}` via the Jira (Atlassian) MCP: summary, description, acceptance criteria, issue type, status, and linked issues. If the MCP is unavailable or the ticket is not found, report the exact failure and **halt** — do not continue with invented content.
-2. Write `{briefFile}` — but when the ticket has no explicit acceptance criteria, complete item 3's confirmation **first** and write the brief only once the derived ACs are confirmed; derived ACs never land on disk unconfirmed:
+1. Fetch the ticket `{key}` via the Jira (Atlassian) MCP: summary, description, acceptance criteria, comments, issue type, status, and linked issues. If the MCP is unavailable or the ticket is not found, report the exact failure and **halt** — do not continue with invented content. Comments: fetch every comment the connected account can see — Jira's own access control already scopes this; apply no further filtering by visibility or recency.
+2. Fetch attachments: run `node {project-root}/_bmad/custom/stella/utils/jira-attachments {key}`. On failure, note it in the brief's Context section and continue — attachment fetch never halts intake, unlike the ticket fetch itself. On success, copy every file the tool's manifest lists → `{attachmentsDir}`.
+3. If the ticket has no explicit acceptance criteria, derive candidate ACs from the description, **label the section "Acceptance Criteria (derived — confirm)"**, show them to the user, and **halt** for confirmation before writing the final brief.
+4. Write `{briefFile}` — when the ticket has no explicit acceptance criteria, write it only after item 3's confirmation; derived ACs never land on disk unconfirmed:
 
    ```markdown
    ---
@@ -83,9 +86,21 @@ Run this section only when `input_type = ticket`; a module run skips to section 
    ## Context
 
    {issue type, status, linked issues — facts from Jira only}
-   ```
 
-3. If the ticket has no explicit acceptance criteria, derive candidate ACs from the description, **label the section "Acceptance Criteria (derived — confirm)"**, show them to the user, and **halt** for confirmation before writing the final brief.
+   <!-- List every fetched attachment by filename. A format the agent can read (images,
+        PDF, text, JSON) feeds business understanding directly; an unparsed format is
+        still downloaded and listed here with "not parsed". Omit this block when the
+        ticket has no attachments. -->
+
+   **Attachments:** {filename} — {parsed | not parsed}, ...
+
+   ## Comments
+
+   <!-- One entry per comment, chronological, Jira fields only — never invented or
+        paraphrased beyond markdown conversion. Omit this section when there are none. -->
+
+   - **{author}, {date}:** {comment text verbatim}
+   ```
 
 ### 2. Module Run: Confirm Scope
 
@@ -104,7 +119,7 @@ Read the merged workflow block:
 
 ### 4. Save Progress
 
-Update `{checkpointFile}`: append `step-02-intake` to `stepsCompleted`, set `lastStep: 'step-02-intake'`, `nextStep: '{nextStepFile}'`, `lastSaved: '{date}'`. Record below the frontmatter: brief path or confirmed module scope, resolved `environment`, and which config values were asked for.
+Update `{checkpointFile}`: append `step-02-intake` to `stepsCompleted`, set `lastStep: 'step-02-intake'`, `nextStep: '{nextStepFile}'`, `lastSaved: '{date}'`. Record below the frontmatter: brief path or confirmed module scope, resolved `environment`, which config values were asked for, and (ticket runs) the attachment count fetched or the fetch failure note.
 
 Load next step: `{nextStepFile}`
 
@@ -112,7 +127,7 @@ Load next step: `{nextStepFile}`
 
 ### ✅ SUCCESS:
 
-- Ticket run: brief written from real Jira data, ACs numbered; derived ACs confirmed by the user
+- Ticket run: brief written from real Jira data, ACs numbered, comments carried verbatim; derived ACs confirmed by the user; an attachment-fetch failure noted, not halted on
 - Module run: scope confirmed by the user in chat
 - Environment resolved; every missing config value asked for, never silently defaulted
 

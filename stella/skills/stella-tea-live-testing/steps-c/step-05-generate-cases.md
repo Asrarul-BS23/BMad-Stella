@@ -6,6 +6,7 @@ checkpointFile: '{test_artifacts}/stella/{key}/progress.md'
 scenariosFile: '{test_artifacts}/stella/{key}/scenarios.md'
 casesFile: '{test_artifacts}/stella/{key}/test-cases.md'
 casesTemplate: '{skill-root}/templates/test-cases-template.md'
+attachmentsDir: '{test_artifacts}/stella/{key}/attachments/'
 ---
 
 # Step 5: Generate Test Cases
@@ -54,10 +55,11 @@ Apply the Step-Specific gate rule above. Also compare the scenarios file's `appr
 
 When `{casesFile}` already exists and `{scenariosFile}` changed since it was generated:
 
-1. Diff the current scenarios against the **generation baseline recorded in the checkpoint body** (section 5 writes it: the `SC-n` → case-ID map with each scenario's title): identify edited, added, and removed scenarios by their `SC-n` ids. Never guess the baseline from memory; if the checkpoint lacks the map (legacy run), say so and ask the user whether to regenerate in full instead.
+1. Diff the current scenarios against the **generation baseline recorded in the checkpoint body** (section 6 writes it: the `SC-n` → case-ID map with each scenario's title): identify edited, added, and removed scenarios by their `SC-n` ids. Never guess the baseline from memory; if the checkpoint lacks the map (legacy run), say so and ask the user whether to regenerate in full instead.
 2. Propagate **only** the changed scenarios: edit the matching cases, add cases for new scenarios, remove cases for removed scenarios. Untouched scenarios' cases stay byte-identical. Removed case IDs are never reused; new cases continue the ID sequence.
-3. Report a change summary: per change in `{casesFile}`, which scenario change caused it.
-4. Continue at section 4 (the loop) — a propagated file needs re-approval.
+3. Refresh `generated_from` to `'scenarios.md @ {new scenarios approved timestamp}'` — every propagation updates it, not only a fresh generation. This stops a stale timestamp from re-triggering this section's diff on the next entry once nothing has changed since.
+4. Report a change summary: per change in `{casesFile}`, which scenario change caused it.
+5. Continue at section 4 (the loop) — a propagated file needs re-approval.
 
 ### 3. Generate (fresh)
 
@@ -74,9 +76,15 @@ Show a summary (sections, case count, IDs and titles per section; full rows on r
 
 Case-level edits here do not touch `{scenariosFile}`. If a requested change contradicts an approved scenario, say so and ask whether to edit the scenario instead (that re-opens step-04 for the changed scenario, then propagates per section 2).
 
-### 5. Save Progress
+### 5. On Approval
 
-Update `{checkpointFile}`: append `step-05-generate-cases` to `stepsCompleted`, set `lastStep`, `nextStep: '{nextStepFile}'`, `lastSaved: '{date}'`. Record in the checkpoint body: case count per section; the **generation baseline** — a map of every `SC-n` (with its title) to the case IDs generated from it — which section 2 diffs against on re-entry; and, on re-entry, the change summary. Rewrite the map on every generation or propagation so it always reflects the current `{casesFile}`.
+**Ticket runs — attachment cleanup:** run `node {project-root}/_bmad/custom/stella/utils/jira-attachments {key} --purge`, then delete `{attachmentsDir}` (the copy made at intake). Attachments are scenario-design input only; once cases are locked, they serve no further purpose. The brief's Context section keeps the text record that they existed — only the files are removed.
+
+**Module runs — pre-run publish offer:** ask the publish destination exactly as step-07 §4 does (Confluence page / Jira ticket / files only), using the saved `module_publish` default when one exists; save the answer the same way on a first ask. Publish the case sheet as `{casesFile}` now reads (verdict columns empty) — identical content to what step-07 would publish later. Save the created `confluencePageId` / `jiraCaseTicketKey` to the checkpoint. This offer runs **once** per key, here; step-07 does not repeat it — its own publish step later just updates the same saved page/ticket.
+
+### 6. Save Progress
+
+Update `{checkpointFile}`: append `step-05-generate-cases` to `stepsCompleted`, set `lastStep`, `nextStep: '{nextStepFile}'`, `lastSaved: '{date}'`. Record in the checkpoint body: case count per section; the **generation baseline** — a map of every `SC-n` (with its title) to the case IDs generated from it — which section 2 diffs against on re-entry; on re-entry, the change summary; and, on approval, the attachment-cleanup outcome (ticket runs) or the publish outcome (module runs). Rewrite the map on every generation or propagation so it always reflects the current `{casesFile}`.
 
 Load next step: `{nextStepFile}`
 
@@ -86,8 +94,9 @@ Load next step: `{nextStepFile}`
 
 - Generation ran only against an `approved` scenarios file
 - Continuous IDs, sectioned tables, empty verdict columns
-- Re-entry propagated only changed scenarios, with a cause-linked change summary
+- Re-entry propagated only changed scenarios, with a cause-linked change summary; `generated_from` refreshed on every propagation
 - Lock flipped only on explicit approval
+- Ticket-run approval purges fetched attachments; module-run approval offers publish once, consistent with step-07's defaults
 
 ### ❌ SYSTEM FAILURE:
 
@@ -95,5 +104,7 @@ Load next step: `{nextStepFile}`
 - Restarting ID numbering per section, or reusing a removed ID
 - Writing anything into the verdict columns
 - Regenerating unchanged cases on re-entry
+- Leaving a stale `generated_from` after propagation
+- Leaving attachments in place after a ticket run's cases are approved
 
 **Master Rule:** The approval gates are real halts. Skipping them is FORBIDDEN.

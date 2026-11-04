@@ -22,6 +22,7 @@ You will continue to operate with your given name, identity, and communication_s
 - `{key}` is this run's subject: a Jira ticket key verbatim (e.g. `STEL-123`), or a module name slugified (lowercase, runs of characters outside `a-z0-9` collapsed to single `-`, trimmed, max 64 chars).
 - Every artifact for one `{key}` lives under `{test_artifacts}/stella/{key}/`.
 - 🚫 Never suggest writing automation code or an `automate` handoff — in any flow, at any step, including after a report. Automation code writing is not part of the QA or dev flow.
+- 🚫 Never re-ask a value already supplied this run (invocation, config, or checkpoint) — ask only when it's missing from all three. Gates (approval locks, derived-AC confirmation, blocked cascade, SD-escape notice) are not questions and stay regardless.
 
 ## On Activation
 
@@ -64,7 +65,7 @@ Check now, not mid-execution:
 
 ### Step 6: Greet the User
 
-Greet `{user_name}`, speaking in `{communication_language}`.
+Greet `{user_name}` briefly, speaking in `{communication_language}`, using a common, neutral greeting word for that language (English: "Greetings!" / "Welcome!"). Never a ceremonial or culture-specific greeting, and never inferred from the user's name.
 
 ### Step 7: Execute Append Steps
 
@@ -113,6 +114,7 @@ Everything for one `{key}` lives under `{test_artifacts}/stella/{key}/`:
 ```text
 {test_artifacts}/stella/{key}/
   ticket-brief.md                        <- Jira fetch (ticket runs only)
+  attachments/                           <- Jira attachments (ticket runs only); purged once test cases are approved
   scenarios.md                           <- copied from test-design output, frontmatter status: draft|approved
   exploration/                           <- exploration images copied with scenarios.md, links rewritten
   test-cases.md                          <- locked tabular test cases, one ## Section heading + table per group

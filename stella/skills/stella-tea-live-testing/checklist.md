@@ -13,6 +13,8 @@ Criteria for Validate mode (`steps-v/step-01-validate.md`). Evaluate each item t
 - [ ] Frontmatter has `key`, `fetched`, `source: jira`
 - [ ] Acceptance criteria numbered `AC-1 … AC-n`; derived ACs are labeled as derived
 - [ ] Content is Jira-sourced fields only — no invented requirements
+- [ ] A ticket with comments has a `## Comments` section, chronological, Jira-sourced only; a ticket with none omits it
+- [ ] A ticket with attachments lists them in Context (filename + parsed/not-parsed); fetched files exist under `attachments/` until case approval purges them
 
 ## 3. Scenarios
 
@@ -36,6 +38,7 @@ Criteria for Validate mode (`steps-v/step-01-validate.md`). Evaluate each item t
 
 - [ ] Filename matches `test-execution-{env}-{YYYY-MM-DD-HHmm}.md`; one file per run, none overwritten
 - [ ] Frontmatter carries `mode` (`qa` or `dev`), `environment`, `datetime`, `executed_as` (role, not credential), `source_sha` or an explicit unresolved note
+- [ ] Results table has an Expected Results column, filled verbatim from the case, before Actual Results
 - [ ] Every case has a status from: Pass, Fail, Partly Pass, Blocked, Not Run
 - [ ] Every Fail / Partly Pass case has Failure Detail: steps to reproduce, expected vs actual, per-step results, evidence links that resolve to files in `evidence/{datetime}/`
 - [ ] Evidence filenames match `tc-{n}.png` / `tc-{n}-step-{m}.png`; with viewports, `tc-{n}-{viewport}.png` / `tc-{n}-{viewport}-step-{m}.png` (viewport before step)

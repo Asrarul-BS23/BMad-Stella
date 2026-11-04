@@ -50,6 +50,7 @@ on_complete = ""
 #
 # [workflow.environments.<name>]
 #   base_url = "https://..."
+#   branch   = ""                     # merge branch for this env; saved on first ticket-run code exploration (step-03)
 #   [workflow.environments.<name>.users.<role>]
 #     role         = "admin"
 #     username     = "qa_admin"

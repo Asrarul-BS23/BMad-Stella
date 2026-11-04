@@ -55,12 +55,13 @@ Drive every approved test case through Playwright MCP on the designated environm
 3. Resolve credentials for every role the cases use, per `{executionRules}` section 5 — before the first case, so a missing secret blocks the run at the start, not mid-case.
 4. Resolve `viewports`: empty = desktop default; otherwise list each combination this run covers (`{executionRules}` section 7).
 5. Resolve `source_sha`: run `git rev-parse HEAD` in the project under test. If it fails, record `source_sha` as unresolved and tell the user trace freshness checks will not match.
-6. Create `{evidenceDir}`.
-7. Announce the run plan: environment, base URL, case count, combinations, evidence folder.
+6. **Scoped re-execution check:** when the checkpoint's generation baseline map shows a propagation since the last execution run for this key, ask once: "A propagation changed {n} of {m} cases since the last run. Run all {m} cases, or only the {n} changed ones?" **Halt** until answered. Full suite is the certification default. When no prior run exists, or nothing propagated since the last one, skip this question entirely — run the full suite, no question needed (the no-redundant-questions rule). Record the chosen scope (`full` or the list of case IDs) for step 2 and for step-07.
+7. Create `{evidenceDir}`.
+8. Announce the run plan: environment, base URL, case count (full or scoped, and which), combinations, evidence folder.
 
 ### 2. Execute Case by Case
 
-For each case in `{casesFile}`, in file order (per viewport combination when requested):
+For each case in scope (the full `{casesFile}` in file order, or only the chosen subset from step 1.6, still in file order), per viewport combination when requested:
 
 1. Announce `TC-{key}-{n} — {title}`.
 2. Establish the precondition, including role login **before** the test body.
@@ -74,7 +75,7 @@ If the user interrupts the run, update the checkpoint **without** appending `ste
 
 ### 3. Save Progress
 
-Update `{checkpointFile}`: append `step-06-execute` to `stepsCompleted`, set `lastStep`, `nextStep: '{nextStepFile}'`, `lastSaved: '{date}'`. Record `{datetime}`, `environment`, `source_sha`, per-case statuses, and the last executed case.
+Update `{checkpointFile}`: append `step-06-execute` to `stepsCompleted`, set `lastStep`, `nextStep: '{nextStepFile}'`, `lastSaved: '{date}'`. Record `{datetime}`, `environment`, `source_sha`, per-case statuses, the last executed case, and this run's scope (`full` or the executed case-ID list).
 
 Load next step: `{nextStepFile}`
 
@@ -86,6 +87,7 @@ Load next step: `{nextStepFile}`
 - Evidence captured only for Fail / Partly Pass, named per the rules, under the run's `{datetime}` folder
 - Credentials resolved before the first case; none written to any artifact
 - Blocked cascades asked, never silently decided
+- A scoped run only asked when a propagation actually occurred since the last run; full suite is the default otherwise
 
 ### ❌ SYSTEM FAILURE:
 

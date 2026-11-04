@@ -67,3 +67,7 @@ When any value a run needs is missing from config (environment, base URL, user, 
 - Execute cases one by one, in file order, top to bottom. Announce each case ID and title before driving it.
 - The locked `test-cases.md` is **never modified by a run**. All results go into the timestamped report.
 - Every run report ends with the count summary line: `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n` — counts must sum to the total number of cases (times combinations when viewports were requested).
+
+## 9. No Redundant Questions
+
+A value already supplied this run (invocation, config, or checkpoint) is resolved — never re-ask it. Ask only when a needed value is absent from invocation, config, and checkpoint. This rule removes redundant asks; it never shrinks a gate — the execution-integrity halts above, the blocked cascade (section 3), and any approval gate stay in force regardless of how talkative the user has been.

@@ -46,16 +46,16 @@ Turn the execution notes into the timestamped run report, merge this run's recor
 
 ### 1. Write the Run Report
 
-Fill `{reportTemplate}` into `{reportFile}` (`{env}` and `{datetime}` from step-06's run setup): frontmatter (`mode: qa`), the per-case results table, a Failure Detail subsection for every `Fail` / `Partly Pass` case (steps to reproduce, expected vs actual, per-step results, evidence links), the Blocked / Not Run table with reasons, and the summary line `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n` whose counts sum to the total. `{casesFile}` stays untouched. Run history is append-only: never delete or overwrite a previous run's report. Format reference: `{skill-root}/resources/test-execution.example.md` — a worked example of a filled report.
+Fill `{reportTemplate}` into `{reportFile}` (`{env}` and `{datetime}` from step-06's run setup): frontmatter (`mode: qa`), the per-case results table — including its Expected Results column, copied verbatim from the case, never reworded — a Failure Detail subsection for every `Fail` / `Partly Pass` case (steps to reproduce, expected vs actual, per-step results, evidence links), the Blocked / Not Run table with reasons, and the summary line `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n` whose counts sum to the total. `{casesFile}` stays untouched. **Scoped run (step-06 ran only a subset):** the report covers only the executed cases — the total is the subset's size, not the full case count; unexecuted cases are not listed as `Not Run` filler, they simply are not part of this report. Run history is append-only: never delete or overwrite a previous run's report. Format reference: `{skill-root}/resources/test-execution.example.md` — a worked example of a filled report.
 
 ### 2. Merge the Trace Record
 
 Every QA run emits live coverage evidence into `{liveResultsFile}` — the root-level path TEA's `trace` reads by default (contract: `docs/reference/live-verification-results.md` in the TEA repo, schema `0.1.0`).
 
 1. Read `{liveResultsFile}` if it exists; otherwise start `{ "schema_version": "0.1.0", "results": [] }`.
-2. Remove every existing record whose `id` starts with `{key}-LIVE-` — a re-run replaces this key's records; other keys' records stay.
-3. Append one record per case in the run — including `Blocked` and `Not Run` cases:
-   - `id`: `{key}-LIVE-{NNN}`, zero-padded, numbered in case order.
+2. **Full run:** remove every existing record whose `id` starts with `{key}-LIVE-` — a full re-run replaces this key's records; other keys' records stay. **Scoped run:** remove and replace only the records whose `NNN` (below) matches an executed case this run; records for cases outside this run's scope are left exactly as they were from the last run that covered them.
+3. Append one record per case **in this run's scope** (full run: every case; scoped run: only the chosen subset) — including `Blocked` and `Not Run` cases:
+   - `id`: `{key}-LIVE-{NNN}`, zero-padded, `NNN` = the case's position in `{casesFile}`'s full file order (not the scoped subset's own order) — so a case's record id stays stable whether it was covered by a full or a scoped run.
    - `requirement_id`: the `AC-n` the case verifies (from its Description); when the case verifies no numbered AC (module runs), use the `SC-n` scenario id the case's Description names.
    - `status`: map `Pass`→`pass`, `Fail`→`fail`, `Partly Pass`→`fail` (a partly failing requirement is not verified), `Blocked`→`blocked`, `Not Run`→`skipped`. When viewports ran, a case still gets **one** record: its status is the worst of its combinations (worst to best: `fail`, `blocked`, `skipped`, `pass`), with the per-combination outcomes named in `evidence`.
    - `title`: the case title. `evidence`: one line of what was observed, plus the evidence path for failures.
@@ -72,10 +72,11 @@ Display the report to the user, ending with the count summary line.
 ### 4. Offer Publication (On Request Only)
 
 - **Ticket run:** offer one thing — a Jira comment on `{key}` via the Atlassian MCP containing the summary counts and the report's project-relative path. Post only on a yes.
-- **Module run:** ask the destination — Confluence page, new Jira ticket, or files only — phrasing the question with `{workflow.defaults.module_publish}` as the default when saved ("post to the module's Confluence page like last time?"). On an answer, save it back to `[workflow.defaults] module_publish` in the `.user.toml`.
-  - **Published content is the case sheet, not the report:** the sectioned test-case tables with ID, Title, Description, Precondition, Steps, Expected Results — verdict columns empty. Results stay in run reports. One H2 per section, table under each, mirroring `test-cases.md` one-to-one. No scenarios (working default of open item 7).
+- **Module run:** when step-05 already ran its own pre-run publish offer for this key (checkpoint carries `confluencePageId` or `jiraCaseTicketKey`), do not re-offer — just **update** that saved page/ticket with the current case sheet, silently, as part of this step. Otherwise ask the destination — Confluence page, new Jira ticket, or files only — phrasing the question with `{workflow.defaults.module_publish}` as the default when saved ("post to the module's Confluence page like last time?"). On an answer, save it back to `[workflow.defaults] module_publish` in the `.user.toml`.
+  - **Published content is the case sheet, not the report:** the sectioned test-case tables with ID, Title, Description, Precondition, Steps, Expected Results — verdict columns empty. Results stay in run reports. One H2 per section, table under each, mirroring `test-cases.md` one-to-one. No scenarios (open item 7).
+  - **Published IDs drop the module prefix (open item 7):** render case IDs on the published page/ticket as `TC-01 … TC-NN` — strip the `{key}-` prefix, continuous numbering, no section scoping — because the page/ticket header already names the module. `{casesFile}`, run reports, and trace records are unaffected: they keep the full `TC-{key}-NN` always. The number itself is identical; only the prefix is stripped on publish.
   - **Confluence:** first publish asks `space_key` and `parent_page_id`, then saves them to `[workflow.confluence]` in the `.user.toml`. Each module gets its own page under that parent; save the created page id as `confluencePageId` in the checkpoint so a re-publish **updates** the same page instead of creating a duplicate.
-  - **Jira ticket:** ask the Jira project key once (save it as `[workflow.defaults] jira_publish_project` in the `.user.toml`). Create **one** ticket titled `Test Cases — {module name}` with the case sheet as its description (same H2-per-section structure, verdict columns empty). Save the created ticket key as `jiraCaseTicketKey` in the checkpoint; a re-publish **updates** that ticket's description instead of creating a new ticket.
+  - **Jira ticket:** ask the Jira project key once (save it as `[workflow.defaults] jira_publish_project` in the `.user.toml`). Create **one** ticket titled `Test Cases — {module name}` with the case sheet as its description (same H2-per-section structure, verdict columns empty, IDs prefix-stripped). Save the created ticket key as `jiraCaseTicketKey` in the checkpoint; a re-publish **updates** that ticket's description instead of creating a new ticket.
 
 ### 5. Save Progress and Complete
 
@@ -92,15 +93,18 @@ If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute
 ### ✅ SUCCESS:
 
 - Report written with full failure detail and a summary whose counts sum to the total
-- Root `{liveResultsFile}` merged: this key's records replaced, other keys' preserved, per-record `source_sha`
+- Root `{liveResultsFile}` merged: full run replaces this key's records, scoped run replaces only the executed subset's, other keys' preserved, per-record `source_sha`
 - Nothing posted to Jira/Confluence without an explicit yes this run
 - Re-publish updated the saved Confluence page instead of duplicating
+- Published case IDs drop the module prefix; `{casesFile}`/reports/trace keep the full `TC-{key}-NN`
 
 ### ❌ SYSTEM FAILURE:
 
 - Auto-posting anywhere
 - Overwriting other keys' records in `{liveResultsFile}`, or writing it from a dev run
+- A scoped run erasing trace records for cases outside its own scope
 - Publishing verdict columns or results to Confluence/Jira
 - Deleting or overwriting a previous run's report
+- Re-offering a module publish destination step-05 already asked and saved
 
 **Master Rule:** The report states only what was observed. Skipping steps is FORBIDDEN.
