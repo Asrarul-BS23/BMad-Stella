@@ -447,8 +447,8 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   );
   // step 8 + 15
   ok(
-    sum.gitignoreAdded.length === 6 && /^node_modules\//m.test(read(root, '.gitignore')),
-    'gitignore: six lines added, existing kept',
+    sum.gitignoreAdded.length === 7 && /^node_modules\//m.test(read(root, '.gitignore')),
+    'gitignore: seven lines added, existing kept',
   );
   ok(sum.userHooks.status === 'current', 'user hooks: called');
   ok(
@@ -698,8 +698,9 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   const rm = gitignore.remove(gRoot);
   ok(
     [...rm.removed].sort().join(',') ===
-      ['_bmad/', '_bmad-output/', '.claude/', '.env', '.agents/', '.tea/'].sort().join(',') &&
-      read(gRoot, '.gitignore') === 'dist/\n',
+      ['_bmad/', '_bmad-output/', '.claude/', '.env', '.agents/', '.tea/', '.playwright-mcp/']
+        .sort()
+        .join(',') && read(gRoot, '.gitignore') === 'dist/\n',
     'gitignore.remove: our lines + header gone, others kept',
   );
 

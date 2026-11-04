@@ -77,7 +77,8 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
   );
   ok(C.PROJECT_JSON_FILE === '_bmad-output/stella/project.json', 'constants: project.json path');
   ok(
-    C.GITIGNORE_LINES.join(',') === '_bmad/,_bmad-output/,.claude/,.env,.agents/,.tea/',
+    C.GITIGNORE_LINES.join(',') ===
+      '_bmad/,_bmad-output/,.claude/,.env,.agents/,.tea/,.playwright-mcp/',
     'constants: gitignore lines',
   );
   ok(C.USER_NAME_FALLBACK === 'stella-dev', 'constants: user name fallback');
@@ -787,7 +788,7 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
   {
     const root = tmp('gi');
     let r = gitignore.ensure(root);
-    ok(r.added.length === 6, 'gitignore: created with 6 lines');
+    ok(r.added.length === 7, 'gitignore: created with 7 lines');
     let text = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
     ok(
       /^_bmad\/$/m.test(text) &&
@@ -795,7 +796,8 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
         /^\.claude\/$/m.test(text) &&
         /^\.env$/m.test(text) &&
         /^\.agents\/$/m.test(text) &&
-        /^\.tea\/$/m.test(text),
+        /^\.tea\/$/m.test(text) &&
+        /^\.playwright-mcp\/$/m.test(text),
       'gitignore: each line on its own',
     );
     r = gitignore.ensure(root);
@@ -807,7 +809,7 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     r = gitignore.ensure(root);
     text = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
     ok(
-      r.added.join(',') === '_bmad/,_bmad-output/,.agents/,.tea/' &&
+      r.added.join(',') === '_bmad/,_bmad-output/,.agents/,.tea/,.playwright-mcp/' &&
         text.startsWith('node_modules/\n/.claude/\n.env\n'),
       'gitignore: existing lines (incl. leading slash) respected, only missing added',
     );

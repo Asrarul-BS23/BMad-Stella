@@ -44,8 +44,17 @@ const PROJECT_CONTEXT_LOG = `${PROJECT_CONTEXT_DIR}/.state/worker.log`;
 
 // Lines the installer guarantees in .gitignore (each on its own line, added once).
 // .agents/ and .tea/ are created by the `skills` CLI (TEA skill install), not by us —
-// fixed paths it chooses, not configurable like _bmad/.
-const GITIGNORE_LINES = ['_bmad/', '_bmad-output/', '.claude/', '.env', '.agents/', '.tea/'];
+// fixed paths it chooses, not configurable like _bmad/. .playwright-mcp/ is the
+// Playwright MCP server's own output folder (screenshots etc.), created on demand.
+const GITIGNORE_LINES = [
+  '_bmad/',
+  '_bmad-output/',
+  '.claude/',
+  '.env',
+  '.agents/',
+  '.tea/',
+  '.playwright-mcp/',
+];
 const GITIGNORE_HEADER = '# BMad-Stella (added by the installer)';
 
 // v4 leftovers removed on every install; `_bmad/` is removed on a re-run only.
