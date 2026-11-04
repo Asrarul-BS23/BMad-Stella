@@ -106,8 +106,8 @@ class ClaudePermissionsManager {
       'Bash(cut *)',
 
       // Claude Code built-in search tools
-      'Grep(*)',
-      'Glob(*)',
+      'Grep',
+      'Glob',
 
       // BMad v6 skills run their render / config scripts through uv
       'Bash(uv run *)',

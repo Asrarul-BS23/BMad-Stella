@@ -58,11 +58,13 @@ function buildArgs({ projectName, userName }) {
   ];
 }
 
-/** Quote one argument for a shell command line (needed on Windows where npx is a .cmd). */
+/** Quote one argument for a shell command line (needed on Windows where npx is a .cmd,
+ * and so a bare `*` — e.g. the TEA skill install's `--skill '*'` — isn't glob-expanded
+ * by a POSIX shell before npx sees it). */
 function quoteArg(arg) {
   const s = String(arg);
   if (s === '') return '""';
-  if (!/[\s"&|<>^()]/.test(s)) return s;
+  if (!/[\s"&|<>^()*]/.test(s)) return s;
   return process.platform === 'win32'
     ? `"${s.replaceAll('"', '""')}"`
     : `'${s.replaceAll("'", String.raw`'\''`)}'`;

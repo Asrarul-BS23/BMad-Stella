@@ -15,6 +15,7 @@ const picker = require('./project-picker');
 const cleaner = require('./cleaner');
 const legacyMemory = require('./legacy-memory-migrator');
 const runner = require('./bmad-runner');
+const teaSkillInstaller = require('./tea-skill-installer');
 const gitignore = require('./gitignore');
 const layer = require('./stella-layer');
 const memoryBootstrap = require('./memory-bootstrap');
@@ -32,7 +33,8 @@ const seconds = (ms) => Math.max(1, Math.round(ms / 1000));
 /**
  * @param {string} root project folder
  * @param {object} deps prompt (required), fetch, verbose, runBmad(root, opts) → status,
- *   userHooks() → {status}, bootstrapMemory(root) → {domainMap, patterns}, ui, env, isTTY,
+ *   runTeaSkill(root, opts) → status, userHooks() → {status},
+ *   bootstrapMemory(root) → {domainMap, patterns}, ui, env, isTTY,
  *   now, home (credentials file lives under it)
  * @returns {Promise<object>} summary
  */
@@ -42,6 +44,7 @@ async function install(root, deps) {
     fetch,
     verbose = false,
     runBmad = (r, o) => runner.install(r, o),
+    runTeaSkill = (r, o) => teaSkillInstaller.install(r, o),
     userHooks = defaultUserHooks,
     bootstrapMemory = (r) => memoryBootstrap.bootstrapIfMissing(r),
     projectContext = (r) => projectContextBootstrap.startIfMissing(r),
@@ -196,6 +199,26 @@ async function install(root, deps) {
   }
   if (s4) s4.succeed('Installed', took);
   else ui.line('ok', 'Installed', took);
+
+  // 7b. TEA skill package (fail-hard, same mechanism as the BMad step itself —
+  // see tea-module/integration-steps.md for the rationale)
+  const teaStarted = now();
+  const teaTail = [];
+  const s4b = verbose ? null : ui.spin('installing TEA skills…');
+  const teaStatus = await runTeaSkill(root, {
+    verbose,
+    write: () => {},
+    log: verbose ? note : (t) => teaTail.push(t),
+  });
+  const teaTook = `${seconds(now() - teaStarted)}s`;
+  if (teaStatus !== 0) {
+    if (s4b) s4b.fail(`exit ${teaStatus}`);
+    else ui.line('fail', `exit ${teaStatus}`);
+    for (const t of teaTail) ui.cont(t);
+    throw new Error(`TEA skill install exited with code ${teaStatus}. Nothing else was changed.`);
+  }
+  if (s4b) s4b.succeed('TEA skills installed', teaTook);
+  else ui.line('ok', 'TEA skills installed', teaTook);
   ui.gap();
 
   // 8. gitignore

@@ -73,6 +73,8 @@ const fakeBmad = async (root, { projectName, userName }) => {
   fs.mkdirSync(path.join(root, '_bmad-output', 'implementation-artifacts'), { recursive: true });
   return 0;
 };
+// Fake TEA skill install: never spawn the real `npx skills add` from a test run.
+const fakeTeaSkill = async () => 0;
 
 // Confluence mock: project children + LEADRSC descendants with bodies.
 const children = {
@@ -208,6 +210,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
+    runTeaSkill: fakeTeaSkill,
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -444,8 +447,8 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   );
   // step 8 + 15
   ok(
-    sum.gitignoreAdded.length === 4 && /^node_modules\//m.test(read(root, '.gitignore')),
-    'gitignore: four lines added, existing kept',
+    sum.gitignoreAdded.length === 6 && /^node_modules\//m.test(read(root, '.gitignore')),
+    'gitignore: six lines added, existing kept',
   );
   ok(sum.userHooks.status === 'current', 'user hooks: called');
   ok(
@@ -474,6 +477,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
+    runTeaSkill: fakeTeaSkill,
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -567,6 +571,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
+    runTeaSkill: fakeTeaSkill,
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -609,6 +614,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: fakeBmad,
+      runTeaSkill: fakeTeaSkill,
       userHooks,
       bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
@@ -632,6 +638,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: async () => 2,
+      runTeaSkill: fakeTeaSkill,
       userHooks,
       bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
@@ -646,6 +653,33 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     'install: BMad failure stops before the Stella layer',
   );
 
+  // ================= unit: TEA skill install failure (fail-hard) =================
+  const teaFailRoot = tmp('teafail');
+  threw = null;
+  try {
+    await installer.install(teaFailRoot, {
+      mcp: mcpMock,
+      home: HOME,
+      projectContext: () => ({ status: 'present' }),
+      prompt: async () => ({}),
+      fetch: fetchMock,
+      runBmad: fakeBmad,
+      runTeaSkill: async () => 3,
+      userHooks,
+      bootstrapMemory: bootstrapMemoryStub,
+      log: quiet,
+      env: { JIRA_EMAIL: 'a@b.co', JIRA_API_TOKEN: 'tok-abcdefghijklmnop', STELLA_PROJECT: 'SLS' },
+      isTTY: false,
+    });
+  } catch (error) {
+    threw = error.message;
+  }
+  ok(
+    /TEA skill install exited with code 3/.test(threw || '') &&
+      !exists(teaFailRoot, '.claude/skills/stella-build'),
+    'install: TEA skill failure aborts the whole install (fail-hard), stops before the Stella layer',
+  );
+
   // ================= unit: gitignore.remove =================
   const gRoot = tmp('gi');
   fs.writeFileSync(path.join(gRoot, '.gitignore'), 'dist/\n.env\n');
@@ -653,7 +687,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   const rm = gitignore.remove(gRoot);
   ok(
     [...rm.removed].sort().join(',') ===
-      ['_bmad/', '_bmad-output/', '.claude/', '.env'].sort().join(',') &&
+      ['_bmad/', '_bmad-output/', '.claude/', '.env', '.agents/', '.tea/'].sort().join(',') &&
       read(gRoot, '.gitignore') === 'dist/\n',
     'gitignore.remove: our lines + header gone, others kept',
   );

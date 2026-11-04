@@ -53,7 +53,7 @@ Run `uv run {project-root}/_bmad/scripts/resolve_config.py --project-root {proje
 
 Each `core` and `modules.tea` key is available as `{<key>}`, and as `config.<key>` in later steps. Replace `{project-root}` inside a value with the project root. Setup answers are strings: read `"true"` and `"false"` as booleans.
 
-If `{tea-knowledge}/tea-index.csv` does not exist, the TEA knowledge base is not installed. Tell the user, offer to install it with `npx skills add bmad-code-org/bmad-method-test-architecture-enterprise --skill bmod-tea`, run that on a yes, and stop until it is there. The QA flow invokes `bmad-tea-test-design`, which requires it.
+If `{tea-knowledge}/tea-index.csv` does not exist, the TEA knowledge base is not installed. The installer now runs this automatically (`npx skills add bmad-code-org/bmad-method-test-architecture-enterprise@v3.6.0`, right after the BMad step), so this should only happen on a pre-existing project that hasn't re-run the installer. Tell the user, offer to install it by hand with `npx skills add bmad-code-org/bmad-method-test-architecture-enterprise --skill bmod-tea`, run that on a yes, and stop until it is there. The QA flow invokes `bmad-tea-test-design`, which requires it.
 
 ### Step 5: Verify Required Tools
 

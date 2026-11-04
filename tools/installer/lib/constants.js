@@ -6,6 +6,13 @@
 const BMAD_VERSION = '6.12.2';
 const BMAD_PACKAGE = `bmad-method@${BMAD_VERSION}`;
 
+// TEA skill package, installed via `npx skills add` right after the BMad install
+// step (owner/repo@tag is a git ref — pins the version, confirmed from the
+// `skills` CLI's own `Source: ...git @<tag>` output).
+const TEA_SKILL_REPO = 'bmad-code-org/bmad-method-test-architecture-enterprise';
+const TEA_SKILL_VERSION = 'v3.6.0';
+const TEA_SKILL_PACKAGE = `${TEA_SKILL_REPO}@${TEA_SKILL_VERSION}`;
+
 const JIRA_BASE_URL = 'https://stellaint.atlassian.net';
 const TOKEN_HELP_URL = 'https://id.atlassian.com/manage-profile/security/api-tokens';
 
@@ -36,7 +43,9 @@ const PROJECT_CONTEXT_DIR = `${STELLA_OUTPUT_DIR}/project-context`;
 const PROJECT_CONTEXT_LOG = `${PROJECT_CONTEXT_DIR}/.state/worker.log`;
 
 // Lines the installer guarantees in .gitignore (each on its own line, added once).
-const GITIGNORE_LINES = ['_bmad/', '_bmad-output/', '.claude/', '.env'];
+// .agents/ and .tea/ are created by the `skills` CLI (TEA skill install), not by us —
+// fixed paths it chooses, not configurable like _bmad/.
+const GITIGNORE_LINES = ['_bmad/', '_bmad-output/', '.claude/', '.env', '.agents/', '.tea/'];
 const GITIGNORE_HEADER = '# BMad-Stella (added by the installer)';
 
 // v4 leftovers removed on every install; `_bmad/` is removed on a re-run only.
@@ -53,6 +62,10 @@ const BMAD_INSTALL_FLAGS = {
   projectKnowledge: 'docs',
 };
 const USER_NAME_FALLBACK = 'stella-dev';
+
+// TEA skill install flags (user decision): Claude Code only, all skills in the
+// repo. Scope (project) and method (symlink) are the `skills` CLI's own defaults.
+const TEA_SKILL_INSTALL_FLAGS = { agent: 'claude-code', skill: '*' };
 
 const MIN_NODE = { major: 20, minor: 10 };
 // BMad's render scripts declare `requires-python >= 3.11`. When no such Python is
@@ -179,6 +192,10 @@ module.exports = {
   GUARD_DEFAULTS,
   BMAD_VERSION,
   BMAD_PACKAGE,
+  TEA_SKILL_REPO,
+  TEA_SKILL_VERSION,
+  TEA_SKILL_PACKAGE,
+  TEA_SKILL_INSTALL_FLAGS,
   JIRA_BASE_URL,
   TOKEN_HELP_URL,
   CONFLUENCE_PROJECTS_PAGE,

@@ -21,6 +21,7 @@ const jira = require(path.join(LIB, 'jira-credentials-manager.js'));
 const picker = require(path.join(LIB, 'project-picker.js'));
 const cleaner = require(path.join(LIB, 'cleaner.js'));
 const runner = require(path.join(LIB, 'bmad-runner.js'));
+const teaSkillInstaller = require(path.join(LIB, 'tea-skill-installer.js'));
 const gitignore = require(path.join(LIB, 'gitignore.js'));
 
 let fails = 0;
@@ -76,7 +77,7 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
   );
   ok(C.PROJECT_JSON_FILE === '_bmad-output/stella/project.json', 'constants: project.json path');
   ok(
-    C.GITIGNORE_LINES.join(',') === '_bmad/,_bmad-output/,.claude/,.env',
+    C.GITIGNORE_LINES.join(',') === '_bmad/,_bmad-output/,.claude/,.env,.agents/,.tea/',
     'constants: gitignore lines',
   );
   ok(C.USER_NAME_FALLBACK === 'stella-dev', 'constants: user name fallback');
@@ -572,6 +573,10 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
       'runner: project name with a space is quoted',
     );
     ok(
+      runner.quoteArg('*') === (process.platform === 'win32' ? '"*"' : "'*'"),
+      'runner: quoteArg quotes a bare asterisk against shell glob expansion',
+    );
+    ok(
       runner.gitUserName({ run: () => ({ status: 0, stdout: ' Ash Mahmud \n' }) }) === 'Ash Mahmud',
       'runner: git user.name trimmed',
     );
@@ -657,17 +662,92 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     );
   }
 
+  // ================= TEA skill installer =================
+  {
+    const args = teaSkillInstaller.buildArgs();
+    ok(
+      args.join(' ') ===
+        '-y skills add bmad-code-org/bmad-method-test-architecture-enterprise@v3.6.0 --agent claude-code --skill * -y',
+      'tea skill installer: exact command args',
+    );
+    const line = teaSkillInstaller.commandLine(args);
+    ok(
+      /--skill (\*|'\*'|"\*")/.test(line),
+      `tea skill installer: '*' quoted on the command line (${line})`,
+    );
+    let spawned = null;
+    let written = '';
+    let clock = 1000;
+    const status = teaSkillInstaller.install('/proj', {
+      spawn: (cmd, opts) => {
+        spawned = { cmd, opts };
+        clock += 12_000;
+        return { status: 0, stdout: 'banner\nlots of output', stderr: '' };
+      },
+      log: quiet,
+      write: (s) => (written += s),
+      now: () => clock,
+    });
+    ok(
+      status === 0 &&
+        spawned.cmd.startsWith('npx -y skills add') &&
+        spawned.opts.cwd === '/proj' &&
+        Array.isArray(spawned.opts.stdio) &&
+        spawned.opts.stdio[1] === 'pipe',
+      'tea skill installer: spawns npx in the project root, output captured by default',
+    );
+    ok(
+      written === 'Installing TEA skills ... done (12s)\n',
+      `tea skill installer: quiet mode prints one line (${JSON.stringify(written)})`,
+    );
+
+    // failure → tail of the captured output, colours stripped
+    const logged = [];
+    written = '';
+    const failed = teaSkillInstaller.install('/proj', {
+      spawn: () => ({
+        status: 1,
+        stdout: 'step 1\n\u001B[31m✗ network error\u001B[0m\n',
+        stderr: '',
+      }),
+      log: (l) => logged.push(l),
+      write: (s) => (written += s),
+      now: () => 0,
+    });
+    ok(
+      failed === 1 &&
+        written.endsWith('failed (exit 1)\n') &&
+        logged.some((l) => l.includes('✗ network error')) &&
+        !logged.some((l) => l.includes('\u001B[')),
+      'tea skill installer: failure prints the output tail without colour codes',
+    );
+
+    // verbose → streamed as before
+    spawned = null;
+    teaSkillInstaller.install('/proj', {
+      verbose: true,
+      spawn: (cmd, opts) => {
+        spawned = { cmd, opts };
+        return { status: 0 };
+      },
+      log: quiet,
+    });
+    ok(spawned.opts.stdio === 'inherit', 'tea skill installer: --verbose streams output');
+  }
+
   // ================= gitignore =================
   {
     const root = tmp('gi');
     let r = gitignore.ensure(root);
-    ok(r.added.length === 4, 'gitignore: created with 4 lines');
+    ok(r.added.length === 6, 'gitignore: created with 6 lines');
     let text = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
     ok(
       /^_bmad\/$/m.test(text) &&
         /^_bmad-output\/$/m.test(text) &&
         /^\.claude\/$/m.test(text) &&
-        /^\.env$/m.test(text),
+        /^\.env$/m.test(text) &&
+        /^\.agents\/$/m.test(text) &&
+        /^\.tea\/$/m.test(text),
       'gitignore: each line on its own',
     );
     r = gitignore.ensure(root);
@@ -679,7 +759,7 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     r = gitignore.ensure(root);
     text = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
     ok(
-      r.added.join(',') === '_bmad/,_bmad-output/' &&
+      r.added.join(',') === '_bmad/,_bmad-output/,.agents/,.tea/' &&
         text.startsWith('node_modules/\n/.claude/\n.env\n'),
       'gitignore: existing lines (incl. leading slash) respected, only missing added',
     );
