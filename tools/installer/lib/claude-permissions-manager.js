@@ -273,6 +273,9 @@ class ClaudePermissionsManager {
       'Bash(dir *bmad-docs*)',
       'Grep(.bmad-core/**)',
       'Grep(bmad-docs/**)',
+      // Narrower than the bare 'Glob'/'Grep' rules below — pruned so the wider ones apply.
+      'Glob(*)',
+      'Grep(*)',
       'PowerShell(node .bmad-core/utils/pr-comments *)',
       'PowerShell(node .bmad-core/utils/pr-comments/index.js *)',
       'PowerShell(node .bmad-core/utils/jira-attachments)',

@@ -169,7 +169,10 @@ async function install(root, deps) {
       `Archived ${summary.legacyMigration.plansMigrated} previous plan file(s)  →  _bmad-output/implementation-artifacts/legacy-plans`,
     );
 
-  // 6. clean (v4 leftovers; on re-run also _bmad/ and the Stella parts of .claude/)
+  // 6. clean (v4 leftovers; on re-run also _bmad/ and the Stella parts of .claude/).
+  // _bmad/custom/ files (team/personal overrides, not _bmad/custom/stella/) are staged
+  // first so they survive the wipe and the BMad reinstall below.
+  const preservedCustomFiles = summary.rerun ? cleaner.preserveCustomFiles(root) : null;
   summary.removed.push(...cleaner.clean(root, { rerun: summary.rerun }).removed);
   if (summary.rerun) summary.removed.push(...layer.removeStellaClaudeParts(root));
   if (summary.rerun)
@@ -183,13 +186,20 @@ async function install(root, deps) {
   const started = now();
   const tail = [];
   const s4 = verbose ? null : ui.spin('installing…');
-  const status = await runBmad(root, {
-    projectName: project.name,
-    userName: runner.gitUserName({ cwd: root }),
-    verbose,
-    write: () => {},
-    log: verbose ? note : (t) => tail.push(t),
-  });
+  let status;
+  try {
+    status = await runBmad(root, {
+      projectName: project.name,
+      userName: runner.gitUserName({ cwd: root }),
+      verbose,
+      write: () => {},
+      log: verbose ? note : (t) => tail.push(t),
+    });
+  } finally {
+    // Put _bmad/custom/ files back whether BMad succeeded or not — otherwise they'd
+    // be stranded in the staging folder with _bmad/ gone or incomplete.
+    cleaner.restoreCustomFiles(root, preservedCustomFiles);
+  }
   const took = `${seconds(now() - started)}s`;
   if (status !== 0) {
     if (s4) s4.fail(`exit ${status}`);

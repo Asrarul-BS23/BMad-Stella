@@ -555,6 +555,54 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     ok(!cleaner.isRerun(root) && cleaner.clean(root).removed.length === 0, 'cleaner: idempotent');
   }
 
+  // ================= cleaner: _bmad/custom/ file preservation =================
+  {
+    const root = tmp('preserve');
+    fs.mkdirSync(path.join(root, '_bmad', 'custom', 'stella'), { recursive: true });
+    fs.writeFileSync(path.join(root, '_bmad', 'custom', 'stella', 'friction.json'), '{}');
+    fs.writeFileSync(path.join(root, '_bmad', 'custom', 'config.toml'), '[modules.tea]\nx = 1\n');
+    fs.writeFileSync(path.join(root, '_bmad', 'custom', 'bmad-tea.user.toml'), 'personal = true\n');
+
+    const preserved = cleaner.preserveCustomFiles(root);
+    ok(
+      preserved.files.sort().join(',') === 'bmad-tea.user.toml,config.toml',
+      `preserve: only loose files staged, stella/ left out (${preserved && preserved.files})`,
+    );
+    ok(
+      fs.existsSync(path.join(root, '_bmad', 'custom', 'stella', 'friction.json')) &&
+        !fs.existsSync(path.join(root, '_bmad', 'custom', 'config.toml')),
+      'preserve: stella/ untouched, loose files moved out of _bmad/custom/',
+    );
+    ok(
+      path.dirname(preserved.staging).toLowerCase() === root.toLowerCase(),
+      'preserve: staged next to _bmad/ (same drive), not the OS temp dir',
+    );
+
+    // simulate the re-run wipe + BMad reinstall recreating a fresh _bmad/
+    fs.rmSync(path.join(root, '_bmad'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(root, '_bmad'), { recursive: true });
+
+    cleaner.restoreCustomFiles(root, preserved);
+    ok(
+      fs.readFileSync(path.join(root, '_bmad', 'custom', 'config.toml'), 'utf8') ===
+        '[modules.tea]\nx = 1\n' &&
+        fs.readFileSync(path.join(root, '_bmad', 'custom', 'bmad-tea.user.toml'), 'utf8') ===
+          'personal = true\n',
+      'restore: loose files back in _bmad/custom/, content intact',
+    );
+    ok(!fs.existsSync(preserved.staging), 'restore: staging folder cleaned up');
+    ok(
+      !fs.existsSync(path.join(root, '_bmad', 'custom', 'stella')),
+      'restore: stella/ not revived',
+    );
+
+    ok(cleaner.preserveCustomFiles(tmp('no-bmad')) === null, 'preserve: no _bmad/ → null');
+    const emptyRoot = tmp('empty-custom');
+    fs.mkdirSync(path.join(emptyRoot, '_bmad', 'custom'), { recursive: true });
+    ok(cleaner.preserveCustomFiles(emptyRoot) === null, 'preserve: no loose files → null');
+    cleaner.restoreCustomFiles(tmp('restore-noop'), null); // must not throw
+  }
+
   // ================= bmad runner =================
   {
     const args = runner.buildArgs({ projectName: 'LEADRSC', userName: 'Ash' });

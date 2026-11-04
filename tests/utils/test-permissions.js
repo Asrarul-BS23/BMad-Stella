@@ -119,6 +119,8 @@ for (const old of [
   'Edit(bmad-docs/**)',
   'mcp__atlassian__getJiraIssue',
   'PowerShell(node .bmad-core/utils/jira-attachments *)',
+  'Glob(*)',
+  'Grep(*)',
 ]) {
   ok(deprecated.includes(old), `deprecated: ${old}`);
 }
@@ -129,6 +131,19 @@ const { kept, removed } = pm.pruneDeprecatedPermissions([
   'Bash(ls)',
 ]);
 ok(kept.length === 2 && removed.length === 2, 'prune: v4 rules removed, current rules kept');
+
+// ---- Glob(*)/Grep(*) pruned in favor of the bare current rules ----
+ok(
+  allow.includes('Grep') && allow.includes('Glob'),
+  'allow: bare Grep and Glob are the current rules',
+);
+{
+  const { kept: k2, removed: r2 } = pm.pruneDeprecatedPermissions(['Glob(*)', 'Grep(*)', 'Glob']);
+  ok(
+    k2.join(',') === 'Glob' && r2.sort().join(',') === 'Glob(*),Grep(*)',
+    'prune: Glob(*)/Grep(*) removed, bare Glob kept',
+  );
+}
 
 // ---- source hygiene (comments may explain history; rule strings may not carry v4 paths) ----
 const ruleStrings = [...fs.readFileSync(FILE, 'utf8').matchAll(/^\s*'([^']+)',/gm)].map(

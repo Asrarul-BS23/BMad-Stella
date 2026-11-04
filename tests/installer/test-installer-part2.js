@@ -469,6 +469,11 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     path.join(root, '_bmad', 'custom', 'stella', 'friction.json'),
     '{"triggerStatuses":["in-review"]}',
   );
+  // user-specific generated content, directly in _bmad/custom/ (not _bmad/custom/stella/)
+  fs.writeFileSync(
+    path.join(root, '_bmad', 'custom', 'bmad-tea.user.toml'),
+    'persistent_facts = ["team notes"]\n',
+  );
   s = scripted(['LEADRSC']);
   sum = await installer.install(root, {
     mcp: mcpMock,
@@ -500,6 +505,10 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     're-run: _bmad/custom/stella fresh',
   );
   ok(
+    read(root, '_bmad/custom/bmad-tea.user.toml') === 'persistent_facts = ["team notes"]\n',
+    're-run: user-specific _bmad/custom/ file (not under stella/) survives the wipe',
+  );
+  ok(
     exists(root, '_bmad-output/stella/reviewer/keep.md') && sum.created.length === 0,
     're-run: _bmad-output kept, no folder recreated',
   );
@@ -517,7 +526,9 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     settings.hooks.SessionStart.some((e) => e.hooks[0].command === 'node my-own-hook.js'),
     're-run: foreign hook still there',
   );
-  const tree2 = listTree(root).filter((f) => f !== '_bmad-output/stella/reviewer/keep.md');
+  const tree2 = listTree(root).filter(
+    (f) => f !== '_bmad-output/stella/reviewer/keep.md' && f !== '_bmad/custom/bmad-tea.user.toml',
+  );
   ok(tree2.join('\n') === tree1.join('\n'), 're-run: tree identical to the first install');
 
   // ================= 3. uninstall =================
