@@ -232,7 +232,7 @@ const ALLOWED = {
       from: 'on_complete = ""',
       to: [
         'on_complete = """',
-        'Jira comment (Stella). If `{jira_key}` is empty, read `jira_key` from the spec frontmatter; none → do nothing. Compose a short comment (what changed, verification, review result, anything deferred, spec path), write it to `{project-root}/_bmad-output/stella/cache/jira/{jira_key}/comment.md`, show it, and ask "Post to {jira_key}? (y/n)" in the same message as the completion summary. On y: run `node _bmad/custom/stella/utils/jira-comment {jira_key}` and read its stdout JSON. Exit 20: print its `message`, then post the same text through the Atlassian MCP if it responds, else say "Comment not posted." Any other failure: print its `message`. Never change status, assignee, labels or attachments.',
+        'Jira comment (Stella). If `{jira_key}` is empty, read `jira_key` from the spec frontmatter; none → do nothing. Compose a short comment (what changed, verification, review result, anything deferred), write it to `{project-root}/_bmad-output/stella/cache/jira/{jira_key}/comment.md`, show it, and ask "Post to {jira_key}? (y/n)" in the same message as the completion summary. On y: run `node _bmad/custom/stella/utils/jira-comment {jira_key}` and read its stdout JSON. Exit 20: print its `message`, then post the same text through the Atlassian MCP if it responds, else say "Comment not posted." Any other failure: print its `message`. Never change status, assignee, labels or attachments.',
         '"""',
       ],
     },
