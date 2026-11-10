@@ -65,11 +65,20 @@ const fakeBmad = async (root, { projectName, userName }) => {
     path.join(root, '_bmad', 'config.toml'),
     `[core]\nproject_name = "${projectName}"\nuser_name = "${userName}"\n`,
   );
-  for (const skill of ['bmad-build', 'bmad-build-auto', 'bmad-help', 'bmad-project-context']) {
+  const skills = ['bmad-build', 'bmad-build-auto', 'bmad-help', 'bmad-project-context'];
+  for (const skill of skills) {
     const dir = path.join(root, '.claude', 'skills', skill);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'SKILL.md'), `---\nname: ${skill}\n---\n`);
   }
+  // BMad's own manifest of what it installed (same shape as the real one)
+  fs.mkdirSync(path.join(root, '_bmad', '_config'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, '_bmad', '_config', 'skill-manifest.csv'),
+    'canonicalId,name,description,module,path\n' +
+      skills.map((s) => `"${s}","${s}","d","bmm","_bmad/bmm/${s}/SKILL.md"`).join('\r\n') +
+      '\r\n',
+  );
   fs.mkdirSync(path.join(root, '_bmad-output', 'implementation-artifacts'), { recursive: true });
   return 0;
 };
@@ -462,6 +471,9 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   // ================= 2. re-run =================
   fs.writeFileSync(path.join(root, '_bmad-output', 'stella', 'reviewer', 'keep.md'), 'x');
   fs.writeFileSync(path.join(root, '.claude', 'skills', 'stella-build', 'tampered.md'), 'x');
+  // a skill an older version installed and this one no longer ships
+  fs.mkdirSync(path.join(root, '.claude', 'skills', 'stella-security'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.claude', 'skills', 'stella-security', 'SKILL.md'), 'x');
   fs.writeFileSync(
     path.join(root, '_bmad', 'custom', 'stella', 'friction.json'),
     '{"triggerStatuses":["in-review"]}',
@@ -492,6 +504,12 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   );
   ok(!exists(root, '.claude/skills/stella-build/tampered.md'), 're-run: skill folder fresh');
   ok(
+    !exists(root, '.claude/skills/stella-security') &&
+      sum.removed.includes('.claude/skills/stella-security'),
+    're-run: retired stella-security skill removed',
+  );
+  ok(!C.STELLA_SKILLS.includes('stella-security'), 'stella-security no longer installed');
+  ok(
     JSON.parse(read(root, '_bmad/custom/stella/friction.json')).triggerStatuses[0] === 'done',
     're-run: _bmad/custom/stella fresh',
   );
@@ -517,6 +535,12 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   ok(tree2.join('\n') === tree1.join('\n'), 're-run: tree identical to the first install');
 
   // ================= 3. uninstall =================
+  // a developer's own skills, one with a bmad- prefix BMad's manifest does not list
+  const ownSkills = ['my-team-skill', 'bmad-tea-automate'];
+  for (const skill of ownSkills) {
+    fs.mkdirSync(path.join(root, '.claude', 'skills', skill), { recursive: true });
+    fs.writeFileSync(path.join(root, '.claude', 'skills', skill, 'SKILL.md'), 'mine');
+  }
   s = scripted([false]);
   let u = await installer.uninstall(root, { prompt: s.prompt, mcp: mcpMock });
   ok(u.aborted && exists(root, '_bmad/config.toml'), 'uninstall: "n" → nothing removed');
@@ -531,6 +555,14 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       !exists(root, '.claude/skills/bmad-build') &&
       !exists(root, '.claude/skills/caveman'),
     'uninstall: Stella and official skills gone',
+  );
+  ok(
+    !exists(root, '.claude/skills/bmad-help') && u.removed.includes('.claude/skills/bmad-help'),
+    'uninstall: official skills removed by the names in BMad manifest',
+  );
+  ok(
+    ownSkills.every((skill) => read(root, `.claude/skills/${skill}/SKILL.md`) === 'mine'),
+    'uninstall: developer skills kept, a bmad- prefix included',
   );
   ok(
     exists(root, '_bmad-output/stella/reviewer/keep.md') &&
@@ -559,6 +591,12 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   );
 
   // ================= 4. install again =================
+  // Stella skill folders left without _bmad/ (failed install, manual delete): not a re-run,
+  // yet a retired skill and files a newer version dropped must not survive.
+  fs.mkdirSync(path.join(root, '.claude', 'skills', 'stella-security'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.claude', 'skills', 'stella-security', 'SKILL.md'), 'x');
+  fs.mkdirSync(path.join(root, '.claude', 'skills', 'stella-build'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.claude', 'skills', 'stella-build', 'dropped.md'), 'x');
   s = scripted(['LEADRSC']);
   sum = await installer.install(root, {
     mcp: mcpMock,
@@ -577,7 +615,21 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     !sum.rerun && s.asked.join(',') === 'choice',
     'reinstall: not a re-run (no _bmad), saved creds silent, project picked again',
   );
-  const tree4 = listTree(root).filter((f) => f !== '_bmad-output/stella/reviewer/keep.md');
+  ok(
+    !exists(root, '.claude/skills/stella-security') &&
+      !exists(root, '.claude/skills/stella-build/dropped.md') &&
+      exists(root, '.claude/skills/stella-build/SKILL.md'),
+    'reinstall: retired skill and dropped files gone without a re-run',
+  );
+  ok(
+    ownSkills.every((skill) => read(root, `.claude/skills/${skill}/SKILL.md`) === 'mine'),
+    'reinstall: developer skills kept',
+  );
+  const tree4 = listTree(root).filter(
+    (f) =>
+      f !== '_bmad-output/stella/reviewer/keep.md' &&
+      !ownSkills.some((skill) => f.startsWith(`.claude/skills/${skill}/`)),
+  );
   ok(tree4.join('\n') === tree1.join('\n'), 'reinstall: tree identical to the first install');
 
   // ================= unit: domain fetcher skip rules =================

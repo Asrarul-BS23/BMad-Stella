@@ -42,7 +42,7 @@ persistent_facts = [
 # Empty means no extra completion behavior.
 
 on_complete = """
-Jira comment (Stella). If `{jira_key}` is empty, read `jira_key` from the spec frontmatter; none → do nothing. Compose a short comment (what changed, verification, review result, anything deferred, spec path), write it to `{project-root}/_bmad-output/stella/cache/jira/{jira_key}/comment.md`, show it, and ask "Post to {jira_key}? (y/n)" in the same message as the completion summary. On y: run `node _bmad/custom/stella/utils/jira-comment {jira_key}` and read its stdout JSON. Exit 20: print its `message`, then post the same text through the Atlassian MCP if it responds, else say "Comment not posted." Any other failure: print its `message`. Never change status, assignee, labels or attachments.
+Jira comment (Stella). If `{jira_key}` is empty, read `jira_key` from the spec frontmatter; none → do nothing. Compose a short comment: what changed in the code, then one line `Impact area: <area names, comma-separated>`, names only, no description. Nothing about how the work was done or checked: no build, test, review or deferred status. Write it to `{project-root}/_bmad-output/stella/cache/jira/{jira_key}/comment.md`, show it, and ask "Post to {jira_key}? (y/n)" in the same message as the completion summary. On y: run `node _bmad/custom/stella/utils/jira-comment {jira_key}` and read its stdout JSON. Exit 20: print its `message`, then post the same text through the Atlassian MCP if it responds, else say "Comment not posted." Any other failure: print its `message`. Never change status, assignee, labels or attachments.
 """
 
 # Optional instructions for opening a completed spec. The empty default leaves
@@ -139,6 +139,21 @@ Do not invoke any skill, and do not spawn subagents of your own — you are the 
 
 """
 
+[[workflow.review_layers]]
+id = "security"
+name = "Security Reviewer"
+when = "the change adds a backend entry point or changes its route or authorization, touches role, permission or identity code, or on the frontend renders HTML from data, adds inline or external scripts, handles URL or redirect input, exposes credentials, or changes CSP or security headers"
+instruction = """
+Launch a context-free subagent with this prompt:
+
+Read `{skill-root}/review-prompts/security.md` completely and follow it as your review instructions.
+
+Review content: the unified diff at `{diff_file}`. Read that file — it is the content under review.
+
+Do not invoke any skill, and do not spawn subagents of your own — you are the reviewer. If the instruction file is unreadable, report that exact failure and stop. Return your findings as text in your final message; do not route them through any findings-reporting tool the host may offer.
+
+"""
+
 # Review layers for the oneshot route.
 
 [[workflow.oneshot_review_layers]]
@@ -158,5 +173,20 @@ CONTENT:
 The changed files in the current worktree. Inspect them directly before reviewing.
 
 Do not invoke any skill, and do not spawn subagents of your own — you are the reviewer. Return your findings as text in your final message; do not route them through any findings-reporting tool the host may offer.
+
+"""
+
+[[workflow.oneshot_review_layers]]
+id = "security"
+name = "Security Reviewer"
+when = "the change adds a backend entry point or changes its route or authorization, touches role, permission or identity code, or on the frontend renders HTML from data, adds inline or external scripts, handles URL or redirect input, exposes credentials, or changes CSP or security headers"
+instruction = """
+Launch a context-free subagent with this prompt:
+
+Read `{skill-root}/review-prompts/security.md` completely and follow it as your review instructions.
+
+Review content: the changed files in the current worktree. Inspect them directly before reviewing.
+
+Do not invoke any skill, and do not spawn subagents of your own — you are the reviewer. If the instruction file is unreadable, report that exact failure and stop. Return your findings as text in your final message; do not route them through any findings-reporting tool the host may offer.
 
 """

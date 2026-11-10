@@ -21,13 +21,12 @@ Plain text also works. Nothing is fetched from Jira.
 1. Clarifies the intent. Asks only when something is unclear.
 2. Writes a spec under `_bmad-output/implementation-artifacts/` and shows it for approval.
 3. Implements it in the same session, from the spec and its context files.
-4. Reviews the diff with three review subagents. Fixes are applied in the same session.
+4. Reviews the diff with three review subagents, plus a security reviewer when the change adds an endpoint, changes authorization, or on the frontend renders HTML from data, adds scripts, handles URL input or changes security headers. Fixes are applied in the same session.
 5. Shows a short summary and offers to post a comment on the Jira ticket. Answer `y` or `n`.
 
 ## After it ends
 
 - The changes are in your working tree, uncommitted. Review them.
-- Run `/stella-security` on the spec if the ticket touches input, auth or data.
 - Commit by hand before the next ticket.
 
 ## Good to know

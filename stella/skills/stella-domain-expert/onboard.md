@@ -110,7 +110,7 @@ From `AGENTS.md` (and the domain docs if they describe process), present:
 - **Pull Request process** — Review and approval process
 - **CI/CD pipeline** — Automated checks on PRs, deployment triggers
 - **Environment overview** — Environments (dev, staging, prod) and their use
-- **Stella workflow** — tickets are built with `/stella-build`, audited with `/stella-security`, and PRs reviewed with `/stella-pr-review`
+- **Stella workflow** — tickets are built with `/stella-build` (its review includes a security check), and PRs reviewed with `/stella-pr-review`
 
 Source: `[Source: AGENTS.md]`
 
