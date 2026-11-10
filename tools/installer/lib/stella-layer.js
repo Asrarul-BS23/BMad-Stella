@@ -18,6 +18,7 @@ const {
   STELLA_SKILLS,
   RETIRED_STELLA_SKILLS,
   BMAD_SKILLS_REMOVED,
+  BMAD_SKILL_MANIFEST,
   PROJECT_HOOKS,
   STELLA_OUTPUT_DIR,
   OUTPUT_FOLDERS,
@@ -92,9 +93,15 @@ function copyStellaFiles(root, { project = null } = {}) {
 }
 
 // ---- step 10: skills ----
+// Runs on every install, re-run or not: retired Stella skills are removed, and each Stella
+// skill folder is replaced, never merged, so files a newer version dropped do not linger.
+// Only these exact names are touched; a developer's own skills in .claude/skills/ stay.
 function copySkills(root) {
+  for (const name of RETIRED_STELLA_SKILLS) rmIfPresent(rel(root, `${CLAUDE_SKILLS_DIR}/${name}`));
   for (const name of STELLA_SKILLS) {
-    copyDir(path.join(SRC.skills, name), rel(root, `${CLAUDE_SKILLS_DIR}/${name}`));
+    const dest = rel(root, `${CLAUDE_SKILLS_DIR}/${name}`);
+    rmIfPresent(dest);
+    copyDir(path.join(SRC.skills, name), dest);
   }
   return STELLA_SKILLS;
 }
@@ -254,16 +261,30 @@ function removeShadowedBmadSkills(root) {
   return removed;
 }
 
-/** Official BMad skills (uninstall only). */
-function removeBmadSkills(root) {
-  const dir = rel(root, CLAUDE_SKILLS_DIR);
+/** Folder names of the skills BMad installed, from its own manifest; [] when it is missing. */
+function bmadSkillNames(root) {
+  let text;
+  try {
+    text = fs.readFileSync(rel(root, BMAD_SKILL_MANIFEST), 'utf8');
+  } catch {
+    return [];
+  }
+  return text
+    .split(/\r?\n/)
+    .slice(1)
+    .map((line) => (/^"?([\w.-]+)"?,/.exec(line) || [])[1])
+    .filter(Boolean);
+}
+
+/**
+ * Official BMad skills (uninstall only): exactly the names BMad's manifest lists, never a
+ * name pattern, so a developer's own skills stay. Read the names before _bmad/ is deleted.
+ */
+function removeBmadSkills(root, names = bmadSkillNames(root)) {
   const removed = [];
-  if (!fs.existsSync(dir)) return removed;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.isDirectory() && entry.name.startsWith('bmad-')) {
-      rmIfPresent(path.join(dir, entry.name));
-      removed.push(`${CLAUDE_SKILLS_DIR}/${entry.name}`);
-    }
+  for (const name of names) {
+    if (rmIfPresent(rel(root, `${CLAUDE_SKILLS_DIR}/${name}`)))
+      removed.push(`${CLAUDE_SKILLS_DIR}/${name}`);
   }
   return removed;
 }
@@ -277,6 +298,7 @@ module.exports = {
   unregisterSettings,
   ensureOutputFolders,
   removeStellaClaudeParts,
+  bmadSkillNames,
   removeBmadSkills,
   removeShadowedBmadSkills,
   readSettings,

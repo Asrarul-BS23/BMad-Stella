@@ -98,6 +98,10 @@ const RETIRED_STELLA_SKILLS = ['stella-security'];
 // runs every time. No official file is edited; the folders are simply not kept.
 const BMAD_SKILLS_REMOVED = ['bmad-build', 'bmad-build-auto', 'bmad-project-context'];
 
+// BMad's own list of the skills it installed (first column = folder name under .claude/skills/).
+// Uninstall removes exactly these, so a developer's own `bmad-*` skills stay.
+const BMAD_SKILL_MANIFEST = `${BMAD_DIR}/_config/skill-manifest.csv`;
+
 // Project-level hooks copied to .claude/stella/hooks/<name>/ and registered in
 // settings.local.json.
 const PROJECT_HOOKS = [
@@ -175,6 +179,7 @@ module.exports = {
   STELLA_SKILLS,
   RETIRED_STELLA_SKILLS,
   BMAD_SKILLS_REMOVED,
+  BMAD_SKILL_MANIFEST,
   PROJECT_HOOKS,
   OUTPUT_FOLDERS,
   FRICTION_DEFAULTS,

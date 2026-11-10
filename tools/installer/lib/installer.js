@@ -315,10 +315,11 @@ async function uninstall(root, { prompt, yes = false, mcp = mcpRegistrar } = {})
   const settingsTouched = layer.unregisterSettings(root);
   const gi = gitignore.remove(root);
   const m = mcp.unregister(root);
+  const bmadSkills = layer.bmadSkillNames(root); // BMad's manifest is in _bmad/, which clean() deletes
   const removed = [
     ...cleaner.clean(root, { rerun: true }).removed,
     ...layer.removeStellaClaudeParts(root),
-    ...layer.removeBmadSkills(root),
+    ...layer.removeBmadSkills(root, bmadSkills),
     settingsTouched ? `${constants.SETTINGS_LOCAL} (our entries)` : null,
     m.status === 'removed' ? 'Atlassian MCP (Claude Code local scope)' : null,
     gi.removed.length > 0 ? `.gitignore (${gi.removed.join(', ')})` : null,
