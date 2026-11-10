@@ -133,11 +133,14 @@ const FINDINGS_JSON_RE = new RegExp(
   `(^|${SEP})${REVIEWER_RE_PART}${SEP}(?!\\.scratch${SEP})[^\\\\/]+${SEP}findings\\.json$`,
 );
 // the only helper the review may run: posts findings as PR comments (one hard-coded endpoint)
-const PR_COMMENTS_HELPER_RE = new RegExp(`(^|${SEP})${HELPER_RE_PART}(?:${SEP}index\\.js)?$`);
+// Helper folder paths may end in a slash (`…/pr-comments/`): agents copy them from search results.
+const PR_COMMENTS_HELPER_RE = new RegExp(
+  `(^|${SEP})${HELPER_RE_PART}(?:${SEP}index\\.js|${SEP})?$`,
+);
 const PR_COMMENTS_FLAGS = new Set(['--post', '--submit', '--allow-long', '--help', '-h']);
 // read-only ticket fetch: `node <jira-attachments helper> <ISSUE-KEY>`, key only, no flags
 const JIRA_FETCH_HELPER_RE = new RegExp(
-  `(^|${SEP})${JIRA_FETCH_HELPER_RE_PART}(?:${SEP}index\\.js)?$`,
+  `(^|${SEP})${JIRA_FETCH_HELPER_RE_PART}(?:${SEP}index\\.js|${SEP})?$`,
 );
 const ISSUE_KEY_RE = /^[A-Z][A-Z0-9]+-\d+$/i;
 
