@@ -16,11 +16,31 @@ const SKILL = path.join(REPO, 'stella', 'skills', 'stella-build');
 const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'bmad-build-6.12.2');
 
 // Files that exist on one side only, by design.
-const SKILL_ONLY = new Set(['CHANGES.md']);
+const SKILL_ONLY = new Set(['CHANGES.md', 'review-prompts/security.md']);
 const FIXTURE_ONLY = new Set(['SOURCE.md']);
 
 const NO_COMMIT =
   'Do not commit, push or open a pull request. The developer reviews the working tree and commits by hand before the next ticket.';
+
+// 2026-11-10 — the security review layer, one per route; the checks come from the stella-security checklists.
+const SECURITY_WHEN =
+  'when = "the change touches a backend entry point (endpoint, handler, job, command), authorization or user-identity code, frontend markup or client-side scripts, or frontend build or server configuration"';
+const securityLayer = (table, reviewContent) => [
+  `[[workflow.${table}]]`,
+  'id = "security"',
+  'name = "Security Reviewer"',
+  SECURITY_WHEN,
+  'instruction = """',
+  'Launch a context-free subagent with this prompt:',
+  '',
+  'Read `{skill-root}/review-prompts/security.md` completely and follow it as your review instructions.',
+  '',
+  reviewContent,
+  '',
+  'Do not invoke any skill, and do not spawn subagents of your own — you are the reviewer. If the instruction file is unreadable, report that exact failure and stop. Return your findings as text in your final message; do not route them through any findings-reporting tool the host may offer.',
+  '',
+  '"""',
+];
 
 const ALLOWED = {
   'SKILL.md': [{ line: 2, from: 'name: bmad-build', to: 'name: stella-build' }],
@@ -211,6 +231,31 @@ const ALLOWED = {
       from: '> When done, report what you changed, how you verified it, and anything left incomplete or risky.',
       to: null,
     },
+    // 2026-11-10 — security review layer added after the official layers of each route.
+    {
+      line: 132,
+      from: '# Review layers for the oneshot route.',
+      to: [
+        ...securityLayer(
+          'review_layers',
+          'Review content: the unified diff at `{diff_file}`. Read that file — it is the content under review.',
+        ),
+        '',
+        '# Review layers for the oneshot route.',
+      ],
+    },
+    {
+      line: 152,
+      from: '"""',
+      to: [
+        '"""',
+        '',
+        ...securityLayer(
+          'oneshot_review_layers',
+          'Review content: the changed files in the current worktree. Inspect them directly before reviewing.',
+        ),
+      ],
+    },
   ],
 
   // Task 6b-2 — git read-only: no commit, no hash, no PR offer.
@@ -336,10 +381,30 @@ const toml = fs.readFileSync(path.join(SKILL, 'customize.toml'), 'utf8');
 ok(/^activation_steps_append = \[\]$/m.test(toml), 'toml: activation_steps_append untouched');
 ok(/^open_spec = ""$/m.test(toml), 'toml: open_spec untouched');
 ok(
-  (toml.match(/^\[\[workflow\.review_layers\]\]$/gm) || []).length === 3,
-  'toml: three review layers, none added',
+  (toml.match(/^\[\[workflow\.review_layers\]\]$/gm) || []).length === 4,
+  'toml: the three official review layers plus security',
 );
-ok(!/stella-security/.test(toml), 'toml: no security review layer (skipped by decision)');
+ok(
+  (toml.match(/^\[\[workflow\.oneshot_review_layers\]\]$/gm) || []).length === 2,
+  'toml: the official oneshot layer plus security',
+);
+ok(
+  (toml.match(/^id = "security"$/gm) || []).length === 2 &&
+    (toml.match(new RegExp(`^${SECURITY_WHEN.replaceAll(/[()]/g, String.raw`\$&`)}$`, 'gm')) || [])
+      .length === 2,
+  'toml: security layer on both routes, each gated by when',
+);
+const securityPrompt = fs.readFileSync(path.join(SKILL, 'review-prompts', 'security.md'), 'utf8');
+ok(
+  securityPrompt.includes('_bmad/custom/stella/checklists/backend-security.md') &&
+    securityPrompt.includes('_bmad/custom/stella/checklists/frontend-security.md'),
+  'security.md: checks against the stella-security checklists',
+);
+ok(
+  securityPrompt.includes('`No security violations found.`') &&
+    !/finding floor|at least N/i.test(securityPrompt),
+  'security.md: a clean result is allowed, no finding floor',
+);
 
 // ---- CHANGES.md names every listed file ----
 const changes = fs.readFileSync(path.join(SKILL, 'CHANGES.md'), 'utf8');
