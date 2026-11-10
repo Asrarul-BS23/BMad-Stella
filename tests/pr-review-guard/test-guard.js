@@ -257,7 +257,7 @@ ok(
   'end: other bmad skill command (tag)',
 );
 ok(
-  classifyLine(user('/stella-security spec-x.md')) === 'end',
+  classifyLine(user('/stella-domain-expert what is a quarry')) === 'end',
   'end: other stella skill command (raw)',
 );
 ok(classifyLine(user('/bmad-help')) === 'end', 'end: /bmad-help');

@@ -16,6 +16,7 @@ const {
   LEGACY_BMAD_HOOKS_DIR,
   SETTINGS_LOCAL,
   STELLA_SKILLS,
+  RETIRED_STELLA_SKILLS,
   BMAD_SKILLS_REMOVED,
   PROJECT_HOOKS,
   STELLA_OUTPUT_DIR,
@@ -236,7 +237,7 @@ function ensureOutputFolders(root) {
 // ---- reverse: Stella parts of .claude/ (re-run clean + uninstall) ----
 function removeStellaClaudeParts(root) {
   const removed = [];
-  for (const name of STELLA_SKILLS) {
+  for (const name of [...STELLA_SKILLS, ...RETIRED_STELLA_SKILLS]) {
     if (rmIfPresent(rel(root, `${CLAUDE_SKILLS_DIR}/${name}`)))
       removed.push(`${CLAUDE_SKILLS_DIR}/${name}`);
   }

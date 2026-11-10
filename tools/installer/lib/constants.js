@@ -84,11 +84,14 @@ const SETTINGS_LOCAL = `${CLAUDE_DIR}/settings.local.json`;
 const STELLA_SKILLS = [
   'stella-build',
   'caveman',
-  'stella-security',
   'stella-pr-review',
   'stella-domain-expert',
   'stella-project-context',
 ];
+
+// Stella skills no longer shipped: still removed on re-run and uninstall, so older
+// installs do not keep them. stella-security: its checks run in stella-build's review.
+const RETIRED_STELLA_SKILLS = ['stella-security'];
 
 // Official skills removed after the BMad install because a Stella version replaces
 // them (bmad-build-auto only loops bmad-build). Re-runs reinstall BMad, so this
@@ -170,6 +173,7 @@ module.exports = {
   LEGACY_BMAD_HOOKS_DIR,
   SETTINGS_LOCAL,
   STELLA_SKILLS,
+  RETIRED_STELLA_SKILLS,
   BMAD_SKILLS_REMOVED,
   PROJECT_HOOKS,
   OUTPUT_FOLDERS,

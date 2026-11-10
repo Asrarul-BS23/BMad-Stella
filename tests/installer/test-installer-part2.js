@@ -462,6 +462,9 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   // ================= 2. re-run =================
   fs.writeFileSync(path.join(root, '_bmad-output', 'stella', 'reviewer', 'keep.md'), 'x');
   fs.writeFileSync(path.join(root, '.claude', 'skills', 'stella-build', 'tampered.md'), 'x');
+  // a skill an older version installed and this one no longer ships
+  fs.mkdirSync(path.join(root, '.claude', 'skills', 'stella-security'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.claude', 'skills', 'stella-security', 'SKILL.md'), 'x');
   fs.writeFileSync(
     path.join(root, '_bmad', 'custom', 'stella', 'friction.json'),
     '{"triggerStatuses":["in-review"]}',
@@ -491,6 +494,12 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     're-run: _bmad and Stella .claude parts removed first',
   );
   ok(!exists(root, '.claude/skills/stella-build/tampered.md'), 're-run: skill folder fresh');
+  ok(
+    !exists(root, '.claude/skills/stella-security') &&
+      sum.removed.includes('.claude/skills/stella-security'),
+    're-run: retired stella-security skill removed',
+  );
+  ok(!C.STELLA_SKILLS.includes('stella-security'), 'stella-security no longer installed');
   ok(
     JSON.parse(read(root, '_bmad/custom/stella/friction.json')).triggerStatuses[0] === 'done',
     're-run: _bmad/custom/stella fresh',

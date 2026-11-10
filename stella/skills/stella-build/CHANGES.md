@@ -26,7 +26,7 @@ Three official keys filled and one review layer added per route (below); no offi
 
 - Lines 63–64, the comment above `implementation_handoff`: "implementation subagent" → "implementation" and "a subagent by default, but an override may run it any other way" → "an override may run it any other way". Comment only; the render step never shows it to the model (2026-10-28).
 
-- Line 132, before "# Review layers for the oneshot route.", and after line 152, the end of the oneshot layers: one `security` layer per route, `[[workflow.review_layers]]` and `[[workflow.oneshot_review_layers]]`, added through the official review-layer list. Same contract as the official layers: a context-free subagent, reads `review-prompts/security.md`, gets the diff (normal route) or the changed worktree files (oneshot), writes nothing, returns findings as text for step 04's triage. `when` gates it to changes that touch a backend entry point, authorization or user-identity code, frontend markup or client-side scripts, or frontend build or server configuration: the areas the checklists cover. Replaces the earlier decision to leave security to `/stella-security`, which wrote into the spec after the build, and stella-build never read that section (user decision 2026-11-10).
+- Line 132, before "# Review layers for the oneshot route.", and after line 152, the end of the oneshot layers: one `security` layer per route, `[[workflow.review_layers]]` and `[[workflow.oneshot_review_layers]]`, added through the official review-layer list. Same contract as the official layers: a context-free subagent, reads `review-prompts/security.md`, gets the diff (normal route) or the changed worktree files (oneshot), writes nothing, returns findings as text for step 04's triage. `when` gates it to changes that touch a backend entry point, authorization or user-identity code, frontend markup or client-side scripts, or frontend build or server configuration: the areas the checklists cover. Replaces the earlier decision to leave security to `/stella-security`, which wrote into the spec after the build, and stella-build never read that section; that skill is removed (user decision 2026-11-10).
 
 ### review-prompts/security.md
 
@@ -64,7 +64,7 @@ Git read-only: developers commit by hand, the skill never does. (Task 6b-2, 2026
 - Line 31: `- The commit hash, if one was created.` removed from the summary.
 - Line 35: the pull-request offer removed from the next-actions line; `bmad-walkthrough` and "make another change" remain.
 
-Kept on purpose: `baseline_commit` (step 03, a `rev-parse`) and the diff file (step 03). Both are read-only and feed the review layers and `/stella-security`.
+Kept on purpose: `baseline_commit` (step 03, a `rev-parse`) and the diff file (step 03). Both are read-only and feed the review layers.
 
 ### step-oneshot.md
 

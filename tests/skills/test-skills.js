@@ -1,8 +1,9 @@
 'use strict';
 
-// Migration Task 7 — plain Claude Code skills (caveman, stella-security) and the
-// security checklists: valid frontmatter, name = folder, no v4 strings, the paths
-// and rules the skills rely on, and the v4 drafts gone.
+// Migration Task 7 — plain Claude Code skills (caveman) and the security checklists:
+// valid frontmatter, name = folder, no v4 strings, the paths and rules the skills
+// rely on, and the v4 drafts gone. stella-security is retired (2026-11-10): its
+// checklists run in stella-build's security review layer.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -34,7 +35,7 @@ const frontmatter = (text) => {
 const V4 =
   /bmad-docs|\.bmad-core|bmad-core|BMad:agents|BMad:tasks|BMad:caveman|Dev Agent Record|core-config\.yaml/;
 
-for (const skill of ['caveman', 'stella-security']) {
+for (const skill of ['caveman']) {
   const file = path.join(SKILLS, skill, 'SKILL.md');
   ok(fs.existsSync(file), `${skill}: SKILL.md exists`);
   if (!fs.existsSync(file)) continue;
@@ -63,33 +64,8 @@ ok(
 );
 ok(/Code blocks unchanged/.test(caveman), 'caveman: code blocks untouched rule');
 
-// ---- stella-security ----
-const sec = read(SKILLS, 'stella-security', 'SKILL.md');
-ok(
-  sec.includes('_bmad/custom/stella/checklists/') &&
-    sec.includes('frontend-security.md') &&
-    sec.includes('backend-security.md'),
-  'security: both checklists at the installed path',
-);
-ok(/## Security Violations/.test(sec), 'security: writes the Security Violations section');
-ok(/baseline_commit/.test(sec) && /git diff --name-only/.test(sec), 'security: git diff scope');
-for (const section of ['## Code Map', '## Tasks & Acceptance', '## Implementation Notes']) {
-  ok(sec.includes(section), `security: scope reads spec section "${section}"`);
-}
-ok(/PASS/.test(sec) && /FAIL/.test(sec) && /N\/A/.test(sec), 'security: PASS/FAIL/N/A statuses');
-ok(/CRITICAL/.test(sec) && /LOW/.test(sec), 'security: severity scale');
-ok(/[Nn]ever modify any source file/.test(sec), 'security: read-only rule');
-ok(
-  /Caveman full/.test(sec) && /chat output AND the `## Security Violations` section/.test(sec),
-  'security: caveman in chat and spec section',
-);
-ok(/\/stella-build/.test(sec), 'security: hands fixes to stella-build');
-ok(/replace its entire content/.test(sec), 'security: re-run replaces the section');
-ok(/implementation-artifacts/.test(sec), 'security: names the v6 spec folder');
-ok(
-  !/frontend-security-checklist|backend-security-checklist/.test(sec),
-  'security: no v4 checklist filenames',
-);
+// ---- stella-security: retired ----
+ok(!fs.existsSync(path.join(SKILLS, 'stella-security')), 'stella-security: skill folder removed');
 
 // ---- checklists ----
 for (const name of ['backend-security.md', 'frontend-security.md']) {
