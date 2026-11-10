@@ -14,6 +14,7 @@ Rule: copy exactly, change only where a requirement demands it. Settings go in `
 ### workflow.md
 
 - Lines 7–8: "Subagents, when the capability is available, are an important part of this workflow…" and the line asking for permission to run them are replaced by one line: "Subagents run only the review layers. Everything else (planning, epic context, spec review, implementation, review fixes) runs in this session." This is the only place in the skill that says when subagents are allowed; every other step says "yourself, in this session". The AIL-552 run launched three search subagents in step 02 and an implementer subagent in step 03 because the official text still pointed there (user decision 2026-10-28).
+- Line 28 (29 in the fixture), SCOPE STANDARD: "**Neither limit is a gate.** Both are proposals with user override." keeps only "**Neither limit is a gate.**". "Proposals" invited a size question after step 02's token gate was removed (below). The size targets stay as writing guidance (user decision 2026-11-10).
 
 ### customize.toml
 
@@ -44,6 +45,7 @@ Line 80: the version-control sanity check is replaced by "No version-control che
 - Line 14: "Keep looking until you know, or until those sources have nothing more to say." is removed; it had no stopping point (2026-10-28).
 - Line 55, the "Approve and stop" checkpoint option: "a fresh `bmad-build` session" → "a fresh `stella-build` session". The installer removes `bmad-build`, so the official name pointed at a skill that is not there (2026-10-29).
 - Line 56, the "Review spec" checkpoint option: "use a subagent if available" is removed; the spec is reviewed in this session (workflow.md line 7, 2026-10-28).
+- Lines 25–33 and 42–43, the token-count gate, deletions plus one shortened line: line 25 "Resolve the gates before the checkpoint. Two things must be settled…" becomes "6. Resolve the Open Questions before the checkpoint."; the **Token count** bullet with its Split / Keep full spec choice and deferred-work format (lines 26–33) and the Checkpoint 1 note about a kept over-limit spec (line 42 and the blank line after it) are removed. The Open Questions bullet is official and unchanged. Devs always chose "Keep": tickets are estimated at a day or less, and a split only moved part of a ticket into `deferred-work.md`, which nobody tracks. The 1,600 limit was set for a fresh implementation subagent; here the session that wrote the spec implements it. Step 01's multi-goal check stays, so a ticket holding truly separate features is still flagged (dev feedback, user decision 2026-11-10).
 
 ### step-03-implement.md
 

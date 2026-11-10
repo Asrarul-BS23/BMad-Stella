@@ -57,6 +57,12 @@ const ALLOWED = {
       from: 'If you need an explicit user instruction to run them, ask once now for the whole workflow run.',
       to: null,
     },
+    // 2026-11-10 — size never stops the run (dev feedback: tickets are a day or less, devs always kept the spec).
+    {
+      line: 29,
+      from: '- **Neither limit is a gate.** Both are proposals with user override.',
+      to: '- **Neither limit is a gate.**',
+    },
   ],
 
   // 2026-10-26 — no version-control check: the developer manages git (one place, no fact).
@@ -108,6 +114,34 @@ const ALLOWED = {
       from: '   Do not ask the human during investigation. When something is unclear, look in the repository, planning artifacts, or history first. Keep looking until you know, or until those sources have nothing more to say. Leave any remaining choice for the next step.',
       to: '   Do not ask the human during investigation. When something is unclear, look in the repository, planning artifacts, or history first. Leave any remaining choice for the next step.',
     },
+    // 2026-11-10 — no token-count gate: the ticket is the unit of work; step 01 still checks multiple goals.
+    {
+      line: 25,
+      from: '6. Resolve the gates before the checkpoint. Two things must be settled, in whatever order the conversation makes natural; combine them in one message when both apply.',
+      to: '6. Resolve the Open Questions before the checkpoint.',
+    },
+    {
+      line: 26,
+      from: '   - **Token count** (see SCOPE STANDARD). If the spec exceeds 1600 tokens, show the count and give the user a choice:',
+      to: null,
+    },
+    {
+      line: 27,
+      from: '     - **Split** — carve off secondary goals. Propose the split — name each secondary goal. For each deferred goal, append one new entry to `{{.implementation_artifacts}}/deferred-work.md` using the format below. Do not modify existing entries or look for duplicates. Rewrite the current spec to cover only the main goal — do not surgically carve sections out; regenerate the spec for the narrowed scope.',
+      to: null,
+    },
+    { line: 28, from: '     - **Keep full spec** — accept the risks.', to: null },
+    { line: 29, from: '     ```markdown', to: null },
+    { line: 30, from: '     - source_spec: `{spec_file}`', to: null },
+    { line: 31, from: '       summary: <one sentence naming the deferred goal>', to: null },
+    { line: 32, from: '       evidence: <why this was split from the current spec>', to: null },
+    { line: 33, from: '     ```', to: null },
+    {
+      line: 42,
+      from: 'If token count exceeded 1600 and the user chose to keep the full spec, include the token count and explain why it may be a problem.',
+      to: null,
+    },
+    { line: 43, from: '', to: null },
   ],
 
   // 2026-10-28 — implementation in this session; the dispatch and subagent lines go (AIL-552 run launched an implementer subagent).
