@@ -24,7 +24,7 @@ const NO_COMMIT =
 
 // 2026-11-10 — the security review layer, one per route; the checks come from the stella-security checklists.
 const SECURITY_WHEN =
-  'when = "the change touches a backend entry point (endpoint, handler, job, command), authorization or user-identity code, frontend markup or client-side scripts, or frontend build or server configuration"';
+  'when = "the change adds a backend entry point or changes its route or authorization, touches role, permission or identity code, or on the frontend renders HTML from data, adds inline or external scripts, handles URL or redirect input, exposes credentials, or changes CSP or security headers"';
 const securityLayer = (table, reviewContent) => [
   `[[workflow.${table}]]`,
   'id = "security"',
@@ -304,8 +304,10 @@ const ALLOWED = {
     {
       line: 35,
       from: 'Offer applicable next actions in one short line: when version control and a remote are available, create a pull request (and push first if needed); use `bmad-walkthrough`; or make another change.',
-      to: 'Offer applicable next actions in one short line: use `bmad-walkthrough`; or make another change.',
+      to: null,
     },
+    // 2026-11-10 — no next-actions line: the summary ends the run (user decision).
+    { line: 36, from: '', to: null },
   ],
   'step-oneshot.md': [
     { line: 81, from: '### Commit', to: '### Complete' },
@@ -318,8 +320,9 @@ const ALLOWED = {
     {
       line: 97,
       from: 'Offer next steps in one line: create a PR (push first if needed) when git and a remote exist; use `bmad-walkthrough`; or make another change.',
-      to: 'Offer next steps in one line: use `bmad-walkthrough`; or make another change.',
+      to: null,
     },
+    { line: 98, from: '', to: null },
   ],
 };
 

@@ -142,7 +142,7 @@ Do not invoke any skill, and do not spawn subagents of your own — you are the 
 [[workflow.review_layers]]
 id = "security"
 name = "Security Reviewer"
-when = "the change touches a backend entry point (endpoint, handler, job, command), authorization or user-identity code, frontend markup or client-side scripts, or frontend build or server configuration"
+when = "the change adds a backend entry point or changes its route or authorization, touches role, permission or identity code, or on the frontend renders HTML from data, adds inline or external scripts, handles URL or redirect input, exposes credentials, or changes CSP or security headers"
 instruction = """
 Launch a context-free subagent with this prompt:
 
@@ -179,7 +179,7 @@ Do not invoke any skill, and do not spawn subagents of your own — you are the 
 [[workflow.oneshot_review_layers]]
 id = "security"
 name = "Security Reviewer"
-when = "the change touches a backend entry point (endpoint, handler, job, command), authorization or user-identity code, frontend markup or client-side scripts, or frontend build or server configuration"
+when = "the change adds a backend entry point or changes its route or authorization, touches role, permission or identity code, or on the frontend renders HTML from data, adds inline or external scripts, handles URL or redirect input, exposes credentials, or changes CSP or security headers"
 instruction = """
 Launch a context-free subagent with this prompt:
 

@@ -27,7 +27,7 @@ Three official keys filled and one review layer added per route (below); no offi
 
 - Lines 63–64, the comment above `implementation_handoff`: "implementation subagent" → "implementation" and "a subagent by default, but an override may run it any other way" → "an override may run it any other way". Comment only; the render step never shows it to the model (2026-10-28).
 
-- Line 132, before "# Review layers for the oneshot route.", and after line 152, the end of the oneshot layers: one `security` layer per route, `[[workflow.review_layers]]` and `[[workflow.oneshot_review_layers]]`, added through the official review-layer list. Same contract as the official layers: a context-free subagent, reads `review-prompts/security.md`, gets the diff (normal route) or the changed worktree files (oneshot), writes nothing, returns findings as text for step 04's triage. `when` gates it to changes that touch a backend entry point, authorization or user-identity code, frontend markup or client-side scripts, or frontend build or server configuration: the areas the checklists cover. Replaces the earlier decision to leave security to `/stella-security`, which wrote into the spec after the build, and stella-build never read that section; that skill is removed (user decision 2026-11-10).
+- Line 132, before "# Review layers for the oneshot route.", and after line 152, the end of the oneshot layers: one `security` layer per route, `[[workflow.review_layers]]` and `[[workflow.oneshot_review_layers]]`, added through the official review-layer list. Same contract as the official layers: a context-free subagent, reads `review-prompts/security.md`, gets the diff (normal route) or the changed worktree files (oneshot), writes nothing, returns findings as text for step 04's triage. `when` gates it to the kinds of change the checklists look for: a new backend entry point or a changed route or authorization, role, permission or identity code, or on the frontend HTML rendered from data, inline or external scripts, URL or redirect input, exposed credentials, CSP or security headers. The first condition ("frontend markup or client-side scripts") ran the reviewer on almost every UI change, a CSS-class toggle included (2026-11-10). Replaces the earlier decision to leave security to `/stella-security`, which wrote into the spec after the build, and stella-build never read that section; that skill is removed (user decision 2026-11-10).
 
 ### review-prompts/security.md
 
@@ -64,7 +64,7 @@ Git read-only: developers commit by hand, the skill never does. (Task 6b-2, 2026
 - Line 19: `### Commit and Complete` → `### Complete`.
 - Line 21: the local-commit instruction → "Do not commit, push or open a pull request. The developer reviews the working tree and commits by hand before the next ticket."
 - Line 31: `- The commit hash, if one was created.` removed from the summary.
-- Line 35: the pull-request offer removed from the next-actions line; `bmad-walkthrough` and "make another change" remain.
+- Lines 35–36: the next-actions line ("create a pull request…; use `bmad-walkthrough`; or make another change") and the blank line after it are removed. The PR offer went with the no-commit rule (2026-10-16); the `bmad-walkthrough` suggestion went later: the run ends with the summary and the Jira comment question (user decision 2026-11-10). `bmad-walkthrough` stays installed for anyone who runs it by hand.
 
 Kept on purpose: `baseline_commit` (step 03, a `rev-parse`) and the diff file (step 03). Both are read-only and feed the review layers.
 
@@ -75,4 +75,4 @@ Same four edits as step-05-present.md for the oneshot route. (Task 6b-2, 2026-10
 - Line 81: `### Commit` → `### Complete`.
 - Line 83: the local-commit instruction → the same no-commit sentence.
 - Line 93: `- Commit hash, if you made one.` removed.
-- Line 97: the PR offer removed from the next-steps line.
+- Lines 97–98: the next-steps line and the blank line after it are removed, as in step-05 (2026-11-10).

@@ -93,8 +93,6 @@ Give the user a short summary — one or two sentences:
 
 Do not list files, repeat the spec, or walk through what you did unless asked.
 
-Offer next steps in one line: use `bmad-walkthrough`; or make another change.
-
 Stop and wait for the user.
 
 Workflow complete.
