@@ -11,7 +11,7 @@
 Takes one Jira ticket or one system module through a complete manual-testing lifecycle with a live browser:
 
 - **QA flow**: intake → scenario design (via `bmad-tea-test-design`, unmodified) → human approval lock → tabular test cases → human approval lock → per-case execution via Playwright MCP → evidence-backed run report + trace coverage record.
-- **Dev flow**: a shift-left bug filter. The dev tests their own implemented ticket before handoff: spec intake → bug-hunting scenarios → execute-and-triage loop. No approval gates; the report is the default artifact, bugs fixed before QA is the success measure.
+- **Dev flow**: a shift-left bug filter. The dev tests their own implemented ticket before handoff: spec intake → bug-hunting scenarios → execute-and-triage loop. No approval gates; the report is the only artifact, bugs fixed before QA is the success measure.
 
 One run owns exactly one `{key}` — a Jira ticket key or a slugified module name.
 
@@ -72,23 +72,23 @@ Checkpoints live at `{test_artifacts}/stella/{key}/progress.md`, one per `{key}`
 
 ### QA flow (steps-c/)
 
-| Step | File                         | Produces                                                                                                  |
-| ---- | ---------------------------- | --------------------------------------------------------------------------------------------------------- |
-| 01   | step-01-detect-mode.md       | `flow_mode`, `{key}`, checkpoint handling                                                                 |
-| 02   | step-02-intake.md            | `ticket-brief.md` (ticket runs) or confirmed module scope; config/credential check                        |
-| 03   | step-03-scenarios.md         | `scenarios.md` (status: draft) + `exploration/`, copied from `bmad-tea-test-design` output                |
-| 04   | step-04-approve-scenarios.md | `scenarios.md` flipped to status: approved, by in-chat loop                                               |
-| 05   | step-05-generate-cases.md    | `test-cases.md` (sectioned 9-column tables), approved by the same loop; staleness propagation             |
-| 06   | step-06-execute.md           | Per-case Playwright MCP execution; `evidence/{datetime}/`                                                 |
-| 07   | step-07-report.md            | `test-execution-{env}-{datetime}.md`, root `live-verification-results.json` merge, on-request publication |
+| Step | File                         | Produces                                                                                                     |
+| ---- | ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 01   | step-01-detect-mode.md       | `flow_mode`, `{key}`, checkpoint handling                                                                    |
+| 02   | step-02-intake.md            | TEA knowledge-base check; `ticket-brief.md` (ticket runs) or confirmed module scope; config/credential check |
+| 03   | step-03-scenarios.md         | `scenarios.md` (status: draft) + `exploration/`, copied from `bmad-tea-test-design` output                   |
+| 04   | step-04-approve-scenarios.md | `scenarios.md` flipped to status: approved, by in-chat loop                                                  |
+| 05   | step-05-generate-cases.md    | `test-cases.md` (sectioned 9-column tables), approved by the same loop; staleness propagation                |
+| 06   | step-06-execute.md           | Per-case Playwright MCP execution; `evidence/{datetime}/`                                                    |
+| 07   | step-07-report.md            | `test-execution-{env}-{datetime}.md`, root `live-verification-results.json` merge, on-request publication    |
 
 ### Dev flow (steps-dev/)
 
-| Step | File                      | Produces                                                              |
-| ---- | ------------------------- | --------------------------------------------------------------------- |
-| 01   | step-01-spec-intake.md    | Located bmad-builder spec, `{key}`, saved app-run commands            |
-| 02   | step-02-hunt-scenarios.md | Bug-hunting scenarios (error cases, edges, integration points)        |
-| 03   | step-03-execute-triage.md | Execute → triage loop; report with `mode: dev`; cases file on request |
+| Step | File                      | Produces                                                                        |
+| ---- | ------------------------- | ------------------------------------------------------------------------------- |
+| 01   | step-01-spec-intake.md    | Located bmad-builder spec, `{key}`, saved app-run commands                      |
+| 02   | step-02-hunt-scenarios.md | Bug-hunting scenarios (error cases, edges, integration points)                  |
+| 03   | step-03-execute-triage.md | Execute → triage loop; report with `mode: dev`; the report is the only artifact |
 
 ### Edit mode (steps-e/)
 

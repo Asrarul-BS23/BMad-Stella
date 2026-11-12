@@ -3,8 +3,6 @@ name: 'step-03-execute-triage'
 description: 'Execute hunt scenarios via Playwright MCP with an in-session triage loop; report with mode: dev'
 reportFile: '{test_artifacts}/stella/{key}/test-execution-{env}-{datetime}.md'
 reportTemplate: '{skill-root}/templates/test-execution-template.md'
-casesFile: '{test_artifacts}/stella/{key}/test-cases.md'
-casesTemplate: '{skill-root}/templates/test-cases-template.md'
 evidenceDir: '{test_artifacts}/stella/{key}/evidence/{datetime}/'
 executionRules: '{skill-root}/resources/execution-rules.md'
 ---
@@ -55,7 +53,7 @@ Set `{datetime}` (`YYYY-MM-DD-HHmm`) and `{env}` (saved app config = `local` unl
 
 For each scenario, in order:
 
-1. Announce it, drive its steps through Playwright MCP, and assign a status per `{executionRules}` (integrity rule included: unperformed = `Not Run`).
+1. Announce it, drive its steps through Playwright MCP, and assign a status per `{executionRules}` (integrity rule included: unperformed = `Not Run`). While driving, note visual defects on the changed screens — misaligned, overlapping, clipped, or unstyled components — as observations, even when the functional check passes; they never change the scenario's status.
 2. On `Pass`: record and move on.
 3. On `Fail` / `Partly Pass`: capture evidence per the rules, then **triage with the dev immediately**:
 
@@ -67,11 +65,9 @@ For each scenario, in order:
 
 ### 3. Write the Report
 
-Fill `{reportTemplate}` into `{reportFile}` with frontmatter `mode: dev`. Include: final per-scenario results; a **Bugs Found** list (each with steps to reproduce, expected vs actual, evidence, fixed-in-session or still open); scenario corrections made; Failure Detail per `Fail` / `Partly Pass` with per-step results; and the count summary `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n`. Statuses reflect the **final** state after fixes; found-then-fixed bugs live in the Bugs Found list. Dev run reports never count as QA coverage.
+Fill `{reportTemplate}` into `{reportFile}` with frontmatter `mode: dev`. Include: final per-scenario results; a **Bugs Found** list (each with steps to reproduce, expected vs actual, evidence, fixed-in-session or still open); **visual observations** noted during execution (observations only — they alter no status); scenario corrections made; Failure Detail per `Fail` / `Partly Pass` with per-step results; and the count summary `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n`. Statuses reflect the **final** state after fixes; found-then-fixed bugs live in the Bugs Found list. Dev run reports never count as QA coverage.
 
-### 4. Offer the Cases File (On Request Only)
-
-Ask once: "Want a tabular test-case file to hand to QA?" Only on a yes, write `{casesFile}` from `{casesTemplate}` (the final scenarios as cases, verdict columns empty, continuous `TC-{key}-{NN}` IDs). Otherwise the report is the only artifact.
+**The report is the only artifact a dev run writes.** Never write a cases file — test cases are a QA-flow artifact, and dev output must never pre-seed QA's own case design. End the run with the report path and the offer to re-run the hunt after further fixes.
 
 ## On Complete
 
@@ -85,14 +81,13 @@ If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute
 
 - Every failure triaged with the dev before moving on; fix directions suggested, dev judged
 - Found-then-fixed bugs preserved in the report even when the final status is Pass
-- Report carries `mode: dev`; no live-verification record written
-- Cases file written only on an explicit yes
+- Report carries `mode: dev`; no live-verification record written; the report is the only artifact
 
 ### ❌ SYSTEM FAILURE:
 
 - Any status not backed by Playwright MCP execution in this session (integrity-rule violation)
 - Writing `live-verification-results.json`
-- Auto-generating the cases file, or suggesting automation code
+- Writing a cases file at all, or suggesting automation code
 - Erasing a found bug from the report because it was fixed
 
 **Master Rule:** The dev judges; you never overrule a triage decision. Unperformed = `Not Run`.

@@ -54,6 +54,7 @@ Bias every scenario toward where bugs live. Cover, in priority order:
 2. **Edge inputs** — boundary values, longest/shortest, zero/negative, unicode and whitespace, concurrent or repeated actions.
 3. **Integration points of the changed code** — every seam the spec touches: API contracts, shared state, navigation in/out, data written that another feature reads.
 4. One happy path per behavior — enough to prove the feature works at all, no more.
+5. **Visual state of changed screens** — note misaligned, overlapping, clipped, or unstyled components seen while executing, even when the functional check passes. Visual findings go into the report as observations; they never change a scenario's functional pass/fail status.
 
 For each scenario: a title, the steps in plain language, the expected behavior per the spec, and why it might break (the suspected risk). Keep the list executable in one sitting; depth over breadth.
 
@@ -65,7 +66,7 @@ Show the list with one line per scenario. Do not ask for approval. If the dev re
 
 ### ✅ SUCCESS:
 
-- Scenarios skew to error/edge/integration; happy paths minimal
+- Scenarios skew to error/edge/integration; happy paths minimal; visual state of changed screens watched throughout
 - Each scenario names its suspected risk
 - Straight to execution, no gate
 

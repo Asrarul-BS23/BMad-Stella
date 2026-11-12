@@ -35,7 +35,11 @@ Pass; for a skipped dependent, name the blocking case.
 - **Expected:** {from the case}
 - **Actual:** {what the browser showed}
 - **Per-step results:** {step m: pass/fail + observation — required for Partly Pass and Fail}
-- **Evidence:** {evidence/{datetime}/tc-{n}.png or tc-{n}-step-{m}.png}
+- **Evidence:**
+  ![TC-{key}-{n}](evidence/{datetime}/tc-{n}.png)
+  <!-- Embed every screenshot of the case as a markdown image (one line per file, tc-{n}-step-{m}.png
+  for step shots) so preview renders the picture. The relative path works: this report and
+  evidence/ share the same folder. The Results table above keeps a plain link, never an embed. -->
 
 ## Blocked / Not Run
 

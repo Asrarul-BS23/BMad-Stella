@@ -41,6 +41,7 @@ Criteria for Validate mode (`steps-v/step-01-validate.md`). Evaluate each item t
 - [ ] Results table has an Expected Results column, filled verbatim from the case, before Actual Results
 - [ ] Every case has a status from: Pass, Fail, Partly Pass, Blocked, Not Run
 - [ ] Every Fail / Partly Pass case has Failure Detail: steps to reproduce, expected vs actual, per-step results, evidence links that resolve to files in `evidence/{datetime}/`
+- [ ] Failure Detail embeds each screenshot as a markdown image (`![...](evidence/{datetime}/...)`) so preview shows the picture; the Results table keeps plain links only
 - [ ] Evidence filenames match `tc-{n}.png` / `tc-{n}-step-{m}.png`; with viewports, `tc-{n}-{viewport}.png` / `tc-{n}-{viewport}-step-{m}.png` (viewport before step)
 - [ ] Blocked vs Not Run semantics respected: precondition/env failure = Blocked; never attempted = Not Run; dependents of a blocker name the blocking case
 - [ ] Summary counts sum to the total case count (× combinations when viewports ran)

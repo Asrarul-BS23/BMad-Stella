@@ -54,7 +54,7 @@ Run `uv run {project-root}/_bmad/scripts/resolve_config.py --project-root {proje
 
 Each `core` and `modules.tea` key is available as `{<key>}`, and as `config.<key>` in later steps. Replace `{project-root}` inside a value with the project root. Setup answers are strings: read `"true"` and `"false"` as booleans.
 
-If `{tea-knowledge}/tea-index.csv` does not exist, the TEA knowledge base is not installed. The installer now runs this automatically (`npx skills add bmad-code-org/bmad-method-test-architecture-enterprise@v3.6.0`, right after the BMad step), so this should only happen on a pre-existing project that hasn't re-run the installer. Tell the user, offer to install it by hand with `npx skills add bmad-code-org/bmad-method-test-architecture-enterprise --skill bmod-tea`, run that on a yes, and stop until it is there. The QA flow invokes `bmad-tea-test-design`, which requires it.
+The TEA knowledge base (`{tea-knowledge}/tea-index.csv`) is **not** checked here — only the QA flow needs it, so the check runs at the start of the QA flow (`steps-c/step-02-intake.md`, section 1). A dev run must never halt on a dependency it does not use.
 
 ### Step 5: Verify Required Tools
 
@@ -123,4 +123,4 @@ Everything for one `{key}` lives under `{test_artifacts}/stella/{key}/`:
   progress.md                            <- this key's progress checkpoint (stores flowMode and Confluence page id)
 ```
 
-QA execute runs additionally merge their results into `{test_artifacts}/live-verification-results.json` — the root-level file TEA's `trace` reads. Dev runs never write it: dev runs never count as QA coverage.
+QA execute runs additionally merge their results into `{test_artifacts}/live-verification-results.json` — the root-level file TEA's `trace` reads. Dev runs never write it: dev runs never count as QA coverage. `test-cases.md` is likewise a QA-flow artifact only — dev runs never write it; the `mode: dev` execution report is a dev run's only artifact.
