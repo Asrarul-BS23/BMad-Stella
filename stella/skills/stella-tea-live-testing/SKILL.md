@@ -20,7 +20,7 @@ You will continue to operate with your given name, identity, and communication_s
 - `{skill-name}` resolves to the skill directory's basename.
 - Resolve sibling workflow files such as `instructions.md`, `checklist.md`, `steps-c/...`, `steps-dev/...`, `steps-e/...`, `steps-v/...`, `templates/...`, and `resources/...` from `{skill-root}`.
 - `{key}` is this run's subject: a Jira ticket key verbatim (e.g. `STEL-123`), or a module name slugified (lowercase, runs of characters outside `a-z0-9` collapsed to single `-`, trimmed, max 64 chars).
-- Every artifact for one `{key}` lives under `{test_artifacts}/stella/{key}/`.
+- Per-key artifacts split in two: deliverables (test cases, run reports, issues reports) under `{test_artifacts}/{key}/`; internal artifacts under `{test_artifacts}/stella/{key}/`.
 - 🚫 Never suggest writing automation code or an `automate` handoff — in any flow, at any step, including after a report. Automation code writing is not part of the QA or dev flow.
 - 🚫 Never re-ask a value already supplied this run (invocation, config, or checkpoint) — ask only when it's missing from all three. Gates (approval locks, derived-AC confirmation, blocked cascade, SD-escape notice) are not questions and stay regardless.
 
@@ -109,17 +109,22 @@ When the invocation already carries an operation or an input (`flow_mode` preset
 
 ## Outputs
 
-Everything for one `{key}` lives under `{test_artifacts}/stella/{key}/`:
+Each `{key}`'s outputs split in two. **Deliverables** — files handed to the team — live under `{test_artifacts}/{key}/`; **internal artifacts** live under `{test_artifacts}/stella/{key}/`:
 
 ```text
-{test_artifacts}/stella/{key}/
+{test_artifacts}/{key}/                  <- deliverables
+  test-cases.md                          <- locked tabular test cases, one ## Section heading + table per group
+  test-cases.{html|pdf}                  <- self-contained copy per report_format; regenerated only at approval
+  test-execution-{env}-{datetime}.md     <- one report per run (QA and dev), datetime = YYYY-MM-DD-HHmm
+  test-execution-{env}-{datetime}.{html|pdf} <- self-contained copy per report_format (base64-embedded screenshots)
+  issues-{env}-{datetime}.{html|pdf}     <- failed-cases-only report, only when a run has Fail / Partly Pass cases
+
+{test_artifacts}/stella/{key}/           <- internal
   ticket-brief.md                        <- Jira fetch (ticket runs only)
   attachments/                           <- Jira attachments (ticket runs only); purged once test cases are approved
   scenarios.md                           <- copied from test-design output, frontmatter status: draft|approved
   exploration/                           <- exploration images copied with scenarios.md, links rewritten
-  test-cases.md                          <- locked tabular test cases, one ## Section heading + table per group
-  test-execution-{env}-{datetime}.md     <- one report per run (QA and dev), datetime = YYYY-MM-DD-HHmm
-  evidence/{datetime}/tc-{n}.png         <- screenshots, only for Fail / Partly Pass; tc-{n}-step-{m}.png for per-step shots
+  evidence/{datetime}/tc-{n}.png         <- screenshots for EVERY executed case (Pass included); tc-{n}-step-{m}.png for per-step shots
   progress.md                            <- this key's progress checkpoint (stores flowMode and Confluence page id)
 ```
 

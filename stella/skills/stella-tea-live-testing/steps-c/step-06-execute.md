@@ -3,7 +3,7 @@ name: 'step-06-execute'
 description: 'Execute each approved test case one by one via Playwright MCP on the designated environment, capturing evidence under the integrity rule'
 nextStepFile: '{skill-root}/steps-c/step-07-report.md'
 checkpointFile: '{test_artifacts}/stella/{key}/progress.md'
-casesFile: '{test_artifacts}/stella/{key}/test-cases.md'
+casesFile: '{test_artifacts}/{key}/test-cases.md'
 evidenceDir: '{test_artifacts}/stella/{key}/evidence/{datetime}/'
 executionRules: '{skill-root}/resources/execution-rules.md'
 ---
@@ -67,7 +67,7 @@ For each case in scope (the full `{casesFile}` in file order, or only the chosen
 2. Establish the precondition, including role login **before** the test body.
 3. Drive each numbered step through Playwright MCP exactly as written. Observe the result of each step against the expected results.
 4. Assign the status per `{executionRules}` section 2. Record per-step results for `Fail` / `Partly Pass`.
-5. Capture screenshots per `{executionRules}` section 4 — `Fail` / `Partly Pass` only, into `{evidenceDir}`.
+5. Capture screenshots per `{executionRules}` section 4 — every executed case, at the moment the expected result (or its absence) is visible, with the red/green element highlight — into `{evidenceDir}`.
 6. On a `Blocked` case with dependents, run the blocked-cascade question (`{executionRules}` section 3) and **halt** for the answer.
 7. Record the case's result (status, observed actuals, per-step detail, evidence paths) in working notes for step-07 **before** starting the next case.
 
@@ -84,7 +84,7 @@ Load next step: `{nextStepFile}`
 ### ✅ SUCCESS:
 
 - Every reported status comes from steps actually driven through Playwright MCP in this run
-- Evidence captured only for Fail / Partly Pass, named per the rules, under the run's `{datetime}` folder
+- Evidence captured for every executed case (Pass included), named per the rules, under the run's `{datetime}` folder
 - Credentials resolved before the first case; none written to any artifact
 - Blocked cascades asked, never silently decided
 - A scoped run only asked when a propagation actually occurred since the last run; full suite is the default otherwise

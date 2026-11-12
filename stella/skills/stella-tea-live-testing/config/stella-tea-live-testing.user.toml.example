@@ -20,6 +20,9 @@ password_env = "QA_STAGING_CUSTOMER_PASSWORD"
 [workflow.defaults]
 environment = "staging"
 user = "admin"
+# report_format = "html"    # md | html | pdf — extra self-contained copy of run reports,
+#                            # case sheet, and the failed-cases-only issues report.
+#                            # md = markdown only. Saved by the skill on first ask.
 # flow_mode = "dev"          # optional personal default flow (qa | dev)
 # module_publish = ""        # saved by the skill: confluence | jira | files
 # jira_publish_project = ""  # saved by the skill on first module publish to a Jira ticket

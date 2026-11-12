@@ -87,7 +87,7 @@ Checkpoints live at `{test_artifacts}/stella/{key}/progress.md`, one per `{key}`
 | Step | File                      | Produces                                                                        |
 | ---- | ------------------------- | ------------------------------------------------------------------------------- |
 | 01   | step-01-spec-intake.md    | Located bmad-builder spec, `{key}`, saved app-run commands                      |
-| 02   | step-02-hunt-scenarios.md | Bug-hunting scenarios (error cases, edges, integration points)                  |
+| 02   | step-02-hunt-scenarios.md | Bug-hunting scenarios (error cases, edges, integration points, visual checks)   |
 | 03   | step-03-execute-triage.md | Execute → triage loop; report with `mode: dev`; the report is the only artifact |
 
 ### Edit mode (steps-e/)

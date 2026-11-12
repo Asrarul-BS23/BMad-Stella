@@ -48,7 +48,7 @@ Validate one key's artifacts against the workflow checklist and record findings.
 
 If the user named a key, validate that key. Otherwise list keys with artifacts under `{test_artifacts}/stella/` and ask which to validate; when several candidates exist, do not guess.
 
-The key's artifacts to validate, where present: `ticket-brief.md`, `scenarios.md`, `test-cases.md`, every `test-execution-*.md`, `evidence/`, `progress.md`, and this key's records in `{test_artifacts}/live-verification-results.json`.
+The key's artifacts to validate, where present: under `{test_artifacts}/stella/{key}/` — `ticket-brief.md`, `scenarios.md`, `evidence/`, `progress.md`; under `{test_artifacts}/{key}/` (deliverables) — `test-cases.md` (+ `test-cases.html|pdf`), every `test-execution-*.md` (+ formatted copies), `issues-*.html|pdf`; and this key's records in `{test_artifacts}/live-verification-results.json`.
 
 Set `run_timestamp` to the current UTC time with milliseconds in `YYYYMMDDTHHmmssSSSZ` format and resolve `{outputFile}`. Atomically reserve that path using an exclusive-create operation that fails if the file already exists. A separate existence check followed by a normal write is forbidden. On collision, generate a fresh timestamp and retry exclusive creation until it succeeds. Initialize the reserved file with the key, `run_timestamp`, the artifact list, and `status: IN_PROGRESS`. Never delete, truncate, or reuse a report from another run.
 

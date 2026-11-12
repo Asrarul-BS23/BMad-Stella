@@ -45,7 +45,7 @@ Secret resolution order at run time: `secrets.env` â†’ OS environment variable â
 
 ## Artifacts
 
-Everything for one `{key}` lands under `{test_artifacts}/stella/{key}/`: `ticket-brief.md`, `scenarios.md` + `exploration/`, `test-cases.md`, timestamped `test-execution-{env}-{datetime}.md` reports, `evidence/{datetime}/`, and `progress.md` (resume checkpoint). QA runs also merge coverage records into `{test_artifacts}/live-verification-results.json`, which TEA's `trace` reads; dev runs never do.
+Each `{key}`'s outputs split in two. Deliverables land under `{test_artifacts}/{key}/`: `test-cases.md`, timestamped `test-execution-{env}-{datetime}.md` reports, plus self-contained `.html`/`.pdf` copies and failed-cases-only `issues-{env}-{datetime}` reports per the saved `report_format`. Internal artifacts stay under `{test_artifacts}/stella/{key}/`: `ticket-brief.md`, `scenarios.md` + `exploration/`, `evidence/{datetime}/` (a screenshot for every executed case), and `progress.md` (resume checkpoint). QA runs also merge coverage records into `{test_artifacts}/live-verification-results.json`, which TEA's `trace` reads; dev runs never do.
 
 ## Entry Points
 

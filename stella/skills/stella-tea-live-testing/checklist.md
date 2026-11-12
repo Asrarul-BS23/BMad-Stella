@@ -4,7 +4,7 @@ Criteria for Validate mode (`steps-v/step-01-validate.md`). Evaluate each item t
 
 ## 1. Layout and Identity
 
-- [ ] Every artifact for the key lives under `{test_artifacts}/stella/{key}/`; no stray files in other keys' folders
+- [ ] Deliverables (`test-cases.*`, `test-execution-*`, `issues-*`) live under `{test_artifacts}/{key}/`; internal artifacts (brief, scenarios, exploration, evidence, progress) under `{test_artifacts}/stella/{key}/`; no stray files in other keys' folders
 - [ ] `{key}` is a verbatim uppercase ticket key or a valid slug (lowercase, `a-z0-9-`, ≤64 chars)
 - [ ] `progress.md` (when present) carries `key`, `flowMode: qa`, and a `nextStep` that names an existing step file or is empty with `workflowStatus: completed`
 
@@ -40,9 +40,11 @@ Criteria for Validate mode (`steps-v/step-01-validate.md`). Evaluate each item t
 - [ ] Frontmatter carries `mode` (`qa` or `dev`), `environment`, `datetime`, `executed_as` (role, not credential), `source_sha` or an explicit unresolved note
 - [ ] Results table has an Expected Results column, filled verbatim from the case, before Actual Results
 - [ ] Every case has a status from: Pass, Fail, Partly Pass, Blocked, Not Run
-- [ ] Every Fail / Partly Pass case has Failure Detail: steps to reproduce, expected vs actual, per-step results, evidence links that resolve to files in `evidence/{datetime}/`
-- [ ] Failure Detail embeds each screenshot as a markdown image (`![...](evidence/{datetime}/...)`) so preview shows the picture; the Results table keeps plain links only
+- [ ] Every Fail / Partly Pass case has Failure Detail: steps to reproduce, expected vs actual, per-step results, embedded evidence resolving to files in `../stella/{key}/evidence/{datetime}/`
+- [ ] Every executed case (Pass included) has at least one screenshot; Pass screenshots sit embedded under `## Evidence — Passed Cases`; Blocked / Not Run cases have none
+- [ ] Every screenshot in the report is an embedded markdown image (`![...](../stella/{key}/evidence/{datetime}/...)`) — no bare evidence links or paths anywhere; the Results table's Evidence/Comments column carries notes only
 - [ ] Evidence filenames match `tc-{n}.png` / `tc-{n}-step-{m}.png`; with viewports, `tc-{n}-{viewport}.png` / `tc-{n}-{viewport}-step-{m}.png` (viewport before step)
+- [ ] When `report_format` is `html`/`pdf`: a self-contained formatted copy exists beside each run report (screenshots inlined, no external references), and an `issues-{env}-{datetime}` file exists exactly when the run had Fail / Partly Pass cases
 - [ ] Blocked vs Not Run semantics respected: precondition/env failure = Blocked; never attempted = Not Run; dependents of a blocker name the blocking case
 - [ ] Summary counts sum to the total case count (× combinations when viewports ran)
 

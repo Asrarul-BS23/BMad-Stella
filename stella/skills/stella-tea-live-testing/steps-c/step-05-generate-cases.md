@@ -4,7 +4,7 @@ description: 'Generate sectioned tabular test cases from the approved scenarios 
 nextStepFile: '{skill-root}/steps-c/step-06-execute.md'
 checkpointFile: '{test_artifacts}/stella/{key}/progress.md'
 scenariosFile: '{test_artifacts}/stella/{key}/scenarios.md'
-casesFile: '{test_artifacts}/stella/{key}/test-cases.md'
+casesFile: '{test_artifacts}/{key}/test-cases.md'
 casesTemplate: '{skill-root}/templates/test-cases-template.md'
 attachmentsDir: '{test_artifacts}/stella/{key}/attachments/'
 ---
@@ -77,6 +77,8 @@ Show a summary (sections, case count, IDs and titles per section; full rows on r
 Case-level edits here do not touch `{scenariosFile}`. If a requested change contradicts an approved scenario, say so and ask whether to edit the scenario instead (that re-opens step-04 for the changed scenario, then propagates per section 2).
 
 ### 5. On Approval
+
+**Formatted copy of the case sheet:** resolve `{workflow.defaults.report_format}` (`md` | `html` | `pdf`); when absent, ask once — "Besides markdown, which format do you want run reports and case sheets in: **HTML**, **PDF**, or **none**?" — and offer to save the answer to `[workflow.defaults] report_format` in the `.user.toml` (§6 ask-fallback; §9 stops any re-ask — step-07 asks the same question only when it was never asked). On `html`/`pdf`, write `test-cases.{html|pdf}` beside `{casesFile}` as a single self-contained file (inline CSS; PDF via Playwright MCP `browser_pdf_save` on the intermediate `file://` HTML, HTML kept instead when the tool is unavailable — never block on it). Regenerate this copy **only here, at the approval flip** — never per propagation iteration.
 
 **Ticket runs — attachment cleanup:** run `node {project-root}/_bmad/custom/stella/utils/jira-attachments {key} --purge`, then delete `{attachmentsDir}` (the copy made at intake). Attachments are scenario-design input only; once cases are locked, they serve no further purpose. The brief's Context section keeps the text record that they existed — only the files are removed.
 

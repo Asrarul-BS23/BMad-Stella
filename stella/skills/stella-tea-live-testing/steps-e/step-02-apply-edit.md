@@ -2,7 +2,7 @@
 name: 'step-02-apply-edit'
 description: 'Apply the confirmed edit plan, propagate scenario changes to cases, report a cause-linked change summary, and reset approval'
 scenariosFile: '{test_artifacts}/stella/{key}/scenarios.md'
-casesFile: '{test_artifacts}/stella/{key}/test-cases.md'
+casesFile: '{test_artifacts}/{key}/test-cases.md'
 checkpointFile: '{test_artifacts}/stella/{key}/progress.md'
 ---
 

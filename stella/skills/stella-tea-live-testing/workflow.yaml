@@ -21,8 +21,10 @@ variables:
   # e.g. "desktop-1920,tablet-768,mobile-390" or Playwright device descriptor names
 
 # Output configuration
-# All per-key outputs live under {test_artifacts}/stella/{key}/ — {key} is a Jira
-# ticket key or a slugified module name, resolved at intake.
+# Per-key outputs split in two: deliverables (test cases, run reports, issues reports)
+# live under {test_artifacts}/{key}/; internal artifacts (brief, scenarios, evidence,
+# checkpoint) live under {test_artifacts}/stella/{key}/. {key} is a Jira ticket key
+# or a slugified module name, resolved at intake.
 outputs:
   - id: ticket-brief
     description: "Jira ticket summary, description, and acceptance criteria (ticket runs only)"
@@ -36,12 +38,17 @@ outputs:
 
   - id: test-cases
     description: "Tabular test cases (9-column team format), sectioned by sub-feature; generated only from an approved scenarios file"
-    path: "{test_artifacts}/stella/{key}/test-cases.md"
+    path: "{test_artifacts}/{key}/test-cases.md"
     flow: qa
 
   - id: test-execution-report
     description: "One timestamped report per execution run (QA and dev); the locked test-case file is never touched by runs"
-    path: "{test_artifacts}/stella/{key}/test-execution-{env}-{datetime}.md"
+    path: "{test_artifacts}/{key}/test-execution-{env}-{datetime}.md"
+    flow: both
+
+  - id: formatted-reports
+    description: "Self-contained HTML/PDF copies of case sheet and run reports, plus the failed-cases-only issues report, per [workflow.defaults] report_format; skipped when report_format is md"
+    path: "{test_artifacts}/{key}/issues-{env}-{datetime}.{html|pdf}"
     flow: both
 
   - id: live-verification-results

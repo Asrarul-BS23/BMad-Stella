@@ -1,7 +1,8 @@
 ---
 name: 'step-03-execute-triage'
 description: 'Execute hunt scenarios via Playwright MCP with an in-session triage loop; report with mode: dev'
-reportFile: '{test_artifacts}/stella/{key}/test-execution-{env}-{datetime}.md'
+reportFile: '{test_artifacts}/{key}/test-execution-{env}-{datetime}.md'
+issuesFile: '{test_artifacts}/{key}/issues-{env}-{datetime}' # extension from report_format
 reportTemplate: '{skill-root}/templates/test-execution-template.md'
 evidenceDir: '{test_artifacts}/stella/{key}/evidence/{datetime}/'
 executionRules: '{skill-root}/resources/execution-rules.md'
@@ -65,9 +66,11 @@ For each scenario, in order:
 
 ### 3. Write the Report
 
-Fill `{reportTemplate}` into `{reportFile}` with frontmatter `mode: dev`. Include: final per-scenario results; a **Bugs Found** list (each with steps to reproduce, expected vs actual, evidence, fixed-in-session or still open); **visual observations** noted during execution (observations only — they alter no status); scenario corrections made; Failure Detail per `Fail` / `Partly Pass` with per-step results; and the count summary `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n`. Statuses reflect the **final** state after fixes; found-then-fixed bugs live in the Bugs Found list. Dev run reports never count as QA coverage.
+Fill `{reportTemplate}` into `{reportFile}` with frontmatter `mode: dev`. Include: final per-scenario results; a **Bugs Found** list (each with steps to reproduce, expected vs actual, evidence, fixed-in-session or still open); **visual observations** noted during execution (observations only — they alter no status); scenario corrections made; Failure Detail per `Fail` / `Partly Pass` with per-step results; an `## Evidence — Passed Cases` section per `{executionRules}` §4; and the count summary `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n`. Every screenshot appears **embedded as a rendered image** (`![...](../stella/{key}/evidence/{datetime}/...)`), never a bare link. Statuses reflect the **final** state after fixes; found-then-fixed bugs live in the Bugs Found list. Dev run reports never count as QA coverage.
 
-**The report is the only artifact a dev run writes.** Never write a cases file — test cases are a QA-flow artifact, and dev output must never pre-seed QA's own case design. End the run with the report path and the offer to re-run the hunt after further fixes.
+**Formatted reports:** apply the QA flow's §1b of `steps-c/step-07-report.md` unchanged — resolve/ask `{workflow.defaults.report_format}` once, build the self-contained HTML (base64-embedded screenshots) or PDF (via `browser_pdf_save`, HTML fallback, never blocking), and when `Fail` / `Partly Pass` scenarios remain, build `{issuesFile}.{html|pdf}` with the failed scenarios only. Then open the produced `.html`/`.pdf` file(s) in the OS default browser (OS open on the `file://` URL — never the Playwright test browser, never a forced new window).
+
+**The report (plus its formatted copies) is the only artifact a dev run writes.** Never write a cases file — test cases are a QA-flow artifact, and dev output must never pre-seed QA's own case design. End the run with the report path and the offer to re-run the hunt after further fixes.
 
 ## On Complete
 
@@ -81,7 +84,7 @@ If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute
 
 - Every failure triaged with the dev before moving on; fix directions suggested, dev judged
 - Found-then-fixed bugs preserved in the report even when the final status is Pass
-- Report carries `mode: dev`; no live-verification record written; the report is the only artifact
+- Report carries `mode: dev`; no live-verification record written; the report (plus its formatted copies) is the only artifact
 
 ### ❌ SYSTEM FAILURE:
 

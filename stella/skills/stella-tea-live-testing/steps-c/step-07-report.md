@@ -2,10 +2,12 @@
 name: 'step-07-report'
 description: 'Write the timestamped run report, merge live-verification records into the root trace file, and publish only on request'
 checkpointFile: '{test_artifacts}/stella/{key}/progress.md'
-reportFile: '{test_artifacts}/stella/{key}/test-execution-{env}-{datetime}.md'
+reportFile: '{test_artifacts}/{key}/test-execution-{env}-{datetime}.md'
+issuesFile: '{test_artifacts}/{key}/issues-{env}-{datetime}' # extension from report_format
 reportTemplate: '{skill-root}/templates/test-execution-template.md'
 liveResultsFile: '{test_artifacts}/live-verification-results.json'
-casesFile: '{test_artifacts}/stella/{key}/test-cases.md'
+casesFile: '{test_artifacts}/{key}/test-cases.md'
+evidenceDir: '{test_artifacts}/stella/{key}/evidence/{datetime}/'
 ---
 
 # Step 7: Report, Trace Record, Publication
@@ -46,7 +48,15 @@ Turn the execution notes into the timestamped run report, merge this run's recor
 
 ### 1. Write the Run Report
 
-Fill `{reportTemplate}` into `{reportFile}` (`{env}` and `{datetime}` from step-06's run setup): frontmatter (`mode: qa`), the per-case results table — including its Expected Results column, copied verbatim from the case, never reworded — a Failure Detail subsection for every `Fail` / `Partly Pass` case (steps to reproduce, expected vs actual, per-step results, evidence screenshots embedded as markdown images — `![...](evidence/{datetime}/...)` — one per file, while the Results table keeps plain links), the Blocked / Not Run table with reasons, and the summary line `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n` whose counts sum to the total. `{casesFile}` stays untouched. **Scoped run (step-06 ran only a subset):** the report covers only the executed cases — the total is the subset's size, not the full case count; unexecuted cases are not listed as `Not Run` filler, they simply are not part of this report. Run history is append-only: never delete or overwrite a previous run's report. Format reference: `{skill-root}/resources/test-execution.example.md` — a worked example of a filled report.
+Fill `{reportTemplate}` into `{reportFile}` (`{env}` and `{datetime}` from step-06's run setup): frontmatter (`mode: qa`), the per-case results table — including its Expected Results column, copied verbatim from the case, never reworded, and an Evidence/Comments column carrying **notes only, never a path or link** — a Failure Detail subsection for every `Fail` / `Partly Pass` case (steps to reproduce, expected vs actual, per-step results), an `## Evidence — Passed Cases` section (one subsection per `Pass` case), the Blocked / Not Run table with reasons, and the summary line `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n` whose counts sum to the total. **Every screenshot of every executed case appears embedded as a rendered markdown image** — `![...](../stella/{key}/evidence/{datetime}/...)`, one line per file, never a bare link. `{casesFile}` stays untouched. **Scoped run (step-06 ran only a subset):** the report covers only the executed cases — the total is the subset's size, not the full case count; unexecuted cases are not listed as `Not Run` filler, they simply are not part of this report. Run history is append-only: never delete or overwrite a previous run's report. Format reference: `{skill-root}/resources/test-execution.example.md` — a worked example of a filled report.
+
+### 1b. Formatted Reports and the Issues Report (`report_format`)
+
+Resolve the preference: `{workflow.defaults.report_format}` (`md` | `html` | `pdf`). When absent, ask once — "Besides markdown, which format do you want run reports in: **HTML**, **PDF**, or **none**?" — and offer to save the answer to `[workflow.defaults] report_format` in the `.user.toml` (§6 ask-fallback; §9 stops any re-ask). One preference covers both the execution report and the issues report. On `md`, skip this whole section.
+
+1. **Build the HTML**: write a single self-contained HTML file next to `{reportFile}` with the same base name (`.html`) — inline CSS only, every evidence screenshot inlined as a base64 `data:` URI, no external references — so the file is a standalone document deliverable to anyone. Content mirrors the markdown report one-to-one.
+2. **PDF (when preference is `pdf`)**: open that HTML via its `file://` URL in the Playwright MCP browser and save it with `browser_pdf_save` to the same base name (`.pdf`); then delete the intermediate `.html`. When `browser_pdf_save` is not available on the connected server, keep and deliver the `.html` instead and say so in one line — **never block the run on format export**.
+3. **Issues report — only when the run has `Fail` / `Partly Pass` cases**: build `{issuesFile}.{html|pdf}` the same way (self-contained, preferred format, no `.md` twin). Content: one section per failed case — ID + title, numbered reproduce steps exactly as driven, expected vs actual, per-step results, every evidence screenshot embedded full-width. Nothing else: no passed cases, no summary table beyond a count line.
 
 ### 2. Merge the Trace Record
 
@@ -65,9 +75,9 @@ Every QA run emits live coverage evidence into `{liveResultsFile}` — the root-
 
 **Dev runs never write this file.**
 
-### 3. Show the Report
+### 3. Show and Open the Report
 
-Display the report to the user, ending with the count summary line.
+Display the report to the user, ending with the count summary line. When a formatted file was produced (§1b), open it in the **OS default browser** — the execution report's `.html`/`.pdf`, and the issues report when one exists — via an OS open command on the `file://` URL (`Start-Process` on Windows, `open` on macOS, `xdg-open` on Linux). Never open it in the Playwright test browser, and never force a new browser window — a file URL lands as a new tab of the user's existing window. Preference `md` → nothing opens.
 
 ### 4. Offer Publication (On Request Only)
 
@@ -92,7 +102,8 @@ If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute
 
 ### ✅ SUCCESS:
 
-- Report written with full failure detail and a summary whose counts sum to the total
+- Report written with full failure detail, embedded evidence images for every executed case (passed ones included), and a summary whose counts sum to the total
+- Preferred-format report (and issues report, when failures exist) produced self-contained and opened in the OS default browser; `report_format` asked at most once and saved
 - Root `{liveResultsFile}` merged: full run replaces this key's records, scoped run replaces only the executed subset's, other keys' preserved, per-record `source_sha`
 - Nothing posted to Jira/Confluence without an explicit yes this run
 - Re-publish updated the saved Confluence page instead of duplicating
@@ -105,6 +116,8 @@ If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute
 - A scoped run erasing trace records for cases outside its own scope
 - Publishing verdict columns or results to Confluence/Jira
 - Deleting or overwriting a previous run's report
+- Evidence rendered as a bare link/path anywhere in a report instead of an embedded image
+- Blocking the run because `browser_pdf_save` is unavailable, or opening reports in the Playwright test browser
 - Re-offering a module publish destination step-05 already asked and saved
 
 **Master Rule:** The report states only what was observed. Skipping steps is FORBIDDEN.

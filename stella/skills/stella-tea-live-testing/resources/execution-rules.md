@@ -40,11 +40,12 @@ Halt until they answer. Skipped dependents are `Not Run` with a comment naming t
 
 ## 4. Evidence Capture
 
-- Screenshots are taken **only** for `Fail` and `Partly Pass` cases. Passing cases produce no screenshot.
+- **Every executed case** (`Pass`, `Fail`, `Partly Pass`) gets at least one screenshot, taken at the moment the expected result — or its absence — is visible on screen (success message, flag, end state). The screenshot is visible proof that the case was truly driven, backing the §1 integrity rule. `Blocked` and `Not Run` cases get no screenshot — nothing was executed.
 - Path: `{test_artifacts}/stella/{key}/evidence/{datetime}/tc-{n}.png`, where `{datetime}` is this run's `YYYY-MM-DD-HHmm` stamp and `{n}` is the final sequence number of the case ID (`TC-{key}-{n}`), without leading zeros.
-- When one case yields several step-level screenshots (Partly Pass detail), name them `tc-{n}-step-{m}.png`. With viewports, the viewport comes before the step: `tc-{n}-{viewport}-step-{m}.png`.
-- Every `Fail` / `Partly Pass` case carries in the report: steps to reproduce, screenshot evidence links, and expected vs actual.
-- **Mark the failing element before shooting:** call `browser_highlight` on the element that carries the failure (style: `outline: 3px solid red`), take the screenshot, then call `browser_hide_highlight`. When `browser_highlight` is not available on the connected Playwright MCP server, inject the same outline onto the element via `browser_evaluate`, take the screenshot, then remove it. Skip the highlight when no single element carries the failure (blank page, crash, wrong redirect) — shoot the page as-is.
+- When one case yields several screenshots (any status), name them `tc-{n}-step-{m}.png`. With viewports, the viewport comes before the step: `tc-{n}-{viewport}-step-{m}.png`.
+- Every `Fail` / `Partly Pass` case carries in the report: steps to reproduce, embedded screenshot evidence, and expected vs actual.
+- **Mark the key element before shooting:** on `Fail` / `Partly Pass`, call `browser_highlight` on the element that carries the failure with `outline: 3px solid red`; on `Pass`, highlight the element that carries the success (message/flag) with `outline: 3px solid green`. Then take the screenshot and call `browser_hide_highlight`. When `browser_highlight` is not available on the connected Playwright MCP server, inject the same outline onto the element via `browser_evaluate`, take the screenshot, then remove it. Skip the highlight when no single element carries the failure or success (blank page, crash, wrong redirect, whole-page state) — shoot the page as-is.
+- **Reports embed screenshots, never link them:** every screenshot appears in reports as a rendered image — `![...](...)` in markdown, inlined base64 in HTML/PDF. Reports live in `{test_artifacts}/{key}/` while screenshots stay in `{test_artifacts}/stella/{key}/evidence/`, so markdown reports embed via the relative path `../stella/{key}/evidence/{datetime}/...`.
 
 ## 5. Login and Credentials
 

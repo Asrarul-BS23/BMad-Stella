@@ -17,8 +17,8 @@ source_sha: '9f2c41d8b7e35a06c1d4f8e29b7a3c5d6e081f42'
 | ID             | Title                               | Expected Results                                               | Actual Results                                                    | Status      | Evidence/Comments                                    |
 | -------------- | ----------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------- | ----------- | ---------------------------------------------------- |
 | TC-STEL-123-01 | Create supplement with valid data   | Supplement saved; appears in list with correct name and dosage | Supplement saved; appears in list with correct name and dosage    | Pass        |                                                      |
-| TC-STEL-123-02 | Reject empty supplement name        | Validation error on Name; nothing saved                        | Form submitted; row created with blank name                       | Fail        | evidence/2026-10-29-1430/tc-2.png — no validation    |
-| TC-STEL-123-03 | Edit supplement as customer role    | Both fields persist after save and reopen                      | Edit form opens and saves text fields; dosage field not persisted | Partly Pass | evidence/2026-10-29-1430/tc-3-step-4.png             |
+| TC-STEL-123-02 | Reject empty supplement name        | Validation error on Name; nothing saved                        | Form submitted; row created with blank name                       | Fail        | No validation fired on Save                          |
+| TC-STEL-123-03 | Edit supplement as customer role    | Both fields persist after save and reopen                      | Edit form opens and saves text fields; dosage field not persisted | Partly Pass | Dosage reverts on reopen                             |
 | TC-STEL-123-04 | Delete supplement with confirmation | Delete button available; confirmation removes the supplement   | Delete button missing on staging — feature flag off               | Blocked     | Precondition failed: `supplements_delete` flag off   |
 | TC-STEL-123-05 | Audit log lists supplement deletion | Audit log entry appears for the deletion                       |                                                                   | Not Run     | Depends on TC-STEL-123-04 (Blocked); user chose skip |
 
@@ -31,7 +31,7 @@ source_sha: '9f2c41d8b7e35a06c1d4f8e29b7a3c5d6e081f42'
 - **Actual:** Save succeeded; list shows a row with an empty name.
 - **Per-step results:** step 1 pass, step 2 pass, step 3 pass, step 4 fail (no validation, row created).
 - **Evidence:**
-  ![TC-STEL-123-02](evidence/2026-10-29-1430/tc-2.png)
+  ![TC-STEL-123-02](../stella/STEL-123/evidence/2026-10-29-1430/tc-2.png)
 
 ### TC-STEL-123-03 — Edit supplement as customer role (Partly Pass)
 
@@ -40,7 +40,13 @@ source_sha: '9f2c41d8b7e35a06c1d4f8e29b7a3c5d6e081f42'
 - **Actual:** Name persisted; Dosage reverted to `10mg` on reopen.
 - **Per-step results:** steps 1–3 pass, step 4 pass (input accepted), step 5 fail (dosage not persisted).
 - **Evidence:**
-  ![TC-STEL-123-03 step 4](evidence/2026-10-29-1430/tc-3-step-4.png)
+  ![TC-STEL-123-03 step 4](../stella/STEL-123/evidence/2026-10-29-1430/tc-3-step-4.png)
+
+## Evidence — Passed Cases
+
+### TC-STEL-123-01 — Create supplement with valid data (Pass)
+
+![TC-STEL-123-01](../stella/STEL-123/evidence/2026-10-29-1430/tc-1.png)
 
 ## Blocked / Not Run
 
