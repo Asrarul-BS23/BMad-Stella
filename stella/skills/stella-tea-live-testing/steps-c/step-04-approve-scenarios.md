@@ -26,7 +26,7 @@ Run the human approval loop on `{scenariosFile}` until QA approves, then flip it
 
 ### Step-Specific Rules
 
-- 🚫 Approval is explicit. Only a clear user statement of approval ("approved", "looks good, lock it", an unambiguous yes to "approve?") flips the status. Silence, a question, or partial feedback never does.
+- 🚫 Approval is explicit. Only a clear user statement of approval ("approved", "looks good, lock it", selecting **"Approved"** in the interactive prompt) flips the status. Silence, a question, or partial feedback never does.
 - 🚫 The skill flips the status, not the user by hand — but only after that explicit approval.
 
 ## EXECUTION PROTOCOLS:
@@ -51,13 +51,13 @@ Display the scenario list from `{scenariosFile}`, grouped by its `##` sections: 
 
 ### 2. Refine Loop
 
-Ask: "Review the scenarios. Reply with changes (edit, add, remove, rename/merge/split sections), or say **approved** to lock them."
+Ask the verdict interactively (per the `SKILL.md` convention): "Review the scenarios." Options: **"Approved"** (lock) / **"Refine"** / **"Show full rows first"**. On "Refine", collect the changes in normal chat (edit, add, remove, rename/merge/split sections) — never through the "Other" field.
 
 On each reply that is not an approval:
 
 1. Apply the requested changes to `{scenariosFile}` — edit, add, or remove scenarios; rename, merge, or split `##` sections. SC ids follow step-03's stability rule: an added scenario takes the **next free** `SC-n` wherever it sits, a removed one leaves a gap, and existing ids are never renumbered or reused.
 2. Keep `status: draft` while refining.
-3. Show the updated list (changed items marked) and repeat the question.
+3. Show the updated list (changed items marked) and repeat the interactive verdict prompt.
 
 **Halt** for the user between every iteration. Never approve on the user's behalf; never time out the loop.
 

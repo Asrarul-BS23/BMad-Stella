@@ -53,7 +53,7 @@ This list is the **single source** of the flow-mode priority order; SKILL.md and
    - A module name (a named area of the system, no ticket pattern, no spec file) → `flow_mode = qa`. The dev flow's input is always an implementation spec, so a module name always means `qa`.
    - A bmad-builder implementation spec (a path to it, or words like "my implementation", "the spec", "before handoff") → `flow_mode = dev`.
 4. **Personal default.** `{workflow.defaults.flow_mode}` is set and the input does not contradict it → use it.
-5. **Ask.** Display exactly one question and **halt** until answered:
+5. **Ask.** Display exactly one question (interactive, per the `SKILL.md` convention — options: "QA run" / "Dev bug hunt") and **halt** until answered:
 
    > "Is this (A) a **QA run** — design, lock, and execute test cases for a ticket or module — or (B) a **dev bug hunt** — test your own implemented ticket from its spec before handoff?"
 

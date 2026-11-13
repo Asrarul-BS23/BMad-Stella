@@ -59,7 +59,7 @@ Run this section only when `input_type = ticket`; a module run skips to section 
 
 1. Fetch the ticket `{key}` via the Jira (Atlassian) MCP: summary, description, acceptance criteria, comments, issue type, status, and linked issues. If the MCP is unavailable or the ticket is not found, report the exact failure and **halt** — do not continue with invented content. Comments: fetch every comment the connected account can see — Jira's own access control already scopes this; apply no further filtering by visibility or recency.
 2. Fetch attachments: run `node {project-root}/_bmad/custom/stella/utils/jira-attachments {key}`. On failure, note it in the brief's Context section and continue — attachment fetch never halts intake, unlike the ticket fetch itself. On success, copy every file the tool's manifest lists → `{attachmentsDir}`.
-3. If the ticket has no explicit acceptance criteria, derive candidate ACs from the description, **label the section "Acceptance Criteria (derived — confirm)"**, show them to the user, and **halt** for confirmation before writing the final brief.
+3. If the ticket has no explicit acceptance criteria, derive candidate ACs from the description, **label the section "Acceptance Criteria (derived — confirm)"**, show them to the user, and **halt** for confirmation before writing the final brief (interactive verdict per the `SKILL.md` convention: "Confirmed" / "Refine" — refinements collected in chat).
 4. Write `{briefFile}` — when the ticket has no explicit acceptance criteria, write it only after item 3's confirmation; derived ACs never land on disk unconfirmed:
 
    ```markdown
@@ -106,20 +106,26 @@ Run this section only when `input_type = ticket`; a module run skips to section 
    - **{author}, {date}:** {comment text verbatim}
    ```
 
-### 3. Module Run: Confirm Scope
+### 3. Module Run: Prepare the Scope Restatement
 
 Run this section only when `input_type = module`. No Jira fetch, no brief file.
 
-1. Restate the module in one short paragraph: its name, what part of the app it covers, and any sub-areas the user named.
-2. Ask one question: "Scenario design will cover this module scope: {restatement}. Anything to add or exclude?" **Halt** for the answer and record the confirmed scope in the checkpoint body.
+Restate the module in one short paragraph: its name, what part of the app it covers, and any sub-areas the user named. Do **not** ask about it yet — the scope question is part of section 4's single scoping bundle.
 
-### 4. Environment Config Check
+### 4. Scoping Bundle — One Interactive Ask
 
-Read the merged workflow block:
+Both run types reach here. Gather everything still unresolved, then ask **once**:
 
-1. Resolve `environment`: the run variable if set, else `{workflow.defaults.environment}`. Missing → ask which environment this key will execute on.
-2. For that environment, verify `base_url` and at least one role-keyed user exist under `{workflow.environments.{environment}}`.
-3. Any missing value → apply the Config Ask-Fallback in `{executionRules}` (section 6): ask, then offer to write the non-secret answers into `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml`, creating it from `{userConfigExample}` when absent. Offer secrets into `stella-tea-live-testing.secrets.env` created from `{secretsExample}`. Do **not** resolve password values now — execution resolves them at step 6; here you only confirm the references exist or are provided.
+1. **Resolve what needs asking.** `environment`: the run variable if set, else `{workflow.defaults.environment}`. For that environment, verify `base_url` and at least one role-keyed user exist under `{workflow.environments.{environment}}`. Per the no-redundant-questions rule, anything already resolved (invocation, config, checkpoint) is settled and never enters the bundle.
+2. **State the decision context concisely, first** — enough for the user to decide everything in one turn, no follow-up round:
+   - Module run: the section-3 scope restatement.
+   - Ticket run: a short digest of the fetched brief — title, AC count, affected areas/screens the ticket names.
+3. **Ask one interactive question event** (one `AskUserQuestion` call per the `SKILL.md` convention, up to 4 questions), containing only what is unresolved:
+   - **Scope confirm** (always): "Scenario design will cover this scope — anything to add or exclude?" Options: "Scope is right" (recommended) / additions or exclusions via "Other". Ticket run: the question is grounded in the digest.
+   - **Environment** (when unresolved): options from the environments configured in the workflow block.
+   - **User/role** (when unresolved): options from the environment's configured roles.
+   - **Impacted areas/systems** (ticket runs, **only when step-03's commit-driven exploration will be skipped for lack of code access** — no git repo at `{project-root}` and no link to the code): "Which other areas/systems does this change impact?" Options seeded from the brief's linked issues and named screens, plus "No other areas"; free input via "Other". With code access this question never appears — the ripple analysis covers it.
+4. **After the answers:** record the confirmed scope (and any impacted-areas answer) in the checkpoint body. Any config value supplied → apply the Config Ask-Fallback save offer in `{executionRules}` (section 6): offer non-secret answers into `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml` (from `{userConfigExample}` when absent), secrets into `stella-tea-live-testing.secrets.env` (from `{secretsExample}`). Do **not** resolve password values now — execution resolves them at step 6; here you only confirm the references exist or are provided.
 
 ### 5. Save Progress
 
@@ -132,8 +138,9 @@ Load next step: `{nextStepFile}`
 ### ✅ SUCCESS:
 
 - Ticket run: brief written from real Jira data, ACs numbered, comments carried verbatim; derived ACs confirmed by the user; an attachment-fetch failure noted, not halted on
-- Module run: scope confirmed by the user in chat
-- Environment resolved; every missing config value asked for, never silently defaulted
+- Scope confirmed through the **single** section-4 interactive bundle — never a series of sequential asks; decision context stated before the bundle
+- Environment resolved; every missing config value asked for inside the bundle, never silently defaulted
+- Impacted-areas question asked only on a ticket run without code access
 
 ### ❌ SYSTEM FAILURE:
 

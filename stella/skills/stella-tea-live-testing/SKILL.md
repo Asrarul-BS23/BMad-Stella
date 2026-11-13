@@ -23,6 +23,7 @@ You will continue to operate with your given name, identity, and communication_s
 - Per-key artifacts split in two: deliverables (test cases, run reports, issues reports) under `{test_artifacts}/{key}/`; internal artifacts under `{test_artifacts}/stella/{key}/`.
 - 🚫 Never suggest writing automation code or an `automate` handoff — in any flow, at any step, including after a report. Automation code writing is not part of the QA or dev flow.
 - 🚫 Never re-ask a value already supplied this run (invocation, config, or checkpoint) — ask only when it's missing from all three. Gates (approval locks, derived-AC confirmation, blocked cascade, SD-escape notice) are not questions and stay regardless.
+- ❓ **Interactive questions:** every question this skill asks goes through the runtime's interactive question tool when one exists (Claude Code: `AskUserQuestion` — 2–4 selectable options, recommended default first; custom input arrives via the tool's built-in "Other" field). Never leave a question as plain text at the end of a response. Approval gates prompt the **verdict** as options ("Approved" / "Refine" / "Show full rows first"); on "Refine", collect the change details in normal chat, apply, re-show, prompt again — long free-form edits never go through the small "Other" field. A runtime without such a tool falls back to the plain-text question unchanged. Gates stay gates: the interactive prompt **is** the halt.
 
 ## On Activation
 

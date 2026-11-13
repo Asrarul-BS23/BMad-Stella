@@ -32,7 +32,7 @@ Boundary rules, applied exactly:
 
 ## 3. Blocked Cascade
 
-When a `Blocked` case blocks dependent later cases, do not silently skip them. Ask the user one question:
+When a `Blocked` case blocks dependent later cases, do not silently skip them. Ask the user one question (rendered per the interactive-questions convention in `SKILL.md` — options: resolve/remove the blocker / skip the dependents as Not Run):
 
 > "Case `TC-{key}-{n}` is Blocked ({reason}), and cases {list} depend on it. Resolve/remove the blocker, or skip the dependents as Not Run?"
 
@@ -56,7 +56,7 @@ Halt until they answer. Skipped dependents are `Not Run` with a comment naming t
 
 ## 6. Config Ask-Fallback
 
-When any value a run needs is missing from config (environment, base URL, user, password), **ask the user instead of failing**, then offer to save the non-secret answer back to `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml` (create it from `{skill-root}/config/stella-tea-live-testing.user.toml.example` when absent). Secrets are offered into `stella-tea-live-testing.secrets.env` (from its `.example`) — never into TOML. A wiped `_bmad/custom/` self-heals this way on the next run.
+When any value a run needs is missing from config (environment, base URL, user, password), **ask the user instead of failing** (every such ask renders per the interactive-questions convention in `SKILL.md`), then offer to save the non-secret answer back to `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml` (create it from `{skill-root}/config/stella-tea-live-testing.user.toml.example` when absent). Secrets are offered into `stella-tea-live-testing.secrets.env` (from its `.example`) — never into TOML. A wiped `_bmad/custom/` self-heals this way on the next run.
 
 ## 7. Viewports and Devices (On Request Only)
 

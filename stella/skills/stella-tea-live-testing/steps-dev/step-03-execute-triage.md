@@ -56,7 +56,7 @@ For each scenario, in order:
 
 1. Announce it, drive its steps through Playwright MCP, and assign a status per `{executionRules}` (integrity rule included: unperformed = `Not Run`). While driving, note visual defects on the changed screens — misaligned, overlapping, clipped, or unstyled components — as observations, even when the functional check passes; they never change the scenario's status.
 2. On `Pass`: record and move on.
-3. On `Fail` / `Partly Pass`: capture evidence per the rules, then **triage with the dev immediately**:
+3. On `Fail` / `Partly Pass`: capture evidence per the rules, then **triage with the dev immediately** (interactive, per the `SKILL.md` convention — options: "A — real bug" / "B — wrong scenario"):
 
    > "{scenario}: expected {expected}, observed {actual} (evidence: {path}). Is this (A) a real bug, or (B) a wrong scenario?"
    - **(A) Bug accepted:** suggest the fix direction (file/function suspects from the spec's changed code, reasoning in one or two lines — a direction, never a patch dump). The dev fixes; on "re-run", re-execute this scenario (and any the fix could affect) and update its result. The pre-fix failure stays in the run notes as a found bug.
