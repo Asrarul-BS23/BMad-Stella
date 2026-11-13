@@ -23,15 +23,24 @@ user = "admin"
 # report_format = "html"    # md | html | pdf — extra self-contained copy of run reports,
 #                            # case sheet, and the failed-cases-only issues report.
 #                            # md = markdown only. Saved by the skill on first ask.
+# report_theme = "light"     # light | dark — HTML report theme. Light is the default;
+#                            # saved by the skill only when you ask for dark. PDF stays light.
 # flow_mode = "dev"          # optional personal default flow (qa | dev)
 # module_publish = ""        # saved by the skill: confluence | jira | files
-# jira_publish_project = ""  # saved by the skill on first module publish to a Jira ticket
 # spec_path = ""             # dev mode: saved by the skill after you point it at specs once
 
 # Saved by the skill on first module publish; edit only to re-point.
+# anchor_url = the high-level folder/page link under which all test-case pages live;
+# convention_brief = a few lines the skill wrote about the observed structure and
+# naming rules, so later runs place new modules correctly without re-exploring.
 # [workflow.confluence]
-# space_key = ""
-# parent_page_id = ""
+# anchor_url = ""            # e.g. "https://<site>.atlassian.net/wiki/spaces/L/folder/965607425"
+# convention_brief = ""
+
+# Same idea for publishing case tickets to Jira.
+# [workflow.jira]
+# anchor = ""                # project key or sprint, e.g. "LEADRS" or "LEADRS Sprint 42"
+# convention_brief = ""
 
 # Dev mode: saved by the skill after it detects and you confirm how to run the app.
 # [workflow.app]

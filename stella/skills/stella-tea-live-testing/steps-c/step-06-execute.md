@@ -67,7 +67,7 @@ For each case in scope (the full `{casesFile}` in file order, or only the chosen
 2. Establish the precondition, including role login **before** the test body.
 3. Drive each numbered step through Playwright MCP exactly as written. Observe the result of each step against the expected results.
 4. Assign the status per `{executionRules}` section 2. Record per-step results for `Fail` / `Partly Pass`.
-5. Capture screenshots per `{executionRules}` section 4 — every executed case, at the moment the expected result (or its absence) is visible, with the red/green element highlight — into `{evidenceDir}`.
+5. Capture screenshots per `{executionRules}` section 4 — every executed case, at the moment the expected result (or its absence) is visible, following the **mandatory capture sequence** (verdict → green/red mark (box, or arrow when no single element) → shoot → remove) — into `{evidenceDir}`.
 6. On a `Blocked` case with dependents, run the blocked-cascade question (`{executionRules}` section 3) and **halt** for the answer.
 7. Record the case's result (status, observed actuals, per-step detail, evidence paths) in working notes for step-07 **before** starting the next case.
 
@@ -95,5 +95,6 @@ Load next step: `{nextStepFile}`
 - Executing against a `draft` cases file, or editing `{casesFile}`
 - Running without Playwright MCP, or continuing after it disconnects
 - Viewport combinations run without the user requesting them
+- An executed case's screenshot without its green/red mark when any element or region carries the result (unmarked is legal only for whole-page states, with the reason noted)
 
 **Master Rule:** Unperformed = `Not Run`. No exceptions.

@@ -44,7 +44,14 @@ Halt until they answer. Skipped dependents are `Not Run` with a comment naming t
 - Path: `{test_artifacts}/stella/{key}/evidence/{datetime}/tc-{n}.png`, where `{datetime}` is this run's `YYYY-MM-DD-HHmm` stamp and `{n}` is the final sequence number of the case ID (`TC-{key}-{n}`), without leading zeros.
 - When one case yields several screenshots (any status), name them `tc-{n}-step-{m}.png`. With viewports, the viewport comes before the step: `tc-{n}-{viewport}-step-{m}.png`.
 - Every `Fail` / `Partly Pass` case carries in the report: steps to reproduce, embedded screenshot evidence, and expected vs actual.
-- **Mark the key element before shooting:** on `Fail` / `Partly Pass`, call `browser_highlight` on the element that carries the failure with `outline: 3px solid red`; on `Pass`, highlight the element that carries the success (message/flag) with `outline: 3px solid green`. Then take the screenshot and call `browser_hide_highlight`. When `browser_highlight` is not available on the connected Playwright MCP server, inject the same outline onto the element via `browser_evaluate`, take the screenshot, then remove it. Skip the highlight when no single element carries the failure or success (blank page, crash, wrong redirect, whole-page state) — shoot the page as-is.
+- **Marking is mandatory (hard rule).** Every executed-case screenshot follows this capture sequence, in order:
+  1. **Decide the verdict first.** Observe the result and settle `Pass` / `Fail` / `Partly Pass` before shooting. A screenshot taken before the verdict was decided is **re-taken** with the mark.
+  2. **Mark.** Outline the element that carries the result — `outline: 3px solid green` for `Pass`, `outline: 3px solid red` for `Fail` / `Partly Pass` — via `browser_highlight`; when that tool is missing on the connected Playwright MCP server, inject the same outline via `browser_evaluate`. When no single element carries the result (aggregate data, a region, missing content), inject an **arrow of the same color** via `browser_evaluate` (absolutely positioned overlay) pointing at the relevant region — a missing box target never means "no mark".
+  3. **Shoot** the screenshot.
+  4. **Remove the mark** (`browser_hide_highlight`, or remove the injected node) before driving on.
+
+  Only a whole-page state with no locatable element or region at all (blank page, crash page, wrong redirect) may go unmarked — and then the case notes record the reason in one line.
+
 - **Reports embed screenshots, never link them:** every screenshot appears in reports as a rendered image — `![...](...)` in markdown, inlined base64 in HTML/PDF. Reports live in `{test_artifacts}/{key}/` while screenshots stay in `{test_artifacts}/stella/{key}/evidence/`, so markdown reports embed via the relative path `../stella/{key}/evidence/{datetime}/...`.
 
 ## 5. Login and Credentials
@@ -52,11 +59,12 @@ Halt until they answer. Skipped dependents are `Not Run` with a comment naming t
 - Test cases address users by role: "login as admin", "as customer". Resolve the role through `{workflow.environments.{environment}.users.{role}}` from the merged workflow block.
 - Password resolution order: `{project-root}/_bmad/custom/stella-tea-live-testing.secrets.env` (key named by the user's `password_env`) → OS environment variable of the same name → ask the user.
 - 🚫 Never write a credential value into any file under `{test_artifacts}` or into any report, brief, or checkpoint. Output folders are deliverables that get shared.
+- 🚫 **Never instruct the user to handle a credential themselves** — no "run `$env:...=...`", no "set this environment variable", no command to execute. When resolution ends at "ask the user" and they supply the password, the **skill writes it into `stella-tea-live-testing.secrets.env` itself** after the explicit save-yes (section 6) and continues the run with it. Declining the save is fine — then the value is used for this run only, held in memory, written nowhere.
 - Set authenticated users up **before** the test body of a case, not as an in-body improvisation.
 
 ## 6. Config Ask-Fallback
 
-When any value a run needs is missing from config (environment, base URL, user, password), **ask the user instead of failing** (every such ask renders per the interactive-questions convention in `SKILL.md`), then offer to save the non-secret answer back to `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml` (create it from `{skill-root}/config/stella-tea-live-testing.user.toml.example` when absent). Secrets are offered into `stella-tea-live-testing.secrets.env` (from its `.example`) — never into TOML. A wiped `_bmad/custom/` self-heals this way on the next run.
+When any value a run needs is missing from config (environment, base URL, user, password), **ask the user instead of failing** (every such ask renders per the interactive-questions convention in `SKILL.md`), then **save the non-secret answer automatically** to `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml` (create it from `{skill-root}/config/stella-tea-live-testing.user.toml.example` when absent) — no save question; state it in one line: "saved `{key}` to `.user.toml` — future runs skip this". The user's answer is the consent; the file is personal and gitignored. **Secrets are the exception:** writing a credential value into `stella-tea-live-testing.secrets.env` (from its `.example`) still requires an explicit yes first — never into TOML, never silently. `password_env` **names** are non-secret and autosave. A wiped `_bmad/custom/` self-heals this way on the next run.
 
 ## 7. Viewports and Devices (On Request Only)
 

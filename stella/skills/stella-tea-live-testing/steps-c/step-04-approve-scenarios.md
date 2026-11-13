@@ -47,7 +47,7 @@ Run the human approval loop on `{scenariosFile}` until QA approves, then flip it
 
 ### 1. Show
 
-Display the scenario list from `{scenariosFile}`, grouped by its `##` sections: per scenario its title, the `AC-n` it verifies (when present), and a one-line gist. Offer the full text of any scenario on request.
+Display the scenario list from `{scenariosFile}` **in chat, immediately before the verdict prompt** — concise enough to judge without opening any file: grouped by its `##` sections, one line per scenario — `SC-n` — title — the `AC-n` it verifies (when present) — a short gist. Offer the full text of any scenario on request.
 
 ### 2. Refine Loop
 

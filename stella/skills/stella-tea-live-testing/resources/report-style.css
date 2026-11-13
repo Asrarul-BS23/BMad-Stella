@@ -1,0 +1,217 @@
+/* Canonical stylesheet for every generated HTML/PDF report
+   (execution report, issues report, case-sheet copy).
+   Inline this file verbatim into the <style> block of each report.
+   Content varies per run; this style never does. Do not improvise CSS.
+
+   Theme: light by default. Dark renders ONLY when the saved preference
+   [workflow.defaults] report_theme = "dark" puts data-theme="dark" on
+   <html>. Never auto-switch via prefers-color-scheme. PDF always light. */
+
+:root {
+  --bg: #ffffff;
+  --fg: #1d2330;
+  --muted: #5b6475;
+  --line: #d9dee7;
+  --head: #f2f4f8;
+  --accent: #1f5fbf;
+  --accent-soft: #eef4fb;
+  --code: #f4f5f7;
+  --strong: #111827;
+  --pass: #1e7e42;
+  --fail: #c0392b;
+  --warn: #9a6700;
+  --neutral: #5b6475;
+}
+
+:root[data-theme='dark'] {
+  --bg: #14171c;
+  --fg: #e4e7ec;
+  --muted: #9aa3b2;
+  --line: #323844;
+  --head: #1d222a;
+  --accent: #7fb0ff;
+  --accent-soft: #1d2530;
+  --code: #1f242c;
+  --strong: #ffffff;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    15px/1.55 system-ui,
+    'Segoe UI',
+    Arial,
+    sans-serif;
+}
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 80px;
+}
+
+strong,
+b {
+  color: var(--strong);
+}
+a {
+  color: var(--accent);
+}
+
+/* Header band */
+header.report {
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+}
+header.report h1 {
+  font-size: 1.5em;
+  margin: 0 0 2px;
+  color: var(--accent);
+}
+header.report .subtitle {
+  color: var(--muted);
+  font-size: 0.9em;
+}
+h1 {
+  font-size: 1.5em;
+}
+h2 {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
+  margin-top: 2em;
+}
+
+/* Labeled metadata card (Env Url, Role(s), Environment, Run, Key, Source SHA) */
+.meta-card {
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 0 0 24px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  font-size: 0.95em;
+}
+.meta-card dt {
+  font-weight: 600;
+  color: var(--accent);
+}
+.meta-card dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+/* Tables */
+.tw {
+  overflow-x: auto;
+  margin: 1em 0;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th,
+td {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--head);
+}
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 0.8em;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+.badge.pass {
+  background: var(--pass);
+}
+.badge.fail {
+  background: var(--fail);
+}
+.badge.partly {
+  background: var(--warn);
+}
+.badge.blocked {
+  background: #b06f00;
+}
+.badge.notrun {
+  background: var(--neutral);
+}
+
+code {
+  background: var(--code);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  word-break: break-word;
+}
+blockquote {
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+  margin: 1em 0;
+  padding: 8px 14px;
+}
+
+/* Evidence figure cards */
+figure.evidence {
+  margin: 10px 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--head);
+  overflow-x: auto;
+}
+figure.evidence img {
+  display: block;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+figure.evidence figcaption {
+  color: var(--muted);
+  font-size: 0.85em;
+  margin-top: 6px;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 24px 0;
+}
+.summary-line {
+  font-weight: 600;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-top: 24px;
+}
+
+@media print {
+  main {
+    padding: 8px 0 24px;
+  }
+  figure.evidence {
+    break-inside: avoid;
+  }
+  tr {
+    break-inside: avoid;
+  }
+}

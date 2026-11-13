@@ -92,5 +92,6 @@ If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute
 - Writing `live-verification-results.json`
 - Writing a cases file at all, or suggesting automation code
 - Erasing a found bug from the report because it was fixed
+- An executed scenario's screenshot without its green/red mark when any element or region carries the result (unmarked is legal only for whole-page states, with the reason noted)
 
 **Master Rule:** The dev judges; you never overrule a triage decision. Unperformed = `Not Run`.
