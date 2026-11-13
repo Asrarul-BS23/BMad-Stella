@@ -10,11 +10,13 @@ const constants = require('./constants');
 const preflight = require('./preflight');
 const toolInstaller = require('./tool-installer');
 const mcpRegistrar = require('./mcp-registrar');
+const playwrightMcpRegistrar = require('./playwright-mcp-registrar');
 const jira = require('./jira-credentials-manager');
 const picker = require('./project-picker');
 const cleaner = require('./cleaner');
 const legacyMemory = require('./legacy-memory-migrator');
 const runner = require('./bmad-runner');
+const teaSkillInstaller = require('./tea-skill-installer');
 const gitignore = require('./gitignore');
 const layer = require('./stella-layer');
 const memoryBootstrap = require('./memory-bootstrap');
@@ -32,7 +34,9 @@ const seconds = (ms) => Math.max(1, Math.round(ms / 1000));
 /**
  * @param {string} root project folder
  * @param {object} deps prompt (required), fetch, verbose, runBmad(root, opts) → status,
- *   userHooks() → {status}, bootstrapMemory(root) → {domainMap, patterns}, ui, env, isTTY,
+ *   runTeaSkill(root, opts) → status, userHooks() → {status},
+ *   bootstrapMemory(root) → {domainMap, patterns},
+ *   playwrightMcp.register(root) → [{name, status, detail}], ui, env, isTTY,
  *   now, home (credentials file lives under it)
  * @returns {Promise<object>} summary
  */
@@ -42,12 +46,14 @@ async function install(root, deps) {
     fetch,
     verbose = false,
     runBmad = (r, o) => runner.install(r, o),
+    runTeaSkill = (r, o) => teaSkillInstaller.install(r, o),
     userHooks = defaultUserHooks,
     bootstrapMemory = (r) => memoryBootstrap.bootstrapIfMissing(r),
     projectContext = (r) => projectContextBootstrap.startIfMissing(r),
     check = preflight.check,
     tools = toolInstaller,
     mcp = mcpRegistrar,
+    playwrightMcp = playwrightMcpRegistrar,
     ui = silentUi(),
     env = process.env,
     isTTY = Boolean(process.stdin.isTTY),
@@ -166,7 +172,10 @@ async function install(root, deps) {
       `Archived ${summary.legacyMigration.plansMigrated} previous plan file(s)  →  _bmad-output/implementation-artifacts/legacy-plans`,
     );
 
-  // 6. clean (v4 leftovers; on re-run also _bmad/ and the Stella parts of .claude/)
+  // 6. clean (v4 leftovers; on re-run also _bmad/ and the Stella parts of .claude/).
+  // _bmad/custom/ files (team/personal overrides, not _bmad/custom/stella/) are staged
+  // first so they survive the wipe and the BMad reinstall below.
+  const preservedCustomFiles = summary.rerun ? cleaner.preserveCustomFiles(root) : null;
   summary.removed.push(...cleaner.clean(root, { rerun: summary.rerun }).removed);
   if (summary.rerun) summary.removed.push(...layer.removeStellaClaudeParts(root));
   if (summary.rerun)
@@ -180,13 +189,20 @@ async function install(root, deps) {
   const started = now();
   const tail = [];
   const s4 = verbose ? null : ui.spin('installing…');
-  const status = await runBmad(root, {
-    projectName: project.name,
-    userName: runner.gitUserName({ cwd: root }),
-    verbose,
-    write: () => {},
-    log: verbose ? note : (t) => tail.push(t),
-  });
+  let status;
+  try {
+    status = await runBmad(root, {
+      projectName: project.name,
+      userName: runner.gitUserName({ cwd: root }),
+      verbose,
+      write: () => {},
+      log: verbose ? note : (t) => tail.push(t),
+    });
+  } finally {
+    // Put _bmad/custom/ files back whether BMad succeeded or not — otherwise they'd
+    // be stranded in the staging folder with _bmad/ gone or incomplete.
+    cleaner.restoreCustomFiles(root, preservedCustomFiles);
+  }
   const took = `${seconds(now() - started)}s`;
   if (status !== 0) {
     if (s4) s4.fail(`exit ${status}`);
@@ -196,6 +212,26 @@ async function install(root, deps) {
   }
   if (s4) s4.succeed('Installed', took);
   else ui.line('ok', 'Installed', took);
+
+  // 7b. TEA skill package (fail-hard, same mechanism as the BMad step itself —
+  // see tea-module/integration-steps.md for the rationale)
+  const teaStarted = now();
+  const teaTail = [];
+  const s4b = verbose ? null : ui.spin('installing TEA skills…');
+  const teaStatus = await runTeaSkill(root, {
+    verbose,
+    write: () => {},
+    log: verbose ? note : (t) => teaTail.push(t),
+  });
+  const teaTook = `${seconds(now() - teaStarted)}s`;
+  if (teaStatus !== 0) {
+    if (s4b) s4b.fail(`exit ${teaStatus}`);
+    else ui.line('fail', `exit ${teaStatus}`);
+    for (const t of teaTail) ui.cont(t);
+    throw new Error(`TEA skill install exited with code ${teaStatus}. Nothing else was changed.`);
+  }
+  if (s4b) s4b.succeed('TEA skills installed', teaTook);
+  else ui.line('ok', 'TEA skills installed', teaTook);
   ui.gap();
 
   // 8. gitignore
@@ -222,6 +258,10 @@ async function install(root, deps) {
   // Atlassian MCP in Claude Code's local scope (silent; login happens later via /mcp)
   s5.update('registering Atlassian MCP…');
   summary.mcp = mcp.register(root);
+
+  // Playwright MCP servers, user scope (silent, never fatal — same as Atlassian MCP)
+  s5.update('registering Playwright MCP servers…');
+  summary.playwrightMcp = playwrightMcp.register(root);
 
   // 14. domain docs
   s5.update('fetching domain docs…');
@@ -262,6 +302,7 @@ function layerDetail(s) {
     `${s.hooks.length} hooks`,
     'permissions',
     mcpOk(s.mcp) ? 'Atlassian MCP' : null,
+    playwrightMcpAnyOk(s.playwrightMcp) ? 'Playwright MCP' : null,
     d.status === 'fetched' ? `${d.files.length} domain pages` : null,
     s.userHooks && s.userHooks.status && s.userHooks.status !== 'error' ? 'user hooks' : null,
   ];
@@ -269,6 +310,8 @@ function layerDetail(s) {
 }
 
 const mcpOk = (m) => Boolean(m && ['registered', 'replaced', 'present'].includes(m.status));
+
+const playwrightMcpAnyOk = (results) => Array.isArray(results) && results.some(mcpOk);
 
 /** Warn line when the Atlassian MCP could not be registered; null when it was. */
 function mcpNote(m) {
@@ -282,6 +325,17 @@ function mcpNote(m) {
   return { kind: 'warn', text: `Atlassian MCP not registered — ${m.detail}`, cont: null };
 }
 
+/** Warn line for one Playwright MCP server that could not be registered. */
+function playwrightMcpNote(r) {
+  if (r.status === 'no-cli')
+    return {
+      kind: 'warn',
+      text: `${r.name} MCP not registered — claude command not found`,
+      cont: 'install the Claude Code CLI and re-run',
+    };
+  return { kind: 'warn', text: `${r.name} MCP not registered — ${r.detail}`, cont: null };
+}
+
 /**
  * Lines under step 5: only what is new or failed. Skipped domain docs and the background
  * project-context worker stay silent (user decision 2026-10-27); their state is in the summary.
@@ -293,6 +347,9 @@ function layerNotes(s) {
   return [
     d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
     mcpNote(s.mcp),
+    ...(Array.isArray(s.playwrightMcp)
+      ? s.playwrightMcp.filter((r) => !mcpOk(r)).map(playwrightMcpNote)
+      : []),
   ].filter(Boolean);
 }
 
