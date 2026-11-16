@@ -37,6 +37,22 @@ Your project, from the list. This selects the domain docs that are fetched.
 
 Done.
 
+## Plugin (optional, once per machine)
+
+The Stella skills and hooks are also available as a Claude Code plugin. Installed once, they load in every session on this machine — Claude Code CLI, the VS Code extension, and the Claude Desktop Code tab:
+
+```
+claude plugin marketplace add Asrarul-BS23/BMad-Stella
+claude plugin install bmad-stella@stella
+```
+
+- `bmad-stella@stella` means plugin `bmad-stella` from the marketplace named `stella` (the name in the repo's `.claude-plugin/marketplace.json`).
+- The marketplace is read from the repository's default branch. Private repo: your git credentials must clone it without prompting (`gh auth setup-git` works).
+- Cowork does not read machine installs. Add the marketplace on claude.ai instead: Customize > Plugins > Add marketplace > `Asrarul-BS23/BMad-Stella`, then enable `bmad-stella`.
+- The plugin does not replace the project install above. Skills run the project's `_bmad/` scripts, so a project without `npx ... install` halts with a clear error.
+- Plugin skills are namespaced: `/bmad-stella:stella-build`. The bare `/stella-build` form works too.
+- Install the plugin first, then run the project install. The installer detects the plugin and skips its own project-level skill and hook copies; on a project installed before the plugin existed, re-running the installer removes the old copies.
+
 ## Re-run
 
 Run the same command again to update. Credentials are checked silently; you are asked only when the token no longer works. The project list is shown every time. Everything under `_bmad-output/` is kept.
@@ -48,4 +64,7 @@ Run the same command again to update. Credentials are checked silently; you are 
 - `Jira token expired`: put a new token in `~/.claude/stella/credentials.env` (`JIRA_API_TOKEN`). Until then builds fall back to the Atlassian MCP, without attachments.
 - `Jira token file missing`: run the installer again.
 - Install fails in the BMad step: re-run with `--verbose` to see BMad's own output.
+- Install fails in the TEA skills step (version/network issue): nothing is changed; re-run once
+  the issue is resolved, or install the skill by hand per
+  `stella/skills/stella-tea-live-testing/SKILL.md`.
 - Always open Claude Code at the project root, not in a subfolder. Hooks are registered there.

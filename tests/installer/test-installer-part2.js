@@ -28,6 +28,18 @@ const mcpMock = {
     return { status: 'removed', detail: null };
   },
 };
+// Never spawn real `claude mcp add` for the Playwright servers from a test run.
+const playwrightMcpCalls = [];
+const playwrightMcpMock = {
+  register: (root) => {
+    playwrightMcpCalls.push(root);
+    return C.PLAYWRIGHT_MCP_SERVERS.map((s) => ({
+      name: s.name,
+      status: 'registered',
+      detail: null,
+    }));
+  },
+};
 const layer = require(path.join(LIB, 'stella-layer.js'));
 const domain = require(path.join(LIB, 'domain-knowledge-fetcher.js'));
 const gitignore = require(path.join(LIB, 'gitignore.js'));
@@ -82,6 +94,10 @@ const fakeBmad = async (root, { projectName, userName }) => {
   fs.mkdirSync(path.join(root, '_bmad-output', 'implementation-artifacts'), { recursive: true });
   return 0;
 };
+// Fake TEA skill install: never spawn the real `npx skills add` from a test run.
+const fakeTeaSkill = async () => 0;
+// Fake npm cache clean: never spawn the real `npm cache clean --force` from a test run.
+const fakeNpmCache = () => ({ status: 'cleaned', seconds: 1, detail: null });
 
 // Confluence mock: project children + LEADRSC descendants with bodies.
 const children = {
@@ -212,11 +228,14 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   let s = scripted(['dev@stella.com', 'tok-abcdefghijklmnop', 'LEADRSC']);
   let sum = await installer.install(root, {
     mcp: mcpMock,
+    playwrightMcp: playwrightMcpMock,
     home: HOME,
     projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
+    runTeaSkill: fakeTeaSkill,
+    cleanNpmCache: fakeNpmCache,
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -229,6 +248,10 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     'install: fresh, project with page id',
   );
   ok(sum.removed.join(',') === '.bmad-core,bmad-docs', 'install: v4 leftovers removed');
+  ok(
+    sum.npmCache && sum.npmCache.status === 'cleaned',
+    'install: npm cache cleaned before the BMad step',
+  );
   ok(
     sum.legacyMigration.memoryMigrated && sum.legacyMigration.plansMigrated === 1,
     'install: legacy memory and one plan file migrated',
@@ -453,8 +476,8 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   );
   // step 8 + 15
   ok(
-    sum.gitignoreAdded.length === 4 && /^node_modules\//m.test(read(root, '.gitignore')),
-    'gitignore: four lines added, existing kept',
+    sum.gitignoreAdded.length === 7 && /^node_modules\//m.test(read(root, '.gitignore')),
+    'gitignore: seven lines added, existing kept',
   );
   ok(sum.userHooks.status === 'current', 'user hooks: called');
   ok(
@@ -465,7 +488,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     sum.mcp.status === 'registered' && mcpCalls.some(([k, r]) => k === 'register' && r === root),
     'mcp: Atlassian MCP registered for the project root',
   );
-  ok(/Atlassian MCP/.test(installer.layerDetail(sum)), 'mcp: ✓ line names Atlassian MCP');
+  ok(/Atlassian MCP/.test(installer.layerDetail(sum)), 'mcp: âœ“ line names Atlassian MCP');
   const tree1 = listTree(root);
 
   // ================= 2. re-run =================
@@ -478,14 +501,23 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     path.join(root, '_bmad', 'custom', 'stella', 'friction.json'),
     '{"triggerStatuses":["in-review"]}',
   );
+  // user-specific generated content, directly in _bmad/custom/ (not _bmad/custom/stella/)
+  fs.writeFileSync(
+    path.join(root, '_bmad', 'custom', 'bmad-tea.user.toml'),
+    'persistent_facts = ["team notes"]\n',
+  );
   s = scripted(['LEADRSC']);
   sum = await installer.install(root, {
     mcp: mcpMock,
+    playwrightMcp: playwrightMcpMock,
     home: HOME,
     projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
+    runTeaSkill: fakeTeaSkill,
+    // A failed cache clean must never abort the install — only warn.
+    cleanNpmCache: () => ({ status: 'failed', seconds: 1, detail: 'exit 7' }),
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -495,6 +527,11 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   ok(
     sum.rerun && s.asked.join(',') === 'choice',
     're-run: detected; credentials silent, project list (always shown)',
+  );
+  ok(
+    sum.npmCache.status === 'failed' &&
+      sum.warnings.some((w) => w.includes('npm cache clean failed (exit 7)')),
+    're-run: failed cache clean warns and the install continues',
   );
   ok(
     sum.removed.includes('_bmad') &&
@@ -514,6 +551,10 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     're-run: _bmad/custom/stella fresh',
   );
   ok(
+    read(root, '_bmad/custom/bmad-tea.user.toml') === 'persistent_facts = ["team notes"]\n',
+    're-run: user-specific _bmad/custom/ file (not under stella/) survives the wipe',
+  );
+  ok(
     exists(root, '_bmad-output/stella/reviewer/keep.md') && sum.created.length === 0,
     're-run: _bmad-output kept, no folder recreated',
   );
@@ -531,7 +572,9 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     settings.hooks.SessionStart.some((e) => e.hooks[0].command === 'node my-own-hook.js'),
     're-run: foreign hook still there',
   );
-  const tree2 = listTree(root).filter((f) => f !== '_bmad-output/stella/reviewer/keep.md');
+  const tree2 = listTree(root).filter(
+    (f) => f !== '_bmad-output/stella/reviewer/keep.md' && f !== '_bmad/custom/bmad-tea.user.toml',
+  );
   ok(tree2.join('\n') === tree1.join('\n'), 're-run: tree identical to the first install');
 
   // ================= 3. uninstall =================
@@ -600,11 +643,14 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   s = scripted(['LEADRSC']);
   sum = await installer.install(root, {
     mcp: mcpMock,
+    playwrightMcp: playwrightMcpMock,
     home: HOME,
     projectContext: () => ({ status: 'present' }),
     prompt: s.prompt,
     fetch: fetchMock,
     runBmad: fakeBmad,
+    runTeaSkill: fakeTeaSkill,
+    cleanNpmCache: fakeNpmCache,
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -656,11 +702,14 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   try {
     await installer.install(tmp('ni'), {
       mcp: mcpMock,
+      playwrightMcp: playwrightMcpMock,
       home: HOME,
       projectContext: () => ({ status: 'present' }),
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: fakeBmad,
+      runTeaSkill: fakeTeaSkill,
+      cleanNpmCache: fakeNpmCache,
       userHooks,
       bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
@@ -679,11 +728,14 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   try {
     await installer.install(failRoot, {
       mcp: mcpMock,
+      playwrightMcp: playwrightMcpMock,
       home: HOME,
       projectContext: () => ({ status: 'present' }),
       prompt: async () => ({}),
       fetch: fetchMock,
       runBmad: async () => 2,
+      runTeaSkill: fakeTeaSkill,
+      cleanNpmCache: fakeNpmCache,
       userHooks,
       bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
@@ -698,6 +750,35 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     'install: BMad failure stops before the Stella layer',
   );
 
+  // ================= unit: TEA skill install failure (fail-hard) =================
+  const teaFailRoot = tmp('teafail');
+  threw = null;
+  try {
+    await installer.install(teaFailRoot, {
+      mcp: mcpMock,
+      playwrightMcp: playwrightMcpMock,
+      home: HOME,
+      projectContext: () => ({ status: 'present' }),
+      prompt: async () => ({}),
+      fetch: fetchMock,
+      runBmad: fakeBmad,
+      runTeaSkill: async () => 3,
+      cleanNpmCache: fakeNpmCache,
+      userHooks,
+      bootstrapMemory: bootstrapMemoryStub,
+      log: quiet,
+      env: { JIRA_EMAIL: 'a@b.co', JIRA_API_TOKEN: 'tok-abcdefghijklmnop', STELLA_PROJECT: 'SLS' },
+      isTTY: false,
+    });
+  } catch (error) {
+    threw = error.message;
+  }
+  ok(
+    /TEA skill install exited with code 3/.test(threw || '') &&
+      !exists(teaFailRoot, '.claude/skills/stella-build'),
+    'install: TEA skill failure aborts the whole install (fail-hard), stops before the Stella layer',
+  );
+
   // ================= unit: gitignore.remove =================
   const gRoot = tmp('gi');
   fs.writeFileSync(path.join(gRoot, '.gitignore'), 'dist/\n.env\n');
@@ -705,8 +786,9 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   const rm = gitignore.remove(gRoot);
   ok(
     [...rm.removed].sort().join(',') ===
-      ['_bmad/', '_bmad-output/', '.claude/', '.env'].sort().join(',') &&
-      read(gRoot, '.gitignore') === 'dist/\n',
+      ['_bmad/', '_bmad-output/', '.claude/', '.env', '.agents/', '.tea/', '.playwright-mcp/']
+        .sort()
+        .join(',') && read(gRoot, '.gitignore') === 'dist/\n',
     'gitignore.remove: our lines + header gone, others kept',
   );
 

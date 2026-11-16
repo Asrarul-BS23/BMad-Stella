@@ -1,0 +1,14 @@
+{
+  "name": "stella",
+  "description": "BMad-Stella plugin marketplace: the customized BMAD-METHOD agent system for Stella projects.",
+  "owner": {
+    "name": "Stella AI Team"
+  },
+  "plugins": [
+    {
+      "name": "bmad-stella",
+      "source": "./stella",
+      "description": "BMad-Stella skills and hooks for Claude Code, VS Code extension, and Claude Desktop (Code tab). Project-side setup (_bmad/, credentials, MCP) still comes from the BMad-Stella installer."
+    }
+  ]
+}
