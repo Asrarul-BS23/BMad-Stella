@@ -17,6 +17,7 @@ const cleaner = require('./cleaner');
 const legacyMemory = require('./legacy-memory-migrator');
 const runner = require('./bmad-runner');
 const teaSkillInstaller = require('./tea-skill-installer');
+const npmCache = require('./npm-cache');
 const gitignore = require('./gitignore');
 const layer = require('./stella-layer');
 const memoryBootstrap = require('./memory-bootstrap');
@@ -47,6 +48,7 @@ async function install(root, deps) {
     verbose = false,
     runBmad = (r, o) => runner.install(r, o),
     runTeaSkill = (r, o) => teaSkillInstaller.install(r, o),
+    cleanNpmCache = () => npmCache.clean(),
     userHooks = defaultUserHooks,
     bootstrapMemory = (r) => memoryBootstrap.bootstrapIfMissing(r),
     projectContext = (r) => projectContextBootstrap.startIfMissing(r),
@@ -186,6 +188,22 @@ async function install(root, deps) {
 
   // 7. BMad (spinner unless --verbose streams BMad's own output)
   ui.step(4);
+
+  // 7-pre. One npm cache clean per install, so the BMad and TEA installs below
+  // never resolve a stale cached package. Never fatal — a failed clean is a
+  // warning and the install continues.
+  const s4pre = verbose ? null : ui.spin('cleaning npm cache…');
+  summary.npmCache = cleanNpmCache();
+  if (summary.npmCache.status === 'cleaned') {
+    if (s4pre) s4pre.succeed('npm cache cleaned', `${summary.npmCache.seconds}s`);
+    else ui.line('ok', 'npm cache cleaned', `${summary.npmCache.seconds}s`);
+  } else {
+    const warnText = `npm cache clean failed (${summary.npmCache.detail}) — continuing`;
+    if (s4pre) s4pre.fail(warnText);
+    else ui.line('warn', warnText);
+    summary.warnings.push(warnText);
+  }
+
   const started = now();
   const tail = [];
   const s4 = verbose ? null : ui.spin('installing…');

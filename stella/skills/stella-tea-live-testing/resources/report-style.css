@@ -55,6 +55,29 @@ main {
   padding: 24px 16px 80px;
 }
 
+/* Viewport scaling: content widens on larger screens instead of staying
+   locked at 1100px. Print/PDF is unaffected (uses the @page width). */
+@media (min-width: 1250px) {
+  main {
+    max-width: 1200px;
+  }
+}
+@media (min-width: 1500px) {
+  main {
+    max-width: 1440px;
+  }
+}
+@media (min-width: 1750px) {
+  main {
+    max-width: 1680px;
+  }
+}
+@media (min-width: 2100px) {
+  main {
+    max-width: 1920px;
+  }
+}
+
 strong,
 b {
   color: var(--strong);
@@ -204,12 +227,19 @@ hr {
   margin-top: 24px;
 }
 
+/* PDF: the report builder adds `@page { size: A4 landscape; margin: 12mm }`
+   to reports carrying the wide Results/cases table (execution report, case
+   sheet); the issues report stays portrait. Nothing may clip at the edge. */
 @media print {
   main {
     padding: 8px 0 24px;
   }
   figure.evidence {
     break-inside: avoid;
+    overflow: visible;
+  }
+  .tw {
+    overflow: visible;
   }
   tr {
     break-inside: avoid;

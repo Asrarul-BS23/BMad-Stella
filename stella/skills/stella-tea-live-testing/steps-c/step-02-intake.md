@@ -119,7 +119,7 @@ Both run types reach here. Gather everything still unresolved, then ask **once**
 1. **Resolve what needs asking.** `environment`: the run variable if set, else `{workflow.defaults.environment}`. For that environment, verify `base_url` and at least one role-keyed user exist under `{workflow.environments.{environment}}`. Per the no-redundant-questions rule, anything already resolved (invocation, config, checkpoint) is settled and never enters the bundle.
 2. **State the decision context concisely, first** — enough for the user to decide everything in one turn, no follow-up round:
    - Module run: the section-3 scope restatement.
-   - Ticket run: a short digest of the fetched brief — title, AC count, affected areas/screens the ticket names.
+   - Ticket run: a short digest of the fetched brief — title, the ACs listed **one line each** (`AC-n` — short text; retrieved and derived alike, same concise style as scenario/case summaries), affected areas/screens the ticket names.
 3. **Ask one interactive question event** (one `AskUserQuestion` call per the `SKILL.md` convention, up to 4 questions), containing only what is unresolved:
    - **Scope confirm** (always): "Scenario design will cover this scope — anything to add or exclude?" Options: "Scope is right" (recommended) / additions or exclusions via "Other". Ticket run: the question is grounded in the digest.
    - **Environment** (when unresolved): options from the environments configured in the workflow block.

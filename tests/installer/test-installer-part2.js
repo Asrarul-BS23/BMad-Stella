@@ -1,7 +1,7 @@
-'use strict';
+﻿'use strict';
 
-// Migration Task 11 — installer part 2: the Stella layer, re-run, uninstall.
-// The whole cycle install → re-run → uninstall → install runs in a temp repo with
+// Migration Task 11 â€” installer part 2: the Stella layer, re-run, uninstall.
+// The whole cycle install â†’ re-run â†’ uninstall â†’ install runs in a temp repo with
 // a fake BMad runner (writes what the real one would), injected prompt/fetch, and
 // user-level hooks stubbed. Trees are compared each time.
 
@@ -87,6 +87,8 @@ const fakeBmad = async (root, { projectName, userName }) => {
 };
 // Fake TEA skill install: never spawn the real `npx skills add` from a test run.
 const fakeTeaSkill = async () => 0;
+// Fake npm cache clean: never spawn the real `npm cache clean --force` from a test run.
+const fakeNpmCache = () => ({ status: 'cleaned', seconds: 1, detail: null });
 
 // Confluence mock: project children + LEADRSC descendants with bodies.
 const children = {
@@ -152,7 +154,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
   // Real-world legacy format, found live on a pre-v6 project: an absolute path straight
   // to node.exe, not anchored to ${CLAUDE_PROJECT_DIR}, with OS-native (here, backslash)
-  // separators — not just the ${CLAUDE_PROJECT_DIR}/forward-slash form.
+  // separators â€” not just the ${CLAUDE_PROJECT_DIR}/forward-slash form.
   const legacyAbsPath = path.join(
     root,
     '.claude',
@@ -178,7 +180,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
             },
           ],
           // Bare relative command, no leading separator before ".claude", no hook-name
-          // subfolder (flat under bmad-hooks/, as the old memory hooks were) — proves the
+          // subfolder (flat under bmad-hooks/, as the old memory hooks were) â€” proves the
           // match isn't anchored to a prefix or scoped to a specific known hook name.
           SessionEnd: [
             {
@@ -194,7 +196,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     ),
   );
   fs.writeFileSync(path.join(root, '.gitignore'), 'node_modules/\n');
-  // pre-v6 project-hook location — must be cleaned up on install, not merely left alone
+  // pre-v6 project-hook location â€” must be cleaned up on install, not merely left alone
   fs.mkdirSync(path.join(root, '.claude', 'bmad-hooks', 'friction-logger'), { recursive: true });
   fs.writeFileSync(
     path.join(root, '.claude', 'bmad-hooks', 'friction-logger', 'session-start.js'),
@@ -224,6 +226,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     fetch: fetchMock,
     runBmad: fakeBmad,
     runTeaSkill: fakeTeaSkill,
+    cleanNpmCache: fakeNpmCache,
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -236,6 +239,10 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     'install: fresh, project with page id',
   );
   ok(sum.removed.join(',') === '.bmad-core,bmad-docs', 'install: v4 leftovers removed');
+  ok(
+    sum.npmCache && sum.npmCache.status === 'cleaned',
+    'install: npm cache cleaned before the BMad step',
+  );
   ok(
     sum.legacyMigration.memoryMigrated && sum.legacyMigration.plansMigrated === 1,
     'install: legacy memory and one plan file migrated',
@@ -332,7 +339,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       JSON.parse(read(root, '_bmad/custom/stella/package.json')).type === 'commonjs',
     'layer: commonjs package.json next to hooks and helpers',
   );
-  // host project declares "type": "module" → our hooks must still run as CommonJS
+  // host project declares "type": "module" â†’ our hooks must still run as CommonJS
   fs.writeFileSync(path.join(root, 'package.json'), '{ "name": "host", "type": "module" }\n');
   const hookRun = require('node:child_process').spawnSync(
     process.execPath,
@@ -472,7 +479,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     sum.mcp.status === 'registered' && mcpCalls.some(([k, r]) => k === 'register' && r === root),
     'mcp: Atlassian MCP registered for the project root',
   );
-  ok(/Atlassian MCP/.test(installer.layerDetail(sum)), 'mcp: ✓ line names Atlassian MCP');
+  ok(/Atlassian MCP/.test(installer.layerDetail(sum)), 'mcp: âœ“ line names Atlassian MCP');
   const tree1 = listTree(root);
 
   // ================= 2. re-run =================
@@ -497,6 +504,8 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     fetch: fetchMock,
     runBmad: fakeBmad,
     runTeaSkill: fakeTeaSkill,
+    // A failed cache clean must never abort the install — only warn.
+    cleanNpmCache: () => ({ status: 'failed', seconds: 1, detail: 'exit 7' }),
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -506,6 +515,11 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   ok(
     sum.rerun && s.asked.join(',') === 'choice',
     're-run: detected; credentials silent, project list (always shown)',
+  );
+  ok(
+    sum.npmCache.status === 'failed' &&
+      sum.warnings.some((w) => w.includes('npm cache clean failed (exit 7)')),
+    're-run: failed cache clean warns and the install continues',
   );
   ok(
     sum.removed.includes('_bmad') &&
@@ -548,7 +562,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   // ================= 3. uninstall =================
   s = scripted([false]);
   let u = await installer.uninstall(root, { prompt: s.prompt, mcp: mcpMock });
-  ok(u.aborted && exists(root, '_bmad/config.toml'), 'uninstall: "n" → nothing removed');
+  ok(u.aborted && exists(root, '_bmad/config.toml'), 'uninstall: "n" â†’ nothing removed');
   s = scripted([true]);
   u = await installer.uninstall(root, { prompt: s.prompt, mcp: mcpMock });
   ok(
@@ -598,6 +612,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     fetch: fetchMock,
     runBmad: fakeBmad,
     runTeaSkill: fakeTeaSkill,
+    cleanNpmCache: fakeNpmCache,
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -617,13 +632,13 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     creds: { email: 'e', token: 't' },
     fetch: fetchMock,
   });
-  ok(r1.status === 'skipped' && /Other/.test(r1.reason), 'domain: Other → skipped');
+  ok(r1.status === 'skipped' && /Other/.test(r1.reason), 'domain: Other â†’ skipped');
   const r2 = await domain.fetchDomainDocs(tmp('d2'), {
     project: { name: 'LEADRSC', pageId: '1' },
     creds: { email: 'e', token: 't' },
     fetch: async () => jsonRes(500, {}),
   });
-  ok(r2.status === 'failed' && /500/.test(r2.reason), 'domain: API error → failed, not thrown');
+  ok(r2.status === 'failed' && /500/.test(r2.reason), 'domain: API error â†’ failed, not thrown');
   ok(
     domain.projectSuffix('RISK MONITOR') === 'risk-monitor' &&
       domain.projectSuffix('QuarryConnect') === 'quarryconnect',
@@ -642,6 +657,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       fetch: fetchMock,
       runBmad: fakeBmad,
       runTeaSkill: fakeTeaSkill,
+      cleanNpmCache: fakeNpmCache,
       userHooks,
       bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
@@ -653,7 +669,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   }
   ok(
     /No interactive terminal/.test(threw || '') && /STELLA_PROJECT/.test(threw || ''),
-    'install: no TTY without env → clear error',
+    'install: no TTY without env â†’ clear error',
   );
   const failRoot = tmp('bmadfail');
   threw = null;
@@ -667,6 +683,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       fetch: fetchMock,
       runBmad: async () => 2,
       runTeaSkill: fakeTeaSkill,
+      cleanNpmCache: fakeNpmCache,
       userHooks,
       bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
@@ -694,6 +711,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       fetch: fetchMock,
       runBmad: fakeBmad,
       runTeaSkill: async () => 3,
+      cleanNpmCache: fakeNpmCache,
       userHooks,
       bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
@@ -730,7 +748,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   );
 
   console.log(
-    `installer part 2: ${total - fails}/${total} passed${fails ? ` — ${fails} FAILED` : ''}`,
+    `installer part 2: ${total - fails}/${total} passed${fails ? ` â€” ${fails} FAILED` : ''}`,
   );
   process.exit(fails ? 1 : 0);
 })().catch((error) => {
