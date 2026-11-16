@@ -1,7 +1,7 @@
-﻿'use strict';
+'use strict';
 
-// Migration Task 11 â€” installer part 2: the Stella layer, re-run, uninstall.
-// The whole cycle install â†’ re-run â†’ uninstall â†’ install runs in a temp repo with
+// Migration Task 11 — installer part 2: the Stella layer, re-run, uninstall.
+// The whole cycle install → re-run → uninstall → install runs in a temp repo with
 // a fake BMad runner (writes what the real one would), injected prompt/fetch, and
 // user-level hooks stubbed. Trees are compared each time.
 
@@ -163,7 +163,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
   // Real-world legacy format, found live on a pre-v6 project: an absolute path straight
   // to node.exe, not anchored to ${CLAUDE_PROJECT_DIR}, with OS-native (here, backslash)
-  // separators â€” not just the ${CLAUDE_PROJECT_DIR}/forward-slash form.
+  // separators — not just the ${CLAUDE_PROJECT_DIR}/forward-slash form.
   const legacyAbsPath = path.join(
     root,
     '.claude',
@@ -189,7 +189,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
             },
           ],
           // Bare relative command, no leading separator before ".claude", no hook-name
-          // subfolder (flat under bmad-hooks/, as the old memory hooks were) â€” proves the
+          // subfolder (flat under bmad-hooks/, as the old memory hooks were) — proves the
           // match isn't anchored to a prefix or scoped to a specific known hook name.
           SessionEnd: [
             {
@@ -205,7 +205,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     ),
   );
   fs.writeFileSync(path.join(root, '.gitignore'), 'node_modules/\n');
-  // pre-v6 project-hook location â€” must be cleaned up on install, not merely left alone
+  // pre-v6 project-hook location — must be cleaned up on install, not merely left alone
   fs.mkdirSync(path.join(root, '.claude', 'bmad-hooks', 'friction-logger'), { recursive: true });
   fs.writeFileSync(
     path.join(root, '.claude', 'bmad-hooks', 'friction-logger', 'session-start.js'),
@@ -348,7 +348,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       JSON.parse(read(root, '_bmad/custom/stella/package.json')).type === 'commonjs',
     'layer: commonjs package.json next to hooks and helpers',
   );
-  // host project declares "type": "module" â†’ our hooks must still run as CommonJS
+  // host project declares "type": "module" → our hooks must still run as CommonJS
   fs.writeFileSync(path.join(root, 'package.json'), '{ "name": "host", "type": "module" }\n');
   const hookRun = require('node:child_process').spawnSync(
     process.execPath,
@@ -586,7 +586,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   }
   s = scripted([false]);
   let u = await installer.uninstall(root, { prompt: s.prompt, mcp: mcpMock });
-  ok(u.aborted && exists(root, '_bmad/config.toml'), 'uninstall: "n" â†’ nothing removed');
+  ok(u.aborted && exists(root, '_bmad/config.toml'), 'uninstall: "n" → nothing removed');
   s = scripted([true]);
   u = await installer.uninstall(root, { prompt: s.prompt, mcp: mcpMock });
   ok(
@@ -684,13 +684,13 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     creds: { email: 'e', token: 't' },
     fetch: fetchMock,
   });
-  ok(r1.status === 'skipped' && /Other/.test(r1.reason), 'domain: Other â†’ skipped');
+  ok(r1.status === 'skipped' && /Other/.test(r1.reason), 'domain: Other → skipped');
   const r2 = await domain.fetchDomainDocs(tmp('d2'), {
     project: { name: 'LEADRSC', pageId: '1' },
     creds: { email: 'e', token: 't' },
     fetch: async () => jsonRes(500, {}),
   });
-  ok(r2.status === 'failed' && /500/.test(r2.reason), 'domain: API error â†’ failed, not thrown');
+  ok(r2.status === 'failed' && /500/.test(r2.reason), 'domain: API error → failed, not thrown');
   ok(
     domain.projectSuffix('RISK MONITOR') === 'risk-monitor' &&
       domain.projectSuffix('QuarryConnect') === 'quarryconnect',
@@ -721,7 +721,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   }
   ok(
     /No interactive terminal/.test(threw || '') && /STELLA_PROJECT/.test(threw || ''),
-    'install: no TTY without env â†’ clear error',
+    'install: no TTY without env → clear error',
   );
   const failRoot = tmp('bmadfail');
   threw = null;
@@ -800,7 +800,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   );
 
   console.log(
-    `installer part 2: ${total - fails}/${total} passed${fails ? ` â€” ${fails} FAILED` : ''}`,
+    `installer part 2: ${total - fails}/${total} passed${fails ? ` — ${fails} FAILED` : ''}`,
   );
   process.exit(fails ? 1 : 0);
 })().catch((error) => {
