@@ -34,7 +34,6 @@ The plugin does not replace the project install above: skills run against the pr
 | Command                      | What it does                                           |
 | ---------------------------- | ------------------------------------------------------ |
 | `/stella-build <JIRA key>`   | Plans, implements and reviews a ticket. Never commits. |
-| `/stella-security <spec>`    | Security audit of what a build changed.                |
 | `/stella-pr-review <PR url>` | Reviews a pull request against its ticket. Read-only.  |
 | `/stella-domain-expert`      | Answers questions from the project's domain docs.      |
 | `/stella-project-context`    | Redo the project context the installer generates.      |

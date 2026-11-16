@@ -25,7 +25,7 @@ A specification should target a **single user-facing goal** within **900–1600 
   - Split: "add dark mode toggle AND refactor auth to JWT AND build admin dashboard"
   - Don't split: "add validation and display errors" / "support drag-and-drop AND paste AND retry"
 - **900–1600 tokens**: Optimal range for LLM consumption. Below 900 risks ambiguity; above 1600 risks context-rot in implementation agents.
-- **Neither limit is a gate.** Both are proposals with user override.
+- **Neither limit is a gate.**
 
 ## Conventions
 
