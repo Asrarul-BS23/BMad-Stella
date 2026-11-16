@@ -5,6 +5,7 @@
 // synchronous and silent; the orchestrator prints the summary.
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const cjson = require('comment-json');
 const permissions = require('./claude-permissions-manager');
@@ -135,8 +136,7 @@ const isOurHookEntry = (entry) => {
   return cmd.includes(`${STELLA_HOOKS_DIR}/`) || LEGACY_BMAD_HOOKS_RE.test(cmd);
 };
 
-function readSettings(root) {
-  const file = rel(root, SETTINGS_LOCAL);
+function readSettingsFile(file) {
   try {
     const text = fs.readFileSync(file, 'utf8');
     try {
@@ -149,6 +149,24 @@ function readSettings(root) {
   }
 }
 
+const readSettings = (root) => readSettingsFile(rel(root, SETTINGS_LOCAL));
+
+/**
+ * True when the bmad-stella plugin is enabled for this machine or project:
+ * an `enabledPlugins` key `bmad-stella@<marketplace>` set to true, in the
+ * user settings (where `claude plugin install` records it) or the project's
+ * settings.local.json. In that case skills and hooks come from the plugin,
+ * and the installer must not copy project-level duplicates.
+ */
+function pluginActive(root, { home = os.homedir() } = {}) {
+  const files = [path.join(home, '.claude', 'settings.json'), rel(root, SETTINGS_LOCAL)];
+  return files.some((file) => {
+    const plugins = readSettingsFile(file).enabledPlugins;
+    if (!plugins || typeof plugins !== 'object') return false;
+    return Object.entries(plugins).some(([key, on]) => on && key.startsWith('bmad-stella@'));
+  });
+}
+
 function writeSettings(root, settings) {
   const file = rel(root, SETTINGS_LOCAL);
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -156,14 +174,22 @@ function writeSettings(root, settings) {
   return file;
 }
 
-/** Our hook entries replaced (never duplicated); foreign entries untouched. */
-function mergeHooks(settings) {
+/**
+ * Our hook entries replaced (never duplicated); foreign entries untouched.
+ * With `register: false` (plugin mode) stale entries are still stripped but
+ * none are added — the plugin's hooks.json registers them instead.
+ */
+function mergeHooks(settings, { register = true } = {}) {
   if (!settings.hooks || typeof settings.hooks !== 'object') settings.hooks = {};
   for (const event of Object.keys(settings.hooks)) {
     if (Array.isArray(settings.hooks[event])) {
       settings.hooks[event] = settings.hooks[event].filter((e) => !isOurHookEntry(e));
       if (settings.hooks[event].length === 0) delete settings.hooks[event];
     }
+  }
+  if (!register) {
+    if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
+    return settings;
   }
   for (const hook of PROJECT_HOOKS) {
     for (const [event, spec] of Object.entries(hook.events)) {
@@ -190,8 +216,8 @@ function mergePermissions(settings) {
 }
 
 // ---- steps 11 + 12: settings.local.json ----
-function registerSettings(root) {
-  const settings = mergePermissions(mergeHooks(readSettings(root)));
+function registerSettings(root, { hooks = true } = {}) {
+  const settings = mergePermissions(mergeHooks(readSettings(root), { register: hooks }));
   return writeSettings(root, settings);
 }
 
@@ -291,6 +317,7 @@ function removeBmadSkills(root, names = bmadSkillNames(root)) {
 
 module.exports = {
   frictionConfig,
+  pluginActive,
   copyStellaFiles,
   copySkills,
   copyHooks,

@@ -50,7 +50,8 @@ claude plugin install bmad-stella@stella
 - The marketplace is read from the repository's default branch. Private repo: your git credentials must clone it without prompting (`gh auth setup-git` works).
 - Cowork does not read machine installs. Add the marketplace on claude.ai instead: Customize > Plugins > Add marketplace > `Asrarul-BS23/BMad-Stella`, then enable `bmad-stella`.
 - The plugin does not replace the project install above. Skills run the project's `_bmad/` scripts, so a project without `npx ... install` halts with a clear error.
-- Plugin skills are namespaced: `/bmad-stella:stella-build`. A project installed before the plugin existed also has copies under `.claude/skills/` — both load; the namespaced form always picks the plugin one.
+- Plugin skills are namespaced: `/bmad-stella:stella-build`. The bare `/stella-build` form works too.
+- Install the plugin first, then run the project install. The installer detects the plugin and skips its own project-level skill and hook copies; on a project installed before the plugin existed, re-running the installer removes the old copies.
 
 ## Re-run
 
