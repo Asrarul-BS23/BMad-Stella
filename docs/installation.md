@@ -37,6 +37,21 @@ Your project, from the list. This selects the domain docs that are fetched.
 
 Done.
 
+## Plugin (optional, once per machine)
+
+The Stella skills and hooks are also available as a Claude Code plugin. Installed once, they load in every session on this machine — Claude Code CLI, the VS Code extension, and the Claude Desktop Code tab:
+
+```
+claude plugin marketplace add Asrarul-BS23/BMad-Stella
+claude plugin install bmad-stella@stella
+```
+
+- `bmad-stella@stella` means plugin `bmad-stella` from the marketplace named `stella` (the name in the repo's `.claude-plugin/marketplace.json`).
+- The marketplace is read from the repository's default branch. Private repo: your git credentials must clone it without prompting (`gh auth setup-git` works).
+- Cowork does not read machine installs. Add the marketplace on claude.ai instead: Customize > Plugins > Add marketplace > `Asrarul-BS23/BMad-Stella`, then enable `bmad-stella`.
+- The plugin does not replace the project install above. Skills run the project's `_bmad/` scripts, so a project without `npx ... install` halts with a clear error.
+- Plugin skills are namespaced: `/bmad-stella:stella-build`. A project installed before the plugin existed also has copies under `.claude/skills/` — both load; the namespaced form always picks the plugin one.
+
 ## Re-run
 
 Run the same command again to update. Credentials are checked silently; you are asked only when the token no longer works. The project list is shown every time. Everything under `_bmad-output/` is kept.

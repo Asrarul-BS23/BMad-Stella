@@ -40,6 +40,9 @@ const ALLOW = [
   'gh pr diff 12 --name-only',
   'node _bmad/custom/stella/utils/jira-attachments LEADRSC-4901',
   'node _bmad/custom/stella/utils/jira-attachments/index.js leadrsc-4901',
+  // helper folder with a trailing slash, as copied from search results (parent-folder install, 2026-11-03)
+  'node ../_bmad/custom/stella/utils/jira-attachments/ MJHDASH-2845',
+  String.raw`node _bmad\custom\stella\utils\jira-attachments\ MJHDASH-2845`,
   'gh pr checks https://github.com/o/r/pull/12',
   'git fetch origin pull/12/head',
   `git cat-file -t ${SHA}`,
@@ -59,6 +62,7 @@ const ALLOW = [
   `node ${HELPER} ${REV}/r-pr12/findings.json`,
   `node ${HELPER} ${REV}/r-pr12/findings.json --post`,
   `node ${HELPER}/index.js ${REV}/r-pr12/findings.json --post --allow-long`,
+  `node ${HELPER}/ ${REV}/r-pr12/findings.json`,
 ];
 const BLOCK = [
   ['gh api repos/o/r/pulls/1', 'gh api'],
@@ -104,6 +108,14 @@ const BLOCK = [
     'jira fetch with a flag',
   ],
   ['node _bmad/custom/stella/utils/jira-attachments', 'jira fetch without a key'],
+  [
+    'node _bmad/custom/stella/utils/jira-attachments/lib/client.js LEADRSC-4901',
+    'other file inside the jira helper',
+  ],
+  [
+    'node _bmad/custom/stella/utils/jira-attachments// LEADRSC-4901',
+    'jira helper with two slashes',
+  ],
   [
     'node _bmad/custom/stella/utils/jira-attachments https://x.atlassian.net/browse/A-1',
     'jira fetch with a url',
@@ -245,7 +257,7 @@ ok(
   'end: other bmad skill command (tag)',
 );
 ok(
-  classifyLine(user('/stella-security spec-x.md')) === 'end',
+  classifyLine(user('/stella-domain-expert what is a quarry')) === 'end',
   'end: other stella skill command (raw)',
 );
 ok(classifyLine(user('/bmad-help')) === 'end', 'end: /bmad-help');

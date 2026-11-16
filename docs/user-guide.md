@@ -10,14 +10,6 @@ Open Claude Code at the project root first.
 
 Fetches the ticket, writes a spec, implements it, reviews the diff. The changes are in your working tree, the spec under `_bmad-output/implementation-artifacts/`. Nothing is committed: review, then commit by hand before the next ticket. Details: [Stella Build](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1650950184/Stella+Build).
 
-## Security check (optional)
-
-```
-/stella-security _bmad-output/implementation-artifacts/spec-leadrsc-4901-....md
-```
-
-`stella-build`'s review already covers most of it. Run this when the task touches input handling, auth, permissions or data access, or whenever you want a security check.
-
 ## Reviewing a pull request
 
 ```

@@ -94,9 +94,9 @@ ok(
 );
 ok(
   /\/stella-build/.test(onboard) &&
-    /\/stella-security/.test(onboard) &&
+    /security check/.test(onboard) &&
     /\/stella-pr-review/.test(onboard),
-  'onboard: Stella workflow names the three skills',
+  'onboard: Stella workflow names build (with its security check) and PR review',
 );
 ok(/QUICK REFERENCE/.test(onboard), 'onboard: quick reference kept');
 ok(

@@ -3,6 +3,6 @@
 ## Usage
 
 ```bash
-# Interactive installation
-npx bmad-method install
+# Interactive installation (@latest skips any stale npx cache)
+npx bmad-method@latest install
 ```

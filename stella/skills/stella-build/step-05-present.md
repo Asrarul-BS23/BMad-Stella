@@ -31,8 +31,6 @@ Display a very short completion summary — one or two sentences — including:
 
 Do not list changed files, repeat details from the spec, or narrate the process unless the user asks.
 
-Offer applicable next actions in one short line: use `bmad-walkthrough`; or make another change.
-
 Workflow complete.
 
 ## On Complete
