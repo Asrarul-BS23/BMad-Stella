@@ -44,6 +44,19 @@ Verify every task in the `## Tasks & Acceptance` section of `{spec_file}` is com
 
 If `{spec_file}`'s `<frozen-after-approval>` block contains an I/O & Edge-Case Matrix, verify every matrix row is covered by at least one test that verifies its expected behavior, and that each covering test ran and passed in the verification output. A covering test that exists but did not run — unregistered, filtered out, skipped, or disabled — counts as missing. If a test disagrees with the matrix, never edit the expectation to match the code: fix the code, or if the matrix row itself is ambiguous, HALT and ask the human. Fix any other audit failure before proceeding.
 
+### Live Bug Hunt
+
+Before the review, bug-hunt this change live. Invoke the `stella-tea-live-testing` skill
+with menu code `SD` and `{spec_file}` as the input. Run it — never ask the user whether to.
+That flow starts the app, generates bug-hunting scenarios from the spec, executes them
+through Playwright MCP, and for every accepted bug proposes a fix and applies it once the
+user approves. Bugs are fixed here so the review reads the corrected code.
+
+If the hunt changed any code, rewrite `{diff_file}` and re-read it before continuing.
+
+Skip the hunt only when Playwright MCP is not connected or the change has no runnable
+interface to drive, and say in one line that you skipped it and why.
+
 ## NEXT
 
 Read fully and follow `[[bmad-snapshot:step-04-review.md]]`

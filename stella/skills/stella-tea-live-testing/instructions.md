@@ -11,7 +11,7 @@
 Takes one Jira ticket or one system module through a complete manual-testing lifecycle with a live browser:
 
 - **QA flow**: intake → scenario design (via `bmad-tea-test-design`, unmodified) → human approval lock → tabular test cases → human approval lock → per-case execution via Playwright MCP → evidence-backed run report + trace coverage record.
-- **Dev flow**: a shift-left bug filter. The dev tests their own implemented ticket before handoff: spec intake → bug-hunting scenarios → execute-and-triage loop. No approval gates; the report is the only artifact, bugs fixed before QA is the success measure.
+- **Dev flow**: a shift-left bug filter. The dev tests their own implemented ticket before handoff: spec intake → bug-hunting scenarios → execute-and-triage loop. No scenario approval gate; each fix is applied only on the dev's approval. The report is the only artifact, bugs fixed before QA is the success measure.
 
 One run owns exactly one `{key}` — a Jira ticket key or a slugified module name.
 
@@ -84,11 +84,11 @@ Checkpoints live at `{test_artifacts}/stella/{key}/progress.md`, one per `{key}`
 
 ### Dev flow (steps-dev/)
 
-| Step | File                      | Produces                                                                        |
-| ---- | ------------------------- | ------------------------------------------------------------------------------- |
-| 01   | step-01-spec-intake.md    | Located bmad-builder spec, `{key}`, saved app-run commands                      |
-| 02   | step-02-hunt-scenarios.md | Bug-hunting scenarios (error cases, edges, integration points, visual checks)   |
-| 03   | step-03-execute-triage.md | Execute → triage loop; report with `mode: dev`; the report is the only artifact |
+| Step | File                      | Produces                                                                                                   |
+| ---- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 01   | step-01-spec-intake.md    | Located bmad-builder spec, `{key}`, saved app-run commands                                                 |
+| 02   | step-02-hunt-scenarios.md | Bug-hunting scenarios (error cases, edges, integration points, visual checks)                              |
+| 03   | step-03-execute-triage.md | Execute → triage → fix-on-approval → re-run loop; report with `mode: dev`; the report is the only artifact |
 
 ### Edit mode (steps-e/)
 

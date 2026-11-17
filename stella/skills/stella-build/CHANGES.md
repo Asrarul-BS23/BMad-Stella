@@ -76,3 +76,26 @@ Same four edits as step-05-present.md for the oneshot route. (Task 6b-2, 2026-10
 - Line 83: the local-commit instruction → the same no-commit sentence.
 - Line 93: `- Commit hash, if you made one.` removed.
 - Lines 97–98: the next-steps line and the blank line after it are removed, as in step-05 (2026-11-10).
+
+### step-03-implement.md — live bug hunt before review (2026-11-17)
+
+A `### Live Bug Hunt` section is added before `## NEXT`. It invokes the
+`stella-tea-live-testing` skill with menu code `SD` and `{spec_file}` as the input, without
+asking the user. The hunt starts the app, generates bug-hunting scenarios from the spec,
+executes them through Playwright MCP, and proposes a fix per accepted bug that it applies
+on the user's approval. `{diff_file}` is rewritten when the hunt changed code, so the
+review layers read the corrected diff.
+
+Rationale: bugs found by running the change must be fixed **before** the code review, not
+after it, so the review grades the corrected code and nothing found live reaches QA. The
+hunt sits in the step text, not in `on_complete`, because `on_complete` is a scalar where
+an override wins — a team that customizes it would silently lose the trigger.
+(`tea-module/dev-flow-integration.md`, item 1)
+
+It skips, with a one-line reason, only when Playwright MCP is not connected or the change
+has no runnable interface.
+
+### step-oneshot.md — live bug hunt before review (2026-11-17)
+
+The same section immediately before `### Review`, so the oneshot route hunts bugs before
+its review too.
