@@ -17,6 +17,7 @@ const cleaner = require('./cleaner');
 const legacyMemory = require('./legacy-memory-migrator');
 const runner = require('./bmad-runner');
 const teaSkillInstaller = require('./tea-skill-installer');
+const teaSetup = require('./tea-setup');
 const npmCache = require('./npm-cache');
 const gitignore = require('./gitignore');
 const layer = require('./stella-layer');
@@ -35,7 +36,7 @@ const seconds = (ms) => Math.max(1, Math.round(ms / 1000));
 /**
  * @param {string} root project folder
  * @param {object} deps prompt (required), fetch, verbose, runBmad(root, opts) → status,
- *   runTeaSkill(root, opts) → status, userHooks() → {status},
+ *   runTeaSkill(root, opts) → status, setupTeaConfig(root) → {status}, userHooks() → {status},
  *   bootstrapMemory(root) → {domainMap, patterns},
  *   playwrightMcp.register(root) → [{name, status, detail}], ui, env, isTTY,
  *   now, home (credentials file lives under it)
@@ -48,6 +49,7 @@ async function install(root, deps) {
     verbose = false,
     runBmad = (r, o) => runner.install(r, o),
     runTeaSkill = (r, o) => teaSkillInstaller.install(r, o),
+    setupTeaConfig = (r) => teaSetup.apply(r),
     cleanNpmCache = () => npmCache.clean(),
     userHooks = defaultUserHooks,
     bootstrapMemory = (r) => memoryBootstrap.bootstrapIfMissing(r),
@@ -250,6 +252,24 @@ async function install(root, deps) {
   }
   if (s4b) s4b.succeed('TEA skills installed', teaTook);
   else ui.line('ok', 'TEA skills installed', teaTook);
+
+  // 7c. [modules.tea] config — the answers `bmad setup tea` would write, so the
+  // TEA skills' config gate passes without a manual chat step. Fail-hard like
+  // the TEA step: without modules.tea the live-testing skill refuses to run.
+  const s4c = verbose ? null : ui.spin('writing TEA module config…');
+  try {
+    summary.teaConfig = setupTeaConfig(root);
+  } catch (error) {
+    if (s4c) s4c.fail(error.message);
+    else ui.line('fail', error.message);
+    throw new Error(`TEA module config failed: ${error.message}`);
+  }
+  const teaConfigText =
+    summary.teaConfig.status === 'written'
+      ? `TEA config written  [modules.tea] · ${summary.teaConfig.keys} keys`
+      : `TEA config already present  ${summary.teaConfig.file}`;
+  if (s4c) s4c.succeed(teaConfigText);
+  else ui.line('ok', teaConfigText);
   ui.gap();
 
   // 8. gitignore

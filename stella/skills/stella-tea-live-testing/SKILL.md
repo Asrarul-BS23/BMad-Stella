@@ -80,7 +80,7 @@ This workflow uses **tri-modal step-file architecture** with **two routed flows*
 
 - **Create mode (steps-c/ or steps-dev/)**: primary execution flow for new runs and resume continuation
   - **QA flow (`steps-c/`)**: intake → scenarios (via `bmad-tea-test-design`) → human lock → tabular cases → human lock → live execution → report
-  - **Dev flow (`steps-dev/`)**: spec intake → bug-hunt scenarios → execute-and-triage loop. No approval gates, no resume checkpoint — loop speed is the point.
+  - **Dev flow (`steps-dev/`)**: spec intake → bug-hunt scenarios → execute-and-triage loop, where each accepted bug is fixed on the dev's approval and its scenarios re-run. No scenario approval gate, no resume checkpoint — loop speed is the point.
 - **Validate mode (steps-v/)**: validation against checklist
 - **Edit mode (steps-e/)**: revise existing scenarios or test cases with change propagation
 

@@ -23,7 +23,7 @@ Drive the hunt scenarios through Playwright MCP, triage every failure with the d
 
 ### Role Reinforcement
 
-- ✅ You are the **Master Test Architect** — the dev judges failures; you supply evidence and a fix direction
+- ✅ You are the **Master Test Architect** — the dev judges failures; you supply evidence, propose the fix, and apply it only once the dev approves that fix
 
 ### Step-Specific Rules
 
@@ -31,6 +31,7 @@ Drive the hunt scenarios through Playwright MCP, triage every failure with the d
 - 🛑 Playwright MCP must be connected; refuse to execute without it.
 - 🚫 This step never writes `live-verification-results.json` — dev runs never count as QA coverage.
 - 🚫 Never suggest writing automation code.
+- 🚫 Never change code before the dev approves the specific fix you proposed for that failure.
 
 ## EXECUTION PROTOCOLS:
 
@@ -59,7 +60,7 @@ For each scenario, in order:
 3. On `Fail` / `Partly Pass`: capture evidence per the rules, then **triage with the dev immediately** (interactive, per the `SKILL.md` convention — options: "A — real bug" / "B — wrong scenario"):
 
    > "{scenario}: expected {expected}, observed {actual} (evidence: {path}). Is this (A) a real bug, or (B) a wrong scenario?"
-   - **(A) Bug accepted:** suggest the fix direction (file/function suspects from the spec's changed code, reasoning in one or two lines — a direction, never a patch dump). The dev fixes; on "re-run", re-execute this scenario (and any the fix could affect) and update its result. The pre-fix failure stays in the run notes as a found bug.
+   - **(A) Bug accepted:** state the fix you intend — the file/function suspects from the spec's changed code and the change in one or two lines, never a patch dump — and ask the dev to approve it (interactive, options: "Fix it" / "I'll fix it myself" / "Leave it open"). On **"Fix it"**, apply the fix yourself, then re-execute this scenario and any scenario the fix could affect, and update their results. On **"I'll fix it myself"**, wait; on "re-run", re-execute the same set. On **"Leave it open"**, keep the failure and move on. Never edit code before that approval. The pre-fix failure stays in the run notes as a found bug.
    - **(B) Scenario wrong:** correct the scenario per the dev's reading of the spec, re-run it, and record the corrected result. Note the correction.
 
 4. Keep the loop going — execute, triage, fix, re-run — until every scenario has a final status or the dev says stop.
@@ -82,7 +83,7 @@ If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute
 
 ### ✅ SUCCESS:
 
-- Every failure triaged with the dev before moving on; fix directions suggested, dev judged
+- Every failure triaged with the dev before moving on; fixes proposed, applied only on the dev's approval
 - Found-then-fixed bugs preserved in the report even when the final status is Pass
 - Report carries `mode: dev`; no live-verification record written; the report (plus its formatted copies) is the only artifact
 
@@ -91,6 +92,7 @@ If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute
 - Any status not backed by Playwright MCP execution in this session (integrity-rule violation)
 - Writing `live-verification-results.json`
 - Writing a cases file at all, or suggesting automation code
+- Changing code without the dev's explicit approval for that specific fix
 - Erasing a found bug from the report because it was fixed
 - An executed scenario's screenshot without its green/red mark when any element or region carries the result (unmarked is legal only for whole-page states, with the reason noted)
 
