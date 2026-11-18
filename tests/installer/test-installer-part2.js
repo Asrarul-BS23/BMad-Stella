@@ -98,6 +98,14 @@ const fakeBmad = async (root, { projectName, userName }) => {
 const fakeTeaSkill = async () => 0;
 // Fake npm cache clean: never spawn the real `npm cache clean --force` from a test run.
 const fakeNpmCache = () => ({ status: 'cleaned', seconds: 1, detail: null });
+// Fake TEA config write: fakeBmad writes no _bmad/config.toml, so the real
+// tea-setup would throw. Its own tests live in test-tea-setup.js.
+const fakeTeaConfig = () => ({
+  status: 'written',
+  file: '_bmad/config.toml',
+  keys: 13,
+  source: 'fallback',
+});
 
 // Confluence mock: project children + LEADRSC descendants with bodies.
 const children = {
@@ -236,6 +244,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     runBmad: fakeBmad,
     runTeaSkill: fakeTeaSkill,
     cleanNpmCache: fakeNpmCache,
+    setupTeaConfig: fakeTeaConfig,
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -251,6 +260,10 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
   ok(
     sum.npmCache && sum.npmCache.status === 'cleaned',
     'install: npm cache cleaned before the BMad step',
+  );
+  ok(
+    sum.teaConfig && sum.teaConfig.status === 'written' && sum.teaConfig.keys === 13,
+    'install: TEA module config written after the TEA skill step',
   );
   ok(
     sum.legacyMigration.memoryMigrated && sum.legacyMigration.plansMigrated === 1,
@@ -518,6 +531,8 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     runTeaSkill: fakeTeaSkill,
     // A failed cache clean must never abort the install — only warn.
     cleanNpmCache: () => ({ status: 'failed', seconds: 1, detail: 'exit 7' }),
+    // An existing [modules.tea] is kept, never rewritten.
+    setupTeaConfig: () => ({ status: 'present', file: '_bmad/custom/config.toml' }),
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -651,6 +666,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     runBmad: fakeBmad,
     runTeaSkill: fakeTeaSkill,
     cleanNpmCache: fakeNpmCache,
+    setupTeaConfig: fakeTeaConfig,
     userHooks,
     bootstrapMemory: bootstrapMemoryStub,
     log: quiet,
@@ -710,6 +726,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       runBmad: fakeBmad,
       runTeaSkill: fakeTeaSkill,
       cleanNpmCache: fakeNpmCache,
+      setupTeaConfig: fakeTeaConfig,
       userHooks,
       bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
@@ -736,6 +753,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       runBmad: async () => 2,
       runTeaSkill: fakeTeaSkill,
       cleanNpmCache: fakeNpmCache,
+      setupTeaConfig: fakeTeaConfig,
       userHooks,
       bootstrapMemory: bootstrapMemoryStub,
       log: quiet,
@@ -764,6 +782,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       runBmad: fakeBmad,
       runTeaSkill: async () => 3,
       cleanNpmCache: fakeNpmCache,
+      setupTeaConfig: fakeTeaConfig,
       userHooks,
       bootstrapMemory: bootstrapMemoryStub,
       log: quiet,

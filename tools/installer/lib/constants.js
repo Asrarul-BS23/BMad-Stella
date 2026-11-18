@@ -76,6 +76,31 @@ const USER_NAME_FALLBACK = 'stella-dev';
 // repo. Scope (project) and method (symlink) are the `skills` CLI's own defaults.
 const TEA_SKILL_INSTALL_FLAGS = { agent: 'claude-code', skill: '*' };
 
+// `[modules.tea]` answers written into _bmad/config.toml right after the TEA
+// skill step — what `bmad setup tea` would write, so a fresh install passes
+// every TEA skill's config gate without a manual chat step (plan:
+// tea-module/tea-setup-automation-plan.md). The live defaults are read from the
+// installed bmod.toml ([[bmod.config_questions]]); this ordered list is the
+// fallback when that file is missing or unparsable (matches TEA v3.6.0).
+const TEA_CONFIG_FALLBACK_DEFAULTS = [
+  ['test_artifacts', '{project-root}/_bmad-output/test-artifacts'],
+  ['tea_use_playwright_utils', 'true'],
+  ['tea_use_pactjs_utils', 'true'],
+  ['tea_pact_mcp', 'mcp'],
+  ['tea_browser_automation', 'auto'],
+  ['tea_execution_mode', 'auto'],
+  ['tea_capability_probe', 'true'],
+  ['test_stack_type', 'auto'],
+  ['test_framework', 'auto'],
+  ['auto_validate', 'true'],
+  ['auto_heal_failures', 'true'],
+  ['max_healing_iterations', '3'],
+  ['use_mcp_healing', 'true'],
+];
+// Stella answers that differ from TEA's defaults (user decision 2026-11-17):
+// the flow mandates Playwright MCP, so browser automation is pinned to mcp.
+const TEA_CONFIG_OVERRIDES = { tea_browser_automation: 'mcp' };
+
 const MIN_NODE = { major: 20, minor: 10 };
 // BMad's render scripts declare `requires-python >= 3.11`. When no such Python is
 // on PATH the installer adds a uv-managed one (system Python untouched).
@@ -222,6 +247,8 @@ module.exports = {
   TEA_SKILL_VERSION,
   TEA_SKILL_PACKAGE,
   TEA_SKILL_INSTALL_FLAGS,
+  TEA_CONFIG_FALLBACK_DEFAULTS,
+  TEA_CONFIG_OVERRIDES,
   JIRA_BASE_URL,
   TOKEN_HELP_URL,
   CONFLUENCE_PROJECTS_PAGE,
