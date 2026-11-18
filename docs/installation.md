@@ -37,6 +37,42 @@ Your project, from the list. This selects the domain docs that are fetched.
 
 Done.
 
+## Install once per machine (user-level)
+
+Instead of installing in every project, set the machine up once:
+
+```
+npx github:Asrarul-BS23/BMad-Stella#v6 setup
+```
+
+It asks for your Atlassian email and token (only when none is saved). Then it checks whether the `bmad-stella` plugin is already installed.
+
+Not installed: one question.
+
+```
+│ ◇ Do you want plugins for Claude Desktop? (y/N)
+```
+
+- **Yes**: adds the marketplace and installs the `bmad-stella` plugin. Skills and hooks then load in the Claude Code CLI, the VS Code extension and the Claude Desktop Code tab.
+- **No**: skills and hooks are copied to `~/.claude/` instead. No plugin is installed.
+
+Already installed: nothing is asked. The plugin is uninstalled and installed again, so it is updated together with this BMad-Stella version.
+
+About 90 seconds. Everything goes under `~/.claude/`; no project is touched.
+
+Then, once in each project, open Claude Code in the project folder and run:
+
+```
+/stella-init
+```
+
+It asks for the project, copies `_bmad/` from the machine's master copy and creates `_bmad-output/`. A few seconds, no download. Memory and project context are collected in the background; `/stella-init status` shows where they are.
+
+- A new session in a git repository that is not set up prints one line: run `/stella-init`.
+- `_bmad/` already in a parent folder, or in one direct child folder: that folder is the project root. No second `_bmad/` is created.
+- Run `setup` again to update. Each project's `_bmad/` is then refreshed by itself at the next session start. Files in `_bmad/custom/` and everything under `_bmad-output/` are kept.
+- A project installed with `install` (above) keeps working. `/stella-init` switches it to the user-level install.
+
 ## Plugin (optional, once per machine)
 
 The Stella skills and hooks are also available as a Claude Code plugin. Installed once, they load in every session on this machine — Claude Code CLI, the VS Code extension, and the Claude Desktop Code tab:

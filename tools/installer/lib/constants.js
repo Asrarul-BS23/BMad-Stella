@@ -220,6 +220,44 @@ const FRICTION_LOGS_PAGES = Object.freeze(
 );
 const GUARD_DEFAULTS = { enabled: true };
 
+// ---- User-level install (`setup` once per machine + `/stella-init` per project) ----
+// Design: tea-module/rnd-docs/user-level-install-design.md (decisions L1-L7).
+// Everything lives under ~/.claude/; parts are joined onto the home folder at run time.
+const STELLA_HOME_PARTS = ['.claude', 'stella'];
+// Runnable copy of this package (tools/ + stella/ + production dependencies). The
+// `/stella-init` skill and the init-check hook run it — no npx, no network.
+const APP_DIR_PARTS = [...STELLA_HOME_PARTS, 'app'];
+// One pinned BMad + TEA install kept as the master copy; only its _bmad/ is copied
+// into projects. Its .claude/skills/ are copied to ~/.claude/skills/ once.
+const TEMPLATE_DIR_PARTS = [...STELLA_HOME_PARTS, 'bmad-template'];
+const MACHINE_STATE_PARTS = [...STELLA_HOME_PARTS, 'machine.json'];
+const USER_SKILLS_PARTS = ['.claude', 'skills'];
+const USER_SETTINGS_PARTS = ['.claude', 'settings.json'];
+// Project name the template is installed with; replaced with the real one on copy.
+const TEMPLATE_PROJECT_NAME = 'STELLA_TEMPLATE';
+// Files inside _bmad/ that carry the project name.
+const PROJECT_NAME_FILES = ['config.toml', 'bmm/config.yaml', 'core/config.yaml'];
+// Written into the template's _bmad/ and so into every project copy: a project whose
+// marker id differs from the template's is refreshed at session start (L2). A _bmad/
+// without it came from the per-project installer and is never touched automatically.
+const TEMPLATE_MARKER = '.stella-template.json';
+
+// Shipped only at user level (plugin or ~/.claude/skills/), never copied into a project.
+const USER_LEVEL_ONLY_SKILLS = ['stella-init'];
+// The session-start check: "run /stella-init" hint and the automatic template refresh.
+const INIT_CHECK_HOOK = {
+  name: 'init-check',
+  events: { SessionStart: { file: 'session-start.js' } },
+};
+
+// The `bmad-stella` plugin: skills + hooks for the CLI, the VS Code extension and the
+// Claude Desktop Code tab (one shared ~/.claude/ plugin store).
+const PLUGIN = {
+  name: 'bmad-stella',
+  marketplace: 'stella',
+  source: 'Asrarul-BS23/BMad-Stella',
+};
+
 // Written next to our hooks and helpers so Node runs them as CommonJS even when
 // the host project's package.json declares "type": "module" (nearest package.json wins).
 const COMMONJS_PACKAGE_JSON = '{\n  "type": "commonjs"\n}\n';
@@ -278,4 +316,16 @@ module.exports = {
   STALE_ATLASSIAN_MCP_URLS,
   PLAYWRIGHT_MCP_SERVERS,
   COMMONJS_PACKAGE_JSON,
+  STELLA_HOME_PARTS,
+  APP_DIR_PARTS,
+  TEMPLATE_DIR_PARTS,
+  MACHINE_STATE_PARTS,
+  USER_SKILLS_PARTS,
+  USER_SETTINGS_PARTS,
+  TEMPLATE_PROJECT_NAME,
+  PROJECT_NAME_FILES,
+  TEMPLATE_MARKER,
+  USER_LEVEL_ONLY_SKILLS,
+  INIT_CHECK_HOOK,
+  PLUGIN,
 };

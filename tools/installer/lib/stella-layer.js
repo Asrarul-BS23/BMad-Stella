@@ -28,6 +28,7 @@ const {
   GUARD_DEFAULTS,
   COMMONJS_PACKAGE_JSON,
   JIRA_BASE_URL,
+  MACHINE_STATE_PARTS,
 } = require('./constants');
 
 /**
@@ -158,13 +159,36 @@ const readSettings = (root) => readSettingsFile(rel(root, SETTINGS_LOCAL));
  * settings.local.json. In that case skills and hooks come from the plugin,
  * and the installer must not copy project-level duplicates.
  */
-function pluginActive(root, { home = os.homedir() } = {}) {
+function pluginEnabled(root, { home = os.homedir() } = {}) {
   const files = [path.join(home, '.claude', 'settings.json'), rel(root, SETTINGS_LOCAL)];
   return files.some((file) => {
     const plugins = readSettingsFile(file).enabledPlugins;
     if (!plugins || typeof plugins !== 'object') return false;
     return Object.entries(plugins).some(([key, on]) => on && key.startsWith('bmad-stella@'));
   });
+}
+
+/**
+ * True when `bmad-stella setup` put the Stella skills and hooks at user level on this
+ * machine without the plugin (~/.claude/skills/ + ~/.claude/settings.json). They load
+ * in every project, exactly like the plugin's.
+ */
+function userLevelStellaSkills(home = os.homedir()) {
+  try {
+    const state = JSON.parse(fs.readFileSync(path.join(home, ...MACHINE_STATE_PARTS), 'utf8'));
+    return Array.isArray(state.stellaSkills) && state.stellaSkills.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * What the per-project installer asks: do the Stella skills and hooks already reach
+ * this project from user level (plugin, or `setup` without the plugin)? Then project
+ * copies would load every skill twice and fire every hook twice.
+ */
+function pluginActive(root, { home = os.homedir() } = {}) {
+  return pluginEnabled(root, { home }) || userLevelStellaSkills(home);
 }
 
 function writeSettings(root, settings) {
@@ -318,6 +342,7 @@ function removeBmadSkills(root, names = bmadSkillNames(root)) {
 module.exports = {
   frictionConfig,
   pluginActive,
+  pluginEnabled,
   copyStellaFiles,
   copySkills,
   copyHooks,

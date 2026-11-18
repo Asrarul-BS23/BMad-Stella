@@ -31,10 +31,11 @@ function spawnDetached(scriptPath, args) {
 /**
  * @returns {{domainMap: boolean, patterns: boolean}} which collectors were started
  */
-function bootstrapIfMissing(root) {
+function bootstrapIfMissing(root, { hooksDir } = {}) {
   const started = { domainMap: false, patterns: false };
   const memoryDir = rel(root, `${STELLA_OUTPUT_DIR}/memory`);
-  const memoryHooksDir = rel(root, `${STELLA_HOOKS_DIR}/memory`);
+  // `hooksDir`: the user-level install runs the collectors from the app copy, not from a project copy.
+  const memoryHooksDir = hooksDir || rel(root, `${STELLA_HOOKS_DIR}/memory`);
 
   if (!fs.existsSync(path.join(memoryDir, 'domain-map.md'))) {
     const script = path.join(memoryHooksDir, 'lib', 'domain-map-distiller.js');

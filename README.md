@@ -14,6 +14,14 @@ npx bmad-stella@latest install
 
 Two questions (Atlassian credentials, project), about a minute. Details: [Installation Guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1649147911/Installation-Guide).
 
+## Install once per machine
+
+```
+npx bmad-stella@latest setup
+```
+
+Sets the machine up under `~/.claude/` (credentials, skills, hooks, a master copy of `_bmad/`) and asks whether to install the plugin for Claude Desktop. After that, run `/stella-init` once in each project: it copies `_bmad/` from the master copy and creates `_bmad-output/`, with no download. The per-project `install` above keeps working.
+
 ## Plugin (skills and hooks, once per machine)
 
 The skills and hooks also ship as a Claude Code plugin. One install covers the Claude Code CLI, the VS Code extension, and the Claude Desktop Code tab on that machine:
@@ -37,6 +45,7 @@ The plugin does not replace the project install above: skills run against the pr
 | `/stella-pr-review <PR url>` | Reviews a pull request against its ticket. Read-only.  |
 | `/stella-domain-expert`      | Answers questions from the project's domain docs.      |
 | `/stella-project-context`    | Redo the project context the installer generates.      |
+| `/stella-init`               | Set up a project from the machine install.             |
 | `/caveman`                   | Terse chat mode.                                       |
 
 ## Docs

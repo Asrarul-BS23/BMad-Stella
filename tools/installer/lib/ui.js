@@ -85,6 +85,10 @@ function createUi({ version, bmadVersion, stream = process.stdout } = {}) {
         ),
       );
     },
+    /** `◆ Label` — a titled group outside the fixed install steps (`setup`, `init`). */
+    section(label, right = '') {
+      write(justify(`${chalk.green('◆')} ${chalk.bold(label)}`, chalk.dim(right), width));
+    },
     /** `│ ✓ text` (kind: ok | warn | info | fail | note); `right` is right-aligned. */
     line(kind, text, right = '') {
       const body = `${bar} ${MARK[kind] || MARK.note} ${kind === 'warn' ? chalk.yellow(text) : text}`;
@@ -140,6 +144,7 @@ function silentUi() {
     width: 80,
     header: noop,
     step: noop,
+    section: noop,
     line: noop,
     cont: noop,
     gap: noop,

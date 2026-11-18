@@ -16,7 +16,7 @@ You will continue to operate with your given name, identity, and communication_s
 - Bare paths (e.g. `instructions.md`) resolve from the skill root.
 - `{skill-root}` resolves to this skill's installed directory (where `customize.toml` lives).
 - `{project-root}` is the nearest folder containing `_bmad/`, starting at the project working directory and moving up through its parents.
-- `{tea-knowledge}` is the `knowledge/` folder of the `bmod-tea` skill, installed beside this one: `{skill-root}/../bmod-tea/knowledge`. `tea-index.csv` there lists every fragment by a path relative to that folder.
+- `{tea-knowledge}` is the `knowledge/` folder of the `bmod-tea` skill: the first of these that exists — `{skill-root}/../bmod-tea/knowledge`, `{project-root}/.claude/skills/bmod-tea/knowledge`, `~/.claude/skills/bmod-tea/knowledge`. `tea-index.csv` there lists every fragment by a path relative to that folder.
 - `{skill-name}` resolves to the skill directory's basename.
 - Resolve sibling workflow files such as `instructions.md`, `checklist.md`, `steps-c/...`, `steps-dev/...`, `steps-e/...`, `steps-v/...`, `templates/...`, and `resources/...` from `{skill-root}`.
 - `{key}` is this run's subject: a Jira ticket key verbatim (e.g. `STEL-123`), or a module name slugified (lowercase, runs of characters outside `a-z0-9` collapsed to single `-`, trimmed, max 64 chars).
