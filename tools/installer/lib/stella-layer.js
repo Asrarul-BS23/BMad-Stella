@@ -169,7 +169,7 @@ function pluginEnabled(root, { home = os.homedir() } = {}) {
 }
 
 /**
- * True when `bmad-stella setup` put the Stella skills and hooks at user level on this
+ * True when `bmad-stella install` put the Stella skills and hooks at user level on this
  * machine without the plugin (~/.claude/skills/ + ~/.claude/settings.json). They load
  * in every project, exactly like the plugin's.
  */
@@ -184,7 +184,7 @@ function userLevelStellaSkills(home = os.homedir()) {
 
 /**
  * What the per-project installer asks: do the Stella skills and hooks already reach
- * this project from user level (plugin, or `setup` without the plugin)? Then project
+ * this project from user level (plugin, or `install` without the plugin)? Then project
  * copies would load every skill twice and fire every hook twice.
  */
 function pluginActive(root, { home = os.homedir() } = {}) {

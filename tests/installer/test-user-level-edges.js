@@ -465,11 +465,11 @@ const CREDS = ['dev@stella.com', 'tok-abcdefghijklmnop'];
       });
     const help = cli(REPO, ['--help']).stdout;
     ok(
-      /\bsetup\b/.test(help) &&
+      !/^\s+setup\b/m.test(help) &&
         /\binit\b/.test(help) &&
         /\binstall\b/.test(help) &&
         /\buninstall\b/.test(help),
-      'cli: setup and init listed next to install and uninstall',
+      'cli: install, init and uninstall listed; no setup command',
     );
     const initHelp = cli(REPO, ['init', '--help']).stdout;
     ok(
@@ -519,7 +519,7 @@ const CREDS = ['dev@stella.com', 'tok-abcdefghijklmnop'];
       r.status === 1 && r.stdout.includes('No saved Atlassian credentials'),
       'cli: --list-projects without credentials → exit 1, says to run setup',
     );
-    r = spawnSync(process.execPath, [BIN, 'setup'], {
+    r = spawnSync(process.execPath, [BIN, 'install'], {
       cwd: none,
       encoding: 'utf8',
       env: {
@@ -532,7 +532,7 @@ const CREDS = ['dev@stella.com', 'tok-abcdefghijklmnop'];
     });
     ok(
       r.status === 1 && r.stdout.includes('No interactive terminal') && !exists(noCreds, '.claude'),
-      'cli: setup without a terminal and without credentials → exit 1, nothing written',
+      'cli: install without a terminal and without credentials → exit 1, nothing written',
     );
   }
 
@@ -553,8 +553,8 @@ const CREDS = ['dev@stella.com', 'tok-abcdefghijklmnop'];
       'skill: uses only commands the CLI has',
     );
     ok(
-      skill.includes('npx bmad-stella@latest setup') && /Do not copy, create or edit/.test(skill),
-      'skill: says what to do without the app, and never edits by hand',
+      skill.includes('npx -y bmad-stella@latest') && /Do not copy, create or edit/.test(skill),
+      'skill: runs through npx without the app, and never edits by hand',
     );
     const hooks = JSON.parse(read(REPO, 'stella/hooks/hooks.json')).hooks;
     ok(

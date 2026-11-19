@@ -103,9 +103,10 @@ async function run(
     const name = env.STELLA_PROJECT.trim();
     let pageId = null;
     try {
-      const match = (await listProjects(creds, { fetch })).find(
-        (p) => p.name.toLowerCase() === name.toLowerCase(),
-      );
+      // No credentials (the user saves them later): no list to match against.
+      const listed =
+        creds && creds.email && creds.token ? await listProjects(creds, { fetch }) : [];
+      const match = listed.find((p) => p.name.toLowerCase() === name.toLowerCase());
       if (match) pageId = match.pageId;
     } catch {
       // unreachable Confluence: keep the name, no page id

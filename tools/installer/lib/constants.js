@@ -220,7 +220,7 @@ const FRICTION_LOGS_PAGES = Object.freeze(
 );
 const GUARD_DEFAULTS = { enabled: true };
 
-// ---- User-level install (`setup` once per machine + `/stella-init` per project) ----
+// ---- User-level install (`install` once per machine + `/stella-init` per project) ----
 // Design: tea-module/rnd-docs/user-level-install-design.md (decisions L1-L7).
 // Everything lives under ~/.claude/; parts are joined onto the home folder at run time.
 const STELLA_HOME_PARTS = ['.claude', 'stella'];

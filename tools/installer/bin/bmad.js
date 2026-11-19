@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 'use strict';
 
-// BMad-Stella v6 installer CLI. `install` and `uninstall` run in the current
-// directory (no install-dir question). The steps live in ../lib/installer.js,
-// the terminal look in ../lib/ui.js.
+// BMad-Stella v6 installer CLI.
+//   install    once per machine, under ~/.claude/ (../lib/machine-setup.js)
+//   init       once per project, from the machine install — what /stella-init runs
+//              (../lib/project-init.js)
+//   uninstall  removes BMad-Stella from the current directory (../lib/installer.js)
+// The per-project installer in ../lib/installer.js is no longer a command of its own;
+// `init` falls back to it when the machine has no master copy. Terminal look: ../lib/ui.js.
 
-const { program } = require('commander');
+const { program, Option } = require('commander');
 const chalk = require('chalk').default || require('chalk');
 const inquirer = require('inquirer').default || require('inquirer');
 
@@ -21,23 +25,7 @@ program.name('bmad-stella').version(version).description('BMad-Stella installer 
 program
   .command('install')
   .description(
-    `install BMad ${constants.BMAD_VERSION} with the Stella layer into the current directory`,
-  )
-  .option('-v, --verbose', 'show the full BMad installer output')
-  .action(async (opts) => {
-    const ui = createUi({ version, bmadVersion: constants.BMAD_VERSION });
-    try {
-      await installer.install(process.cwd(), { prompt, ui, verbose: Boolean(opts.verbose) });
-    } catch (error) {
-      ui.failed(error.message);
-      process.exit(1);
-    }
-  });
-
-program
-  .command('setup')
-  .description(
-    'set this machine up once (user-level install): credentials, skills, hooks and the BMad master copy under ~/.claude/',
+    `install BMad ${constants.BMAD_VERSION} with the Stella layer once for this machine, under ~/.claude/ (then run /stella-init in each project)`,
   )
   .option('-v, --verbose', 'show the full BMad installer output')
   .action(async (opts) => {
@@ -59,9 +47,46 @@ program
   .option('--root <dir>', 'project folder, when several folders here hold _bmad/')
   .option('--list-projects', 'print the project names and exit')
   .option('--status', 'print where this project stands and exit')
+  // Run by the /stella-init skill on a machine without `install` (Cowork); not user steps.
+  .addOption(new Option('--check-credentials').hideHelp())
+  .addOption(new Option('--save-credentials').hideHelp())
+  .addOption(new Option('--email <email>').hideHelp())
+  .addOption(new Option('--token <token>').hideHelp())
+  .addOption(new Option('--suggest-project').hideHelp())
+  .addOption(new Option('--no-credentials').hideHelp())
   .action(async (opts) => {
     const projectInit = require('../lib/project-init');
     const cwd = process.cwd();
+    if (opts.checkCredentials || opts.saveCredentials || opts.suggestProject) {
+      const cowork = require('../lib/cowork-setup');
+      if (opts.checkCredentials) {
+        const s = await cowork.credentialsStatus();
+        console.log(
+          `credentials: ${s.state}${s.detail && s.state !== 'saved' ? ` (${s.detail})` : ''}`,
+        );
+        console.log(`file: ${s.file}`);
+        if (s.state !== 'saved') for (const line of cowork.credentialsHelp()) console.log(line);
+        return;
+      }
+      if (opts.saveCredentials) {
+        const s = await cowork.saveCredentials({
+          email: opts.email || process.env.JIRA_EMAIL,
+          token: opts.token || process.env.JIRA_API_TOKEN,
+        });
+        console.log(
+          `credentials: ${s.state}${s.state === 'saved' && !s.verified ? ', not verified' : ''}${s.state === 'saved' ? '' : ` (${s.detail})`}`,
+        );
+        console.log(`file: ${s.file}`);
+        if (s.state !== 'saved') process.exit(1);
+        return;
+      }
+      const root = projectInit.resolveRoot(cwd, opts.root || null).root;
+      const s = await cowork.suggestProject(root);
+      console.log(`suggestion: ${s.suggestion || 'none'}${s.reason ? ` (${s.reason})` : ''}`);
+      if (s.from) console.log(`from: ${s.from}`);
+      console.log(`projects: ${[...s.projects, constants.OTHER_PROJECT].join(', ')}`);
+      return;
+    }
     if (opts.status) {
       const s = projectInit.status(cwd, { rootOverride: opts.root });
       if (!s.root) {
@@ -96,12 +121,19 @@ program
     }
     const ui = createUi({ version, bmadVersion: constants.BMAD_VERSION });
     try {
-      await projectInit.init(cwd, {
-        prompt,
-        ui,
-        projectName: opts.project || null,
-        rootOverride: opts.root || null,
-      });
+      await projectInit
+        .init(cwd, {
+          prompt,
+          ui,
+          projectName: opts.project || null,
+          rootOverride: opts.root || null,
+          noCredentials: opts.credentials === false,
+        })
+        .then((summary) => {
+          if (summary.noCredentials) {
+            for (const line of require('../lib/cowork-setup').credentialsHelp()) console.log(line);
+          }
+        });
     } catch (error) {
       ui.failed(error.message);
       if (Array.isArray(error.projects)) for (const name of error.projects) console.log(name);

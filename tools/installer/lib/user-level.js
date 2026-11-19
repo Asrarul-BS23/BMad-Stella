@@ -3,7 +3,7 @@
 // User-level install, shared pieces: where things live under ~/.claude/, how a
 // project root is found (here, in a parent, or one level down), how the _bmad/
 // master copy is applied to a project, and the session-start check. Used by
-// `setup` (machine-setup.js), `init` (project-init.js) and the init-check hook,
+// `install` (machine-setup.js), `init` (project-init.js) and the init-check hook,
 // which loads this file from the app copy in ~/.claude/stella/app/.
 // Design: tea-module/rnd-docs/user-level-install-design.md.
 
@@ -151,7 +151,7 @@ function lockProject(root) {
       age = Infinity;
     }
     if (age < LOCK_STALE_MS) {
-      throw Object.assign(new Error('another BMad-Stella setup is running in this project'), {
+      throw Object.assign(new Error('another BMad-Stella run is changing this project'), {
         code: 'LOCKED',
       });
     }
@@ -177,7 +177,7 @@ function writeMarker(bmadDir, { now = () => new Date() } = {}) {
   return marker;
 }
 
-/** The template's marker, or null when `setup` has not built a template on this machine. */
+/** The template's marker, or null when `install` has not built a template on this machine. */
 const templateMarker = (home) => readMarker(templateBmadDir(home));
 
 const readMachineState = (home) => readJson(machineStateFile(home));
@@ -272,7 +272,8 @@ const readKeptStellaFiles = (root) =>
 function applyTemplate(root, { home, projectName, project = null } = {}) {
   const source = templateBmadDir(home);
   const marker = readMarker(source);
-  if (!marker) throw new Error('No BMad template on this machine. Run `bmad-stella setup` first.');
+  if (!marker)
+    throw new Error('No BMad template on this machine. Run `bmad-stella install` first.');
 
   const target = path.join(root, BMAD_DIR);
   const staged = target + NEW_SUFFIX;
@@ -345,7 +346,7 @@ const MESSAGES = {
  */
 function sessionCheck(cwd, { home, source } = {}) {
   const template = templateMarker(home);
-  if (!template) return null; // `setup` never ran on this machine: stay out of the way
+  if (!template) return null; // `install` never ran on this machine: stay out of the way
   const hint = (message) => (!source || source === 'startup' ? { message, action: 'hint' } : null);
   const found = findRoot(cwd);
   if (found.kind === 'none') return isGitRepo(path.resolve(cwd)) ? hint(MESSAGES.notSetUp) : null;

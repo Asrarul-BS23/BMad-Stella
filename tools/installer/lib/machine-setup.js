@@ -1,6 +1,6 @@
 'use strict';
 
-// `bmad-stella setup` — the once-per-machine half of the user-level install.
+// `bmad-stella install` — the once-per-machine half of the user-level install.
 // Puts under ~/.claude/: the credentials, a runnable copy of this package (the
 // app), a pinned BMad + TEA install kept as the _bmad/ master copy, the official
 // skills, and the Stella skills and hooks (through the bmad-stella plugin when the
@@ -306,7 +306,7 @@ async function setup(deps) {
   const hasEnvCreds = Boolean(env.JIRA_EMAIL && env.JIRA_API_TOKEN);
   if (!isTTY && !hasEnvCreds && !jira.findCredentials(stellaHome, { home })) {
     throw new Error(
-      'No interactive terminal. Set JIRA_EMAIL and JIRA_API_TOKEN in the environment to set up non-interactively.',
+      'No interactive terminal. Set JIRA_EMAIL and JIRA_API_TOKEN in the environment to install non-interactively.',
     );
   }
 
@@ -444,7 +444,7 @@ async function setup(deps) {
     // A settings.json we cannot parse is left exactly as it is.
     summary.hooks = [];
     late.push(
-      `Hooks not registered — ~/.claude/settings.json could not be read (${error.message}). Fix the file and run setup again.`,
+      `Hooks not registered — ~/.claude/settings.json could not be read (${error.message}). Fix the file and run install again.`,
     );
   }
   summary.mcp = mcp.register(home, { scope: 'user' });

@@ -24,7 +24,7 @@ const userLevel = require('./user-level');
 const { silentUi } = require('./ui');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
-const SETUP_HINT = 'Run `npx bmad-stella@latest setup` in a terminal first.';
+const SETUP_HINT = 'Run `npx bmad-stella@latest install` in a terminal first.';
 
 const rel = (root, p) => path.join(root, ...p.split('/'));
 
@@ -70,7 +70,7 @@ function resolveRoot(cwd, rootOverride) {
 /**
  * @param {string} cwd where the session is
  * @param {object} deps prompt, fetch, ui, env, isTTY, home, repoRoot, projectName,
- *   rootOverride, fullInstall(root, deps) → summary (L7 fallback),
+ *   rootOverride, noCredentials, fullInstall(root, deps) → summary (L7 fallback),
  *   bootstrapMemory(root, opts), projectContext(root)
  * @returns {Promise<object>} summary
  */
@@ -85,6 +85,7 @@ async function init(cwd, deps = {}) {
     repoRoot = REPO_ROOT,
     projectName = null,
     rootOverride = null,
+    noCredentials = false, // L10: the user skipped the question and saves the file later
     fullInstall = (r, d) => require('./installer').install(r, d),
     bootstrapMemory = (r, o) => memoryBootstrap.bootstrapIfMissing(r, o),
     projectContext = (r) => projectContextBootstrap.startIfMissing(r),
@@ -96,11 +97,13 @@ async function init(cwd, deps = {}) {
   // L7: no master copy on this machine (e.g. a session that cannot see ~/.claude/stella/).
   if (!userLevel.templateMarker(home)) {
     summary.mode = 'full';
-    ui.line('warn', 'No BMad master copy on this machine — running the full project install');
+    ui.line('warn', 'No BMad master copy on this machine — running the per-project install');
     const fullEnv = projectName ? { ...env, STELLA_PROJECT: projectName } : { ...env };
+    const saved = noCredentials ? null : jira.readCredentialsFile({ home });
+    const skipCredentials =
+      noCredentials || (!isTTY && !saved && !(fullEnv.JIRA_EMAIL && fullEnv.JIRA_API_TOKEN));
     if (!isTTY) {
       // The full install asks nothing without a terminal: hand it what is already known.
-      const saved = jira.readCredentialsFile({ home });
       if (saved && !(fullEnv.JIRA_EMAIL && fullEnv.JIRA_API_TOKEN)) {
         fullEnv.JIRA_EMAIL = saved.email;
         fullEnv.JIRA_API_TOKEN = saved.token;
@@ -111,7 +114,21 @@ async function init(cwd, deps = {}) {
         });
       }
     }
-    summary.full = await fullInstall(root, { ...deps, env: fullEnv, home });
+    // `init` is run by the /stella-init skill, so the Stella skills already reach this
+    // machine (plugin or user level): the project gets no copies of them. The memory
+    // collectors then run from this package instead of from a project copy.
+    summary.noCredentials = skipCredentials;
+    summary.full = await fullInstall(root, {
+      bootstrapMemory: (r) =>
+        memoryBootstrap.bootstrapIfMissing(r, {
+          hooksDir: path.join(repoRoot, 'stella', 'hooks', 'project', 'memory'),
+        }),
+      ...deps,
+      env: fullEnv,
+      home,
+      skipCredentials,
+      skillsAtUserLevel: true,
+    });
     return summary;
   }
 
@@ -131,10 +148,13 @@ async function init(cwd, deps = {}) {
         );
       };
   const hasEnvCreds = Boolean(env.JIRA_EMAIL && env.JIRA_API_TOKEN);
-  if (!isTTY && !hasEnvCreds && !jira.findCredentials(root, { home })) {
+  if (!noCredentials && !isTTY && !hasEnvCreds && !jira.findCredentials(root, { home })) {
     throw codedError('NO_CREDENTIALS', `No saved Atlassian credentials. ${SETUP_HINT}`);
   }
-  const creds = await jira.run(root, { prompt: ask, fetch, log: note, env, home });
+  summary.noCredentials = noCredentials;
+  const creds = noCredentials
+    ? { email: null, token: null, verified: false, source: 'none' }
+    : await jira.run(root, { prompt: ask, fetch, log: note, env, home });
 
   // Project pick: --project, else the saved pick, else the list (terminal only).
   let pickEnv = env;

@@ -1,6 +1,6 @@
 'use strict';
 
-// The `bmad-stella` plugin step of `setup` (decision L3), through the `claude` CLI.
+// The `bmad-stella` plugin step of `install` (decision L3), through the `claude` CLI.
 //   isInstalled() — is the plugin on this machine already?
 //   ensure()      — not installed: add the marketplace, install the plugin.
 //                   installed (`reinstall`): uninstall it, refresh the marketplace,

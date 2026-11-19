@@ -4,9 +4,9 @@
 //   - folder not set up, and it is a git repository → one line: run /stella-init
 //   - project set up from the machine's master copy, and behind it → refresh _bmad/
 //   - anything else → silent
-// The logic lives in the app copy `bmad-stella setup` puts under ~/.claude/stella/app/,
+// The logic lives in the app copy `bmad-stella install` puts under ~/.claude/stella/app/,
 // so it always matches the master copy it compares against. No app on this machine
-// (setup never ran, or a per-project install only) → exit, do nothing.
+// (install never ran, or an older per-project install only) → exit, do nothing.
 // Never blocks a session: every failure is swallowed.
 
 const fs = require('node:fs');
