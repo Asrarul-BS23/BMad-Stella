@@ -3,9 +3,9 @@
 // `bmad-stella install` — the once-per-machine half of the user-level install.
 // Puts under ~/.claude/: the credentials, a runnable copy of this package (the
 // app), a pinned BMad + TEA install kept as the _bmad/ master copy, the official
-// skills, and the Stella skills and hooks (through the bmad-stella plugin when the
-// developer wants it, as plain user-level copies otherwise). It touches no
-// project; `/stella-init` (project-init.js) does the per-project part.
+// skills, and the Stella skills (through the bmad-stella plugin when the developer
+// wants it, as plain user-level copies otherwise). It touches no project;
+// `/stella-init` (project-init.js) does the per-project part, project hooks included.
 // Design: tea-module/rnd-docs/user-level-install-design.md.
 // Every external effect is injectable, as in installer.js.
 
@@ -218,9 +218,13 @@ const isAppHookEntry = (entry) =>
   );
 
 /**
- * The project hooks at user level, in ~/.claude/settings.json, run from the app
- * copy. Our entries are replaced, never duplicated; in plugin mode they are only
- * removed (the plugin's hooks.json registers the same scripts). Foreign entries stay.
+ * The session check (init-check) in ~/.claude/settings.json, run from the app copy.
+ * It is the one hook that must fire outside a set-up project, so it cannot live in
+ * one. The project hooks (friction-logger, pr-review-guard, memory) are not
+ * registered here: `init` puts them into each project. Our entries are replaced,
+ * never duplicated — that also clears project hooks an earlier version registered
+ * here; in plugin mode they are only removed (the plugin's hooks.json has the
+ * check). Foreign entries stay.
  * @returns {string[]} hook names registered
  */
 function registerUserHooks({ home, pluginMode }) {
@@ -238,7 +242,7 @@ function registerUserHooks({ home, pluginMode }) {
   const registered = [];
   if (!pluginMode) {
     const base = `${posix(userLevel.appDir(home))}/stella/hooks/project`;
-    for (const hook of [...constants.PROJECT_HOOKS, constants.INIT_CHECK_HOOK]) {
+    for (const hook of [constants.INIT_CHECK_HOOK]) {
       for (const [event, spec] of Object.entries(hook.events)) {
         if (!Array.isArray(hooks[event])) hooks[event] = [];
         const entry = {
@@ -475,7 +479,7 @@ async function setup(deps) {
       `${summary.skills.bmadSkills.length} BMad + TEA skills`,
       summary.pluginMode
         ? 'Stella skills + hooks from the plugin'
-        : `${summary.skills.stellaSkills.length} Stella skills   ${summary.hooks.length} hooks`,
+        : `${summary.skills.stellaSkills.length} Stella skills   session check hook`,
       mcpOk(summary.mcp) ? 'Atlassian MCP' : null,
       Array.isArray(summary.playwrightMcp) && summary.playwrightMcp.some(mcpOk)
         ? 'Playwright MCP'

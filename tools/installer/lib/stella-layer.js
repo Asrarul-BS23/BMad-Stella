@@ -169,9 +169,9 @@ function pluginEnabled(root, { home = os.homedir() } = {}) {
 }
 
 /**
- * True when `bmad-stella install` put the Stella skills and hooks at user level on this
- * machine without the plugin (~/.claude/skills/ + ~/.claude/settings.json). They load
- * in every project, exactly like the plugin's.
+ * True when `bmad-stella install` put the Stella skills at user level on this machine
+ * without the plugin (~/.claude/skills/). They load in every project, like the
+ * plugin's. The project hooks do not: without the plugin they stay in each project.
  */
 function userLevelStellaSkills(home = os.homedir()) {
   try {
@@ -183,9 +183,9 @@ function userLevelStellaSkills(home = os.homedir()) {
 }
 
 /**
- * What the per-project installer asks: do the Stella skills and hooks already reach
- * this project from user level (plugin, or `install` without the plugin)? Then project
- * copies would load every skill twice and fire every hook twice.
+ * What the per-project installer asks about the skills: do they already reach this
+ * project from user level (plugin, or `install` without the plugin)? Then project
+ * copies would load every skill twice. For the hooks only `pluginEnabled` counts.
  */
 function pluginActive(root, { home = os.homedir() } = {}) {
   return pluginEnabled(root, { home }) || userLevelStellaSkills(home);
@@ -292,14 +292,21 @@ function ensureOutputFolders(root) {
 }
 
 // ---- reverse: Stella parts of .claude/ (re-run clean + uninstall) ----
-function removeStellaClaudeParts(root) {
+function removeStellaSkills(root) {
   const removed = [];
   for (const name of [...STELLA_SKILLS, ...RETIRED_STELLA_SKILLS]) {
     if (rmIfPresent(rel(root, `${CLAUDE_SKILLS_DIR}/${name}`)))
       removed.push(`${CLAUDE_SKILLS_DIR}/${name}`);
   }
-  if (rmIfPresent(rel(root, STELLA_CLAUDE_DIR))) removed.push(STELLA_CLAUDE_DIR);
   return removed;
+}
+
+function removeStellaHooks(root) {
+  return rmIfPresent(rel(root, STELLA_CLAUDE_DIR)) ? [STELLA_CLAUDE_DIR] : [];
+}
+
+function removeStellaClaudeParts(root) {
+  return [...removeStellaSkills(root), ...removeStellaHooks(root)];
 }
 
 /** Official skills replaced by a Stella version: not kept after the BMad install. */
@@ -350,6 +357,9 @@ module.exports = {
   unregisterSettings,
   ensureOutputFolders,
   removeStellaClaudeParts,
+  removeStellaSkills,
+  removeStellaHooks,
+  userLevelStellaSkills,
   bmadSkillNames,
   removeBmadSkills,
   removeShadowedBmadSkills,

@@ -16,6 +16,7 @@ const {
   BMAD_VERSION,
   TEA_SKILL_VERSION,
   STELLA_CUSTOM_DIR,
+  STELLA_HOOKS_DIR,
   CLAUDE_SKILLS_DIR,
   APP_DIR_PARTS,
   TEMPLATE_DIR_PARTS,
@@ -93,6 +94,7 @@ function layerHash() {
   };
   walk(lazy.layer.SRC.checklists, 'checklists');
   walk(lazy.layer.SRC.utils, 'utils');
+  walk(lazy.layer.SRC.hooks, 'hooks');
   add(path.join(lazy.layer.SRC.skills, ...CHECK_SCRIPT), 'check');
   return hash.digest('hex').slice(0, 8);
 }
@@ -266,7 +268,8 @@ const readKeptStellaFiles = (root) =>
  * puts the old _bmad/ back. Kept from an existing _bmad/: everything under
  * _bmad/custom/ (team and personal overrides, secrets, the project's friction.json
  * and guard.json) and the render cache a running session may be reading. The
- * Stella helpers and checklists are always the current ones.
+ * Stella helpers and checklists are always the current ones, and so are the project
+ * hooks when the project has them.
  * @returns {{marker:object, replaced:boolean}}
  */
 function applyTemplate(root, { home, projectName, project = null } = {}) {
@@ -297,6 +300,8 @@ function applyTemplate(root, { home, projectName, project = null } = {}) {
       setProjectName(root, name);
       lazy.layer.copyStellaFiles(root, { project: project || lazy.picker.readProjectJson(root) });
       placeCheckScript(root);
+      // Project hooks already in this project move on with the helpers.
+      if (isDir(path.join(root, ...STELLA_HOOKS_DIR.split('/')))) placeProjectHooks(root);
       // friction.json follows the project pick: kept on a refresh, rewritten when a pick is passed.
       for (const { file, text } of kept) {
         if (project && path.basename(file) === 'friction.json') continue;
@@ -315,6 +320,17 @@ function applyTemplate(root, { home, projectName, project = null } = {}) {
     discard(staged);
     release();
   }
+}
+
+/**
+ * The project hooks, in the project: .claude/stella/hooks/<name>/, replaced as a
+ * whole so files a newer version dropped do not linger. Registration in
+ * settings.local.json is the caller's job (stella-layer registerSettings).
+ * @returns {string[]} hook names
+ */
+function placeProjectHooks(root) {
+  rm(path.join(root, ...STELLA_HOOKS_DIR.split('/')));
+  return lazy.layer.copyHooks(root);
 }
 
 function placeCheckScript(root) {
@@ -389,6 +405,7 @@ module.exports = {
   readProjectName,
   setProjectName,
   applyTemplate,
+  placeProjectHooks,
   swapDir,
   discard,
   layerHash,

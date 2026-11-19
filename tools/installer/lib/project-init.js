@@ -198,13 +198,22 @@ async function init(cwd, deps = {}) {
     const machine = userLevel.readMachineState(home);
     summary.removed.push(...layer.removeBmadSkills(root, (machine && machine.bmadSkills) || []));
   }
-  summary.settings = layer.registerSettings(root, { hooks: false });
+  // Project hooks stay in the project, as they were designed and tested: copied to
+  // .claude/stella/hooks/ and registered in settings.local.json. Only an enabled
+  // plugin supplies them instead (its hooks.json runs the same scripts).
+  summary.hooksInProject = !layer.pluginEnabled(root, { home });
+  if (summary.hooksInProject) summary.hooks = userLevel.placeProjectHooks(root);
+  else {
+    summary.removed.push(...layer.removeStellaHooks(root));
+    summary.hooks = [];
+  }
+  summary.settings = layer.registerSettings(root, { hooks: summary.hooksInProject });
   summary.created = layer.ensureOutputFolders(root);
   ui.line(
     'ok',
     wasPerProject
-      ? 'Switched from the per-project install  permissions · folders · .gitignore'
-      : 'Permissions, output folders and .gitignore in place',
+      ? `Switched from the per-project install  ${summary.hooks.length} hooks · permissions · folders`
+      : `${summary.hooks.length > 0 ? `${summary.hooks.length} project hooks, p` : 'P'}ermissions, output folders and .gitignore in place`,
   );
 
   const s = ui.spin('fetching domain docs…');
@@ -219,9 +228,14 @@ async function init(cwd, deps = {}) {
     );
 
   // Background, fire-and-forget; `init --status` shows where they are.
-  summary.memoryBootstrap = bootstrapMemory(root, {
-    hooksDir: path.join(repoRoot, 'stella', 'hooks', 'project', 'memory'),
-  });
+  // The collectors are part of the memory hook: the project copy, or this package's
+  // when the plugin supplies the hooks.
+  summary.memoryBootstrap = bootstrapMemory(
+    root,
+    summary.hooksInProject
+      ? {}
+      : { hooksDir: path.join(repoRoot, 'stella', 'hooks', 'project', 'memory') },
+  );
   summary.projectContext = projectContext(root);
   const background = [
     summary.memoryBootstrap.domainMap || summary.memoryBootstrap.patterns ? 'memory' : null,

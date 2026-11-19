@@ -289,14 +289,14 @@ const hookCommands = (settings) =>
   ok(commands.includes('node mine.js'), 'setup: foreign hook kept');
   const appHooks = commands.filter((c) => c.includes('.claude/stella/app/stella/hooks/project/'));
   ok(
-    appHooks.length === 6 &&
-      appHooks.some((c) => c.endsWith('init-check/session-start.js"')) &&
-      appHooks.every((c) => !c.includes('\\')),
-    'setup: five project hook events + init-check, run from the app copy',
+    appHooks.length === 1 &&
+      appHooks[0].endsWith('init-check/session-start.js"') &&
+      !appHooks[0].includes('\\'),
+    'setup: only the session check is registered at user level, run from the app copy',
   );
   ok(
-    settings.hooks.PreToolUse.some((e) => e.matcher === 'Edit|MultiEdit|Write|Bash|PowerShell'),
-    'setup: guard matcher carried over',
+    !settings.hooks.PreToolUse && !settings.hooks.UserPromptSubmit && !settings.hooks.SessionEnd,
+    'setup: the project hooks are not registered at user level',
   );
   ok(
     appHooks.every((c) => fs.existsSync(/"(.+)"/.exec(c)[1])),
@@ -391,24 +391,46 @@ const hookCommands = (settings) =>
     'init: .gitignore lines added, existing kept',
   );
   const local = JSON.parse(read(proj, '.claude/settings.local.json'));
+  ok(local.permissions.allow.length > 10, 'init: permissions in settings.local.json');
+  const projectHooks = hookCommands(local);
   ok(
-    local.permissions.allow.length > 10 && !local.hooks,
-    'init: permissions in settings.local.json, no project hooks',
+    sum.hooksInProject === true &&
+      sum.hooks.join(',') === C.PROJECT_HOOKS.map((h) => h.name).join(',') &&
+      C.PROJECT_HOOKS.every((h) =>
+        Object.values(h.events).every((e) =>
+          exists(proj, `.claude/stella/hooks/${h.name}/${e.file}`),
+        ),
+      ) &&
+      exists(proj, '.claude/stella/package.json'),
+    'init: project hooks copied into .claude/stella/hooks/',
+  );
+  ok(
+    projectHooks.length === 5 &&
+      projectHooks.every((c) =>
+        c.startsWith('node "${CLAUDE_PROJECT_DIR}/.claude/stella/hooks/'),
+      ) &&
+      local.hooks.PreToolUse[0].matcher === 'Edit|MultiEdit|Write|Bash|PowerShell',
+    'init: project hooks registered in settings.local.json, as the per-project installer did',
+  );
+  ok(
+    !exists(proj, '.claude/stella/hooks/init-check') &&
+      !projectHooks.some((c) => c.includes('init-check')),
+    'init: the session check is not a project hook',
   );
   ok(
     !exists(proj, '.claude/skills/stella-build') &&
-      !exists(proj, '.claude/stella') &&
       !exists(proj, '.claude/skills/stella-project-context/SKILL.md'),
-    'init: no skills and no hooks copied into the project',
+    'init: no skills copied into the project',
   );
   ok(
     exists(proj, '.claude/skills/stella-project-context/scripts/check-context.js'),
     'init: check script at the fixed path the skill and worker use',
   );
   ok(
-    memoryOpts.hooksDir === path.join(REPO, 'stella', 'hooks', 'project', 'memory') &&
-      fs.existsSync(path.join(memoryOpts.hooksDir, 'pattern-scanner.js')),
-    'init: memory collectors run from the app copy',
+    memoryOpts.hooksDir === undefined &&
+      exists(proj, '.claude/stella/hooks/memory/pattern-scanner.js') &&
+      exists(proj, '.claude/stella/hooks/memory/lib/domain-map-distiller.js'),
+    'init: memory collectors run from the project hooks',
   );
   ok(
     userLevel.sessionCheck(proj, { home: HOME }) === null,
@@ -559,14 +581,21 @@ const hookCommands = (settings) =>
     );
     ok(
       !exists(old, '.claude/skills/stella-build') &&
-        !exists(old, '.claude/stella') &&
         !exists(old, '.claude/skills/bmad-help') &&
         exists(old, '.claude/skills/my-skill'),
-      "init: project copies of skills and hooks removed, the developer's own skill stays",
+      "init: project copies of the skills removed, the developer's own skill stays",
     );
     ok(
-      !JSON.parse(read(old, '.claude/settings.local.json')).hooks,
-      'init: project hook entries removed from settings.local.json',
+      !exists(old, '.claude/stella/hooks/memory/x.js') &&
+        exists(old, '.claude/stella/hooks/memory/user-prompt-submit.js') &&
+        exists(old, '.claude/stella/hooks/friction-logger/session-start.js'),
+      'init: project hooks stay in the project, replaced by the current ones',
+    );
+    const oldHooks = hookCommands(JSON.parse(read(old, '.claude/settings.local.json')));
+    ok(
+      oldHooks.length === 5 &&
+        oldHooks.filter((c) => c.includes('friction-logger/session-start.js')).length === 1,
+      'init: project hook entries registered once, not duplicated',
     );
   }
 
@@ -1060,6 +1089,103 @@ const hookCommands = (settings) =>
         userLevel.readProjectName(back) === 'SLS' &&
         !exists(back, '_bmad.stella-old'),
       'applyTemplate: failure in an existing project → previous _bmad restored',
+    );
+  }
+
+  // ================= project hooks stay in the project =================
+  {
+    // refresh: the project's hooks move on with the master copy, replaced as a whole
+    const hp = tmp('hooks-refresh');
+    await projectInit.init(hp, initDeps({ projectName: 'SLS' }));
+    write(hp, '.claude/stella/hooks/memory/dropped-upstream.js', '');
+    fs.rmSync(at(hp, '.claude/stella/hooks/friction-logger/session-start.js'));
+    const markerFile = path.join(userLevel.templateBmadDir(HOME), C.TEMPLATE_MARKER);
+    const original = fs.readFileSync(markerFile, 'utf8');
+    fs.writeFileSync(markerFile, JSON.stringify({ ...JSON.parse(original), id: 'hooks-next' }));
+    const before = read(hp, '.claude/settings.local.json');
+    ok(userLevel.sessionCheck(hp, { home: HOME }).action === 'refreshed', 'refresh runs');
+    ok(
+      !exists(hp, '.claude/stella/hooks/memory/dropped-upstream.js') &&
+        exists(hp, '.claude/stella/hooks/friction-logger/session-start.js'),
+      'refresh: project hooks replaced by the current ones',
+    );
+    ok(
+      read(hp, '.claude/settings.local.json') === before,
+      'refresh: settings.local.json is not rewritten',
+    );
+
+    // plugin enabled: its hooks.json runs the same scripts, so the project gets none
+    const ph = tmp('hooks-plugin-home');
+    layer.copyDir(path.join(HOME, '.claude', 'stella'), path.join(ph, '.claude', 'stella'));
+    write(
+      ph,
+      '.claude/settings.json',
+      JSON.stringify({ enabledPlugins: { 'bmad-stella@stella': true } }),
+    );
+    const pp = tmp('hooks-plugin');
+    write(pp, '.claude/stella/hooks/memory/old.js', '');
+    let memOpts = null;
+    const psum = await projectInit.init(
+      pp,
+      initDeps({
+        home: ph,
+        projectName: 'SLS',
+        bootstrapMemory: (r, o) => ((memOpts = o), { domainMap: false, patterns: false }),
+      }),
+    );
+    ok(
+      psum.hooksInProject === false &&
+        !exists(pp, '.claude/stella') &&
+        !JSON.parse(read(pp, '.claude/settings.local.json')).hooks,
+      'init with the plugin enabled: no project hooks, old copies removed (no double firing)',
+    );
+    ok(
+      memOpts.hooksDir === path.join(REPO, 'stella', 'hooks', 'project', 'memory'),
+      'init with the plugin enabled: memory collectors run from this package',
+    );
+    // and a refresh does not bring hooks into such a project
+    fs.writeFileSync(
+      path.join(userLevel.templateBmadDir(ph), C.TEMPLATE_MARKER),
+      JSON.stringify({ ...JSON.parse(original), id: 'hooks-plugin-next' }),
+    );
+    userLevel.sessionCheck(pp, { home: ph });
+    ok(!exists(pp, '.claude/stella'), 'refresh: a project without hooks does not get them');
+    fs.writeFileSync(markerFile, original);
+
+    // an earlier version registered the project hooks at user level: cleared on install
+    const eh = tmp('hooks-early-home');
+    const early = (name, file) => ({
+      hooks: [
+        {
+          type: 'command',
+          command: `node "${eh.replaceAll('\\', '/')}/.claude/stella/app/stella/hooks/project/${name}/${file}"`,
+        },
+      ],
+    });
+    write(
+      eh,
+      '.claude/settings.json',
+      JSON.stringify({
+        hooks: {
+          SessionStart: [early('friction-logger', 'session-start.js')],
+          PreToolUse: [early('pr-review-guard', 'pre-tool-use.js')],
+          Stop: [{ hooks: [{ type: 'command', command: 'node mine.js' }] }],
+        },
+      }),
+    );
+    await machineSetup.setup(
+      setupDeps({
+        home: eh,
+        prompt: scripted(['dev@stella.com', 'tok-abcdefghijklmnop', false]).prompt,
+      }),
+    );
+    const cleaned = JSON.parse(read(eh, '.claude/settings.json')).hooks;
+    ok(
+      !cleaned.PreToolUse &&
+        cleaned.SessionStart.length === 1 &&
+        cleaned.SessionStart[0].hooks[0].command.includes('init-check') &&
+        cleaned.Stop.length === 1,
+      'install: project hooks an earlier version put at user level are removed',
     );
   }
 

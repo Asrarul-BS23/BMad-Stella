@@ -366,6 +366,44 @@ const installDeps = (extra) => ({
       'install: no project hooks registered; helpers and output folders in place',
     );
 
+    ok(
+      sum.hooksInProject === false,
+      'install: on a plugin-only machine the plugin supplies the hooks',
+    );
+
+    // The same call on a machine where `install` copied the skills to ~/.claude/ (no
+    // plugin): the skills still come from user level, but the project hooks have no
+    // other source, so they go into the project.
+    write(HOME, '.claude/stella/machine.json', JSON.stringify({ stellaSkills: ['stella-build'] }));
+    const root2 = tmp('real-nonplugin');
+    const sum2 = await installer.install(
+      root2,
+      installDeps({
+        home,
+        env: { STELLA_PROJECT: 'SLS' },
+        skipCredentials: true,
+        skillsAtUserLevel: true,
+      }),
+    );
+    fs.rmSync(at(HOME, '.claude/stella/machine.json'));
+    ok(
+      sum2.hooksInProject === true &&
+        sum2.hooks.length === C.PROJECT_HOOKS.length &&
+        exists(root2, '.claude/stella/hooks/memory/user-prompt-submit.js') &&
+        Object.keys(JSON.parse(read(root2, '.claude/settings.local.json')).hooks).length > 0,
+      'install: skills at user level without the plugin → project hooks copied and registered',
+    );
+    ok(
+      sum2.skills.length === 0 && !exists(root2, '.claude/skills/stella-build'),
+      'install: … and still no project copies of the skills',
+    );
+    ok(
+      installer
+        .layerDetail({ ...sum2, domainDocs: { status: 'skipped' } })
+        .includes(`skills from user level   ${C.PROJECT_HOOKS.length} hooks`),
+      'install: the summary line says where each part came from',
+    );
+
     // without the two switches the installer behaves as it always did
     const err = await rejects(() =>
       installer.install(tmp('strict'), installDeps({ home, env: { STELLA_PROJECT: 'X' } })),

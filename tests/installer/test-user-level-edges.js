@@ -201,7 +201,7 @@ const CREDS = ['dev@stella.com', 'tok-abcdefghijklmnop'];
       'setup: python, npm cache, MCP and user-hook problems are warnings',
     );
     ok(
-      sum.userHooks.status === 'error' && userLevel.templateMarker(h) && sum.hooks.length === 4,
+      sum.userHooks.status === 'error' && userLevel.templateMarker(h) && sum.hooks.length === 1,
       'setup: finishes in spite of the warnings',
     );
     ok(
@@ -243,7 +243,7 @@ const CREDS = ['dev@stella.com', 'tok-abcdefghijklmnop'];
     const ours = Object.values(settings.hooks)
       .flat()
       .filter((e) => e.hooks[0].command.includes(machineSetup.APP_HOOKS_MARK));
-    ok(ours.length === 6, 'setup: three runs → still six hook entries');
+    ok(ours.length === 1, 'setup: three runs → still one hook entry');
 
     // a skill the previous master copy shipped and this one dropped is removed
     const sum3 = await machineSetup.setup(

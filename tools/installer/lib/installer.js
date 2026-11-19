@@ -293,16 +293,24 @@ async function install(root, deps) {
   // Plugin mode: skills and hooks come from the bmad-stella plugin (user scope),
   // so no project copies — existing ones are removed to prevent double-loading.
   summary.pluginMode = skillsAtUserLevel || layer.pluginActive(root);
+  // Project hooks belong in the project. Only the plugin supplies them instead: when it
+  // is enabled, or when a user-level skill runs this on a machine without user-level
+  // copies (then that skill, and the hooks with it, came from the plugin).
+  summary.hooksInProject = !(
+    layer.pluginEnabled(root) ||
+    (skillsAtUserLevel && !layer.userLevelStellaSkills())
+  );
   if (summary.pluginMode) {
-    summary.removed.push(...layer.removeStellaClaudeParts(root));
+    summary.removed.push(...layer.removeStellaSkills(root));
     summary.skills = [];
+  } else summary.skills = layer.copySkills(root);
+  if (summary.hooksInProject) summary.hooks = layer.copyHooks(root);
+  else {
+    summary.removed.push(...layer.removeStellaHooks(root));
     summary.hooks = [];
-  } else {
-    summary.skills = layer.copySkills(root);
-    summary.hooks = layer.copyHooks(root);
   }
   summary.removedBmadSkills = layer.removeShadowedBmadSkills(root);
-  summary.settings = layer.registerSettings(root, { hooks: !summary.pluginMode });
+  summary.settings = layer.registerSettings(root, { hooks: summary.hooksInProject });
   summary.created.push(...layer.ensureOutputFolders(root));
 
   // Fire-and-forget: collect domain-map.md/patterns.md now if a legacy
@@ -356,8 +364,12 @@ async function install(root, deps) {
 function layerDetail(s) {
   const d = s.domainDocs;
   const parts = [
-    s.pluginMode ? 'skills + hooks from bmad-stella plugin' : `${s.skills.length} skills`,
-    s.pluginMode ? null : `${s.hooks.length} hooks`,
+    s.pluginMode
+      ? s.hooks.length > 0
+        ? 'skills from user level'
+        : 'skills + hooks from bmad-stella plugin'
+      : `${s.skills.length} skills`,
+    s.hooks.length > 0 || !s.pluginMode ? `${s.hooks.length} hooks` : null,
     'permissions',
     mcpOk(s.mcp) ? 'Atlassian MCP' : null,
     playwrightMcpAnyOk(s.playwrightMcp) ? 'Playwright MCP' : null,

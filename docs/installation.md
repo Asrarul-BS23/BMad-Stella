@@ -32,7 +32,7 @@ Not installed: one question.
 ```
 
 - **Yes**: adds the marketplace and installs the `bmad-stella` plugin. Skills and hooks then load in the Claude Code CLI, the VS Code extension and the Claude Desktop Code tab.
-- **No**: skills and hooks are copied to `~/.claude/` instead. No plugin is installed.
+- **No**: the skills are copied to `~/.claude/skills/` instead. No plugin is installed. The project hooks then go into each project, with `/stella-init`.
 
 Already installed: nothing is asked. The plugin is uninstalled and installed again, so it is updated together with this BMad-Stella version.
 
@@ -50,7 +50,9 @@ Start a new Claude Code session in the project folder and run:
 /stella-init
 ```
 
-It asks for the project, copies `_bmad/` from the machine's master copy, creates `_bmad-output/` and fetches the domain docs. A few seconds, no download. Memory and project context are collected in the background; `/stella-init status` shows where they are.
+It asks for the project, copies `_bmad/` from the machine's master copy, creates `_bmad-output/`, puts the project hooks in `.claude/stella/hooks/` and fetches the domain docs. A few seconds, no download.
+
+The project hooks (friction log, PR review guard, memory) live in the project and are registered in its `.claude/settings.local.json`. With the plugin enabled they come from the plugin instead, and the project gets no copy. Memory and project context are collected in the background; `/stella-init status` shows where they are.
 
 - With the plugin, the command is also available as `/bmad-stella:stella-init`.
 - A new session in a git repository that is not set up prints one line: run `/stella-init`.
@@ -65,9 +67,9 @@ Run the install command again. Each project's `_bmad/` is then refreshed by itse
 
 Older versions installed into every project. Such a project keeps working. After the install above, its session start prints one line: run `/stella-init` to switch it over.
 
-`/stella-init` then replaces `_bmad/` with the master copy and removes the project's own copies of the skills and hooks, which now come from `~/.claude/`. Kept: `_bmad/custom/`, everything under `_bmad-output/`, and your own skills in `.claude/skills/`.
+`/stella-init` then replaces `_bmad/` with the master copy and removes the project's own copies of the skills, which now come from `~/.claude/`. The project hooks stay in the project and are replaced by the current ones. Kept: `_bmad/custom/`, everything under `_bmad-output/`, and your own skills in `.claude/skills/`.
 
-Until a project is switched, its skills show twice and its hooks run twice.
+Until a project is switched, its skills show twice.
 
 ## Plugin by hand (optional)
 
