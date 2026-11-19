@@ -565,6 +565,28 @@ const installDeps = (extra) => ({
       skill.includes(C.TOKEN_HELP_URL) && /stays in this conversation/.test(skill),
       'skill: the question gives the token link and says the token stays in the conversation',
     );
+    // The user must be sent to this exact address, everywhere it is given.
+    const TOKEN_URL = 'https://id.atlassian.com/manage-profile/security/api-tokens';
+    ok(C.TOKEN_HELP_URL === TOKEN_URL, 'token link: the constant is the exact address');
+    ok(
+      /exact URL, unchanged/.test(skill) && skill.includes(`${TOKEN_URL} `),
+      'token link: the skill must show it unchanged',
+    );
+    const guide = read(REPO, 'docs/installation.md');
+    ok(
+      guide.split(TOKEN_URL).length - 1 >= 3,
+      'token link: the install guide gives it in the requirements, the install step and the Cowork step',
+    );
+    const everyLink = [
+      'docs/installation.md',
+      'docs/atlassian-token.md',
+      'stella/skills/stella-init/SKILL.md',
+      'stella/utils/jira-attachments/README.md',
+    ].flatMap((file) => read(REPO, file).match(/https:\/\/id\.atlassian\.com[^\s)>`,]*/g) || []);
+    ok(
+      everyLink.length >= 6 && everyLink.every((link) => link === TOKEN_URL),
+      'token link: no other id.atlassian.com address is given anywhere',
+    );
     ok(
       !/tell the user to run `npx bmad-stella@latest install`/.test(skill),
       'skill: a missing app no longer stops the setup',

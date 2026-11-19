@@ -33,11 +33,12 @@ Invoked as `/stella-init status`: run `{run} init --status`, show its lines as a
 ## Setup
 
 1. Run `{run} init --status`.
-   - It prints the project and a `_bmad` line with a version id → the project is already set up. Show the table, say so, stop. Continue only when the user asked to set it up again or to change the project.
+   - It prints an `update pending:` line → the project's `_bmad/` comes from an older install than the one on this machine. Say so, then run `{run} init` (no `--project`; the saved project is kept) to bring it up to date now, and relay the result. Stop.
+   - It prints the project and a `_bmad` line with a version id → the project is already set up. Show the table, say so, stop. Continue only when the user asked to set it up again, to change the project, or to fetch the domain docs again.
    - It says several folders hold `_bmad/` → ask the user which folder, and add `--root "<folder>"` to every command below.
 2. **Cowork path only — Atlassian credentials.** Run `{run} init --check-credentials`.
    - `credentials: saved` → nothing to ask.
-   - `credentials: missing` or `rejected` → ask the user, in one interactive question, whether to enter the Atlassian email and API token now or to save the file themselves later. Say in the question: a token is created at https://id.atlassian.com/manage-profile/security/api-tokens, and a token typed here stays in this conversation.
+   - `credentials: missing` or `rejected` → ask the user, in one interactive question, whether to enter the Atlassian email and API token now or to save the file themselves later. The question must show this exact URL, unchanged, as the place to create the token: https://id.atlassian.com/manage-profile/security/api-tokens — never a shortened link, another Atlassian page or a description of where to click. It must also say that a token typed here stays in this conversation.
      - Entered → run `{run} init --save-credentials --email "<email>" --token "<token>"`. It verifies the pair and saves the file; do not ask where to save. `credentials: rejected` → say so and ask once more, or let the user skip.
      - Skipped → show the file path and the lines the check printed, and add `--no-credentials` to the command in step 4.
 3. Project name. Use the one the user gave in the invocation. Otherwise, when the status in step 1 already shows a project, keep that one. Otherwise:

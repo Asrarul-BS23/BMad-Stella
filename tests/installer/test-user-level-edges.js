@@ -496,6 +496,30 @@ const CREDS = ['dev@stella.com', 'tok-abcdefghijklmnop'];
       'cli: status of a project that is set up',
     );
 
+    // A newer install on the machine: status says so, and running init again applies it.
+    const markerFile = at(HOME, '.claude/stella/bmad-template/_bmad/.stella-template.json');
+    const original = fs.readFileSync(markerFile, 'utf8');
+    fs.writeFileSync(markerFile, JSON.stringify({ ...JSON.parse(original), id: 'newer-install' }));
+    r = cli(proj, ['init', '--status']);
+    ok(
+      r.stdout.includes('update pending: newer-install') &&
+        r.stdout.includes('or now by running init again'),
+      'cli: status names the newer install and how to apply it',
+    );
+    const before = userLevel.readMarker(at(proj, '_bmad')).id;
+    const again = await projectInit.init(proj, initDeps());
+    ok(
+      before !== 'newer-install' &&
+        userLevel.readMarker(at(proj, '_bmad')).id === 'newer-install' &&
+        again.project.name === 'SLS',
+      'init again, no --project: older _bmad replaced, saved project kept',
+    );
+    ok(
+      !cli(proj, ['init', '--status']).stdout.includes('update pending'),
+      'cli: no update pending after it',
+    );
+    fs.writeFileSync(markerFile, original);
+
     const ws = tmp('cli-ws');
     fs.mkdirSync(at(ws, 'a/_bmad'), { recursive: true });
     fs.mkdirSync(at(ws, 'b/_bmad'), { recursive: true });
@@ -574,6 +598,62 @@ const CREDS = ['dev@stella.com', 'tok-abcdefghijklmnop'];
       tea.includes('{skill-root}/../bmod-tea/knowledge') &&
         tea.includes('~/.claude/skills/bmod-tea/knowledge'),
       'TEA skill: knowledge folder also looked up at user level',
+    );
+    ok(
+      /`update pending:` line[^\n]*run `\{run\} init`/.test(skill),
+      'skill: an older _bmad is brought up to date by running init again',
+    );
+
+    // The version id follows the content of the skills and the hooks, not only version
+    // numbers: a change in either marks every project copy as behind.
+    const layer = require(path.join(LIB, 'stella-layer.js'));
+    const real = { ...layer.SRC };
+    const baseline = userLevel.layerHash();
+    ok(userLevel.layerHash() === baseline, 'hash: stable while nothing changes');
+    const hashWith = (key, change) => {
+      const copy = tmp(`hash-${key}`);
+      layer.copyDir(real[key], copy);
+      change(copy);
+      layer.SRC[key] = copy;
+      try {
+        return userLevel.layerHash();
+      } finally {
+        layer.SRC[key] = real[key];
+      }
+    };
+    ok(
+      hashWith('skills', (dir) => fs.appendFileSync(at(dir, 'stella-build/workflow.md'), '\n')) !==
+        baseline,
+      'hash: one changed skill file → a new id',
+    );
+    ok(
+      hashWith('skills', (dir) => write(dir, 'stella-build/new-step.md', 'x')) !== baseline,
+      'hash: one added skill file → a new id',
+    );
+    ok(
+      hashWith('hooks', (dir) => fs.appendFileSync(at(dir, 'memory/daily-job.js'), '\n')) !==
+        baseline,
+      'hash: one changed project hook file → a new id',
+    );
+    ok(
+      hashWith('utils', (dir) => fs.appendFileSync(at(dir, 'jira-comment/index.js'), '\n')) !==
+        baseline,
+      'hash: one changed helper file → a new id',
+    );
+    ok(hashWith('skills', () => {}) === baseline, 'hash: an identical copy → the same id');
+    ok(userLevel.templateId().endsWith(baseline), 'hash: it is the last part of the version id');
+
+    // A skill run in a folder without _bmad/ says how to set the project up.
+    for (const name of C.STELLA_SKILLS.filter((s) => s !== 'caveman')) {
+      const text = read(REPO, `stella/skills/${name}/SKILL.md`);
+      ok(
+        /no `_bmad\/` folder[^\n]*\/stella-init/i.test(text),
+        `${name}: without _bmad/ it tells the user to run /stella-init`,
+      );
+    }
+    ok(
+      !/Stella installer/.test(read(REPO, 'stella/skills/stella-domain-expert/SKILL.md')),
+      'stella-domain-expert: no advice to re-run the old installer',
     );
     ok(
       C.PROJECT_NAME_FILES.join(',') === 'config.toml,bmm/config.yaml,core/config.yaml' &&

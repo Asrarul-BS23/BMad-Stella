@@ -43,7 +43,15 @@ const securityLayer = (table, reviewContent) => [
 ];
 
 const ALLOWED = {
-  'SKILL.md': [{ line: 2, from: 'name: bmad-build', to: 'name: stella-build' }],
+  'SKILL.md': [
+    { line: 2, from: 'name: bmad-build', to: 'name: stella-build' },
+    // 2026-11-19 — user-level install: a project without _bmad/ is set up with /stella-init.
+    {
+      line: 13,
+      from: '- On failure (including `uv` being unavailable), report the command output and HALT. Do not run any workflow source directly.',
+      to: '- On failure (including `uv` being unavailable), report the command output and HALT. Do not run any workflow source directly. When the project has no `_bmad/` folder, BMad-Stella is not set up there: also tell the user to run `/stella-init`.',
+    },
+  ],
 
   // 2026-10-28 — subagents only for the review layers; stated once, here (AIL-552 run used subagents for search and implementation).
   'workflow.md': [

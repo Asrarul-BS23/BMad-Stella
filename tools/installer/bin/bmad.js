@@ -100,7 +100,9 @@ program
       console.log(`root: ${s.root}`);
       for (const item of s.items) console.log(`${item.name}: ${item.state}`);
       if (s.setUp && !s.upToDate && s.template)
-        console.log(`update pending: ${s.template.id} (applied at the next session start)`);
+        console.log(
+          `update pending: ${s.template.id} (applied at the next session start, or now by running init again)`,
+        );
       return;
     }
     if (opts.listProjects) {

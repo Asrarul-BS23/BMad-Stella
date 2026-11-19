@@ -27,6 +27,8 @@ You will continue to operate with your given name, identity, and communication_s
 
 ## On Activation
 
+No `_bmad/` folder in the working directory or any of its parents → BMad-Stella is not set up here: tell the user to run `/stella-init`, and stop.
+
 ### Step 1: Resolve the Workflow Block
 
 Run: `uv run {project-root}/_bmad/scripts/resolve_customization.py --skill {skill-root} --project-root {project-root} --key workflow`

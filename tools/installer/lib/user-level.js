@@ -77,7 +77,10 @@ const readJson = (file) => {
   }
 };
 
-/** Content hash of what `init` copies from this package into a project. */
+/**
+ * Content hash of the Stella layer of this package: the helpers, checklists and
+ * project hooks `init` copies into a project, and the skills that run against it.
+ */
 function layerHash() {
   const hash = crypto.createHash('sha256');
   const add = (file, label) => {
@@ -95,7 +98,10 @@ function layerHash() {
   walk(lazy.layer.SRC.checklists, 'checklists');
   walk(lazy.layer.SRC.utils, 'utils');
   walk(lazy.layer.SRC.hooks, 'hooks');
-  add(path.join(lazy.layer.SRC.skills, ...CHECK_SCRIPT), 'check');
+  // Every Stella skill, not only the check script that is copied into projects: a
+  // skill and the _bmad/ it runs against must come from the same install, so a skill
+  // change alone also marks every project as behind.
+  walk(lazy.layer.SRC.skills, 'skills');
   return hash.digest('hex').slice(0, 8);
 }
 

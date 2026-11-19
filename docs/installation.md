@@ -6,7 +6,7 @@ BMad-Stella is installed once per machine. Each project then needs one short com
 
 - Node 20.10+, `git`. `gh` if you will use PR review. uv and Python are installed for you if missing.
 - Claude Code.
-- An Atlassian API token: [Atlassian Token Guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1544486919/Atlassian-Token-Guide).
+- An Atlassian API token. Create it at exactly this address: https://id.atlassian.com/manage-profile/security/api-tokens (steps with pictures: [Atlassian Token Guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1544486919/Atlassian-Token-Guide)).
 
 ## 1. Install (once per machine)
 
@@ -99,7 +99,7 @@ An organization owner can do steps 1 to 3 once for everyone: Organization settin
 What `/stella-init` does there, where the install command never ran:
 
 - It downloads BMad into the project, about 90 seconds, instead of copying it from a master copy.
-- Atlassian credentials: saved ones are used. None saved: it asks once for your email and API token and saves them to `~/.claude/stella/credentials.env`. You can skip the question; it then shows the file path and the two lines to put in it, and sets the project up without domain docs. A token typed in the chat stays in that conversation, so skip and save the file yourself if you do not want that.
+- Atlassian credentials: saved ones are used. None saved: it asks once for your email and API token (create the token at https://id.atlassian.com/manage-profile/security/api-tokens) and saves them to `~/.claude/stella/credentials.env`. You can skip the question; it then shows the file path and the two lines to put in it, and sets the project up without domain docs. A token typed in the chat stays in that conversation, so skip and save the file yourself if you do not want that.
 - Project: it suggests the project that fits the folder name, the git repository name or the solution file, and asks you to confirm. No clear match: you pick from the list.
 
 The same applies to a machine where the plugin was added by hand and the install command never ran.
@@ -109,7 +109,7 @@ The same applies to a machine where the plugin was added by hand and the install
 - `uv could not be installed`: no network or a blocked download. Install it by hand from https://docs.astral.sh/uv/getting-started/installation/ and re-run.
 - `Atlassian MCP not registered — claude command not found`: the `claude` command is not on your PATH. Install the Claude Code CLI and re-run.
 - `/stella-init` is not found: start a new Claude Code session. Skills are loaded when a session starts.
-- `/stella-init` says the app does not exist: the install command has not run on this machine. Run it.
+- `/stella-init` takes about 90 seconds and downloads BMad: the install command has not run on this machine, so there is no master copy. Run the install command once to make later projects fast.
 - `Jira token expired`: put a new token in `~/.claude/stella/credentials.env` (`JIRA_API_TOKEN`). Until then builds fall back to the Atlassian MCP, without attachments.
 - `Jira token file missing`: run the installer again.
 - Install fails in the BMad or TEA step: nothing on the machine is replaced. Re-run with `--verbose` to see the full output.

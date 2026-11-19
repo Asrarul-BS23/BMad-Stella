@@ -45,6 +45,8 @@ It asks nothing, writes from evidence, checks the result with `scripts/check-con
 
 `/stella-project-context`. No `context.md` → setup. `context.md` exists → refresh.
 
+No `_bmad/` folder in `{project-root}` → BMad-Stella is not set up here: tell the runner to run `/stella-init` first, and stop.
+
 ## Setup
 
 1. **Read what is already known.** `CLAUDE.md`, `AGENTS.md`, `.claude/` rule files, `_bmad-output/stella/memory/domain-map.md`, `_bmad-output/stella/memory/patterns.md` and the file names in `_bmad-output/stella/domain-knowledge/`. Note what they cover, to leave it out.

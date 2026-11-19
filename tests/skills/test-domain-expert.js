@@ -43,8 +43,8 @@ const FETCH =
 ok(!FETCH.test(skill), 'skill: no reload / connector / credential references');
 ok(!FETCH.test(onboard), 'onboard: no reload / connector / credential references');
 ok(
-  /delete `_bmad-output\/stella\/domain-knowledge\/` and re-run the Stella installer/.test(skill),
-  'skill: refresh instruction (delete folder, re-run installer)',
+  /delete `_bmad-output\/stella\/domain-knowledge\/` and run `\/stella-init` again/.test(skill),
+  'skill: refresh instruction (delete folder, run /stella-init again)',
 );
 
 // ---- paths ----

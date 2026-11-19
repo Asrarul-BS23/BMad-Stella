@@ -10,4 +10,4 @@ uv run --no-cache "{project-root}/_bmad/scripts/render_skill.py" --project-root 
 ```
 
 - On success, read and follow the one absolute `workflow.md` instruction printed to stdout.
-- On failure (including `uv` being unavailable), report the command output and HALT. Do not run any workflow source directly.
+- On failure (including `uv` being unavailable), report the command output and HALT. Do not run any workflow source directly. When the project has no `_bmad/` folder, BMad-Stella is not set up there: also tell the user to run `/stella-init`.
