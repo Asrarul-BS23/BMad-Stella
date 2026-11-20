@@ -42,6 +42,23 @@ const securityLayer = (table, reviewContent) => [
   '"""',
 ];
 
+// 2026-11-17 — live bug hunt before the review, on both routes (AIL-1175); `input` is how the route names its spec.
+const liveBugHunt = (input) => [
+  '### Live Bug Hunt',
+  '',
+  'Before the review, bug-hunt this change live. Invoke the `stella-tea-live-testing` skill',
+  `with menu code \`SD\` and ${input} as the input. Run it — never ask the user whether to.`,
+  'That flow starts the app, generates bug-hunting scenarios from the spec, executes them',
+  'through Playwright MCP, and for every accepted bug proposes a fix and applies it once the',
+  'user approves. Bugs are fixed here so the review reads the corrected code.',
+  '',
+  'If the hunt changed any code, rewrite `{diff_file}` and re-read it before continuing.',
+  '',
+  'Skip the hunt only when Playwright MCP is not connected or the change has no runnable',
+  'interface to drive, and say in one line that you skipped it and why.',
+  '',
+];
+
 const ALLOWED = {
   'SKILL.md': [
     { line: 2, from: 'name: bmad-build', to: 'name: stella-build' },
@@ -170,6 +187,7 @@ const ALLOWED = {
       from: "Stage the diff and read it first: using the repository's version-control tooling, write a unified diff of all changes since `{baseline_commit}` (from `{spec_file}` frontmatter) — untracked files included — to a uniquely-named file in the system temp directory, set `{diff_file}` to its absolute path, and read that file into your own context. Judge against the diff, not against the implementation subagent's report.",
       to: "Stage the diff and read it first: using the repository's version-control tooling, write a unified diff of all changes since `{baseline_commit}` (from `{spec_file}` frontmatter) — untracked files included — to a uniquely-named file in the system temp directory, set `{diff_file}` to its absolute path, and read that file into your own context. Judge against the diff, not against what you remember implementing.",
     },
+    { line: 49, from: '## NEXT', to: [...liveBugHunt('`{spec_file}`'), '## NEXT'] },
   ],
 
   // 2026-10-28 — review patches applied in this session: the subagent re-engagement and its message are removed (deletions only).
@@ -318,6 +336,7 @@ const ALLOWED = {
     { line: 36, from: '', to: null },
   ],
   'step-oneshot.md': [
+    { line: 29, from: '### Review', to: [...liveBugHunt('the spec path'), '### Review'] },
     { line: 81, from: '### Commit', to: '### Complete' },
     {
       line: 83,

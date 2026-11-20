@@ -431,6 +431,9 @@ const wait = new Promise((r) => {
     fs.writeFileSync(lock, JSON.stringify({ pid: 0, startedAt: '2000-01-01T00:00:00Z' }));
     return spawnSync(process.execPath, [path.join(FL, 'worker.js'), ROOT], { env });
   };
+  // Relative to now: the worker prunes a plan whose latest session ended over 30 days ago,
+  // so a fixed date makes these checks fail once it is that old.
+  const recent = (msAgo) => new Date(Date.now() - msAgo).toISOString();
   const resetPlan = () => {
     const x = trk();
     x.plans = { 'AIL-1': x.plans['AIL-1'] };
@@ -439,14 +442,14 @@ const wait = new Promise((r) => {
         sessionId: 's1-typed',
         agents: ['stella-build'],
         transcript: T1,
-        endedAt: '2026-10-13T00:00:00Z',
+        endedAt: recent(60_000),
         endLine: 2,
       },
       {
         sessionId: 's2-skill',
         agents: ['stella-build'],
         transcript: T2,
-        endedAt: '2026-10-13T00:01:00Z',
+        endedAt: recent(0),
         endLine: 3,
       },
     ];
