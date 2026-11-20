@@ -835,7 +835,7 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
       env: { ...process.env, JIRA_EMAIL: '', JIRA_API_TOKEN: '', STELLA_PROJECT: '' },
     });
     ok(
-      n.status === 1 && /No interactive terminal/.test(n.stdout) && /STELLA_PROJECT/.test(n.stdout),
+      n.status === 1 && /No interactive terminal/.test(n.stdout) && /JIRA_API_TOKEN/.test(n.stdout),
       'bin: no TTY + no env → clear error, no crash',
     );
   }
@@ -853,8 +853,8 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
         JIRA_EMAIL: process.env.JIRA_EMAIL || 'e2e@stella.com',
         JIRA_API_TOKEN: process.env.JIRA_API_TOKEN || 'tok-abcdefghijklmnop',
         BMAD_SKIP_JIRA_VERIFY: '1',
-        STELLA_PROJECT: 'E2E',
-        // user-level hooks go to a throwaway home, never the real one
+        STELLA_PLUGIN: 'n',
+        // everything `install` writes go to a throwaway home, never the real one
         HOME: fakeHome,
         USERPROFILE: fakeHome,
       },
@@ -862,11 +862,28 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
       timeout: 600_000,
     });
     ok(r.status === 0, `e2e: install exits 0\n${r.stdout}\n${r.stderr}`);
-    ok(fs.existsSync(path.join(root, '_bmad', 'config.toml')), 'e2e: _bmad/config.toml present');
+    // `install` is the machine half: it writes under the home folder, not into the project.
+    const stellaHome = path.join(fakeHome, '.claude', 'stella');
     ok(
-      fs.existsSync(path.join(root, '.claude', 'skills', 'bmad-build', 'SKILL.md')),
-      'e2e: bmad-build skill present',
+      fs.existsSync(path.join(stellaHome, 'bmad-template', '_bmad', 'config.toml')),
+      'e2e: master copy of _bmad present',
     );
+    ok(
+      fs.existsSync(path.join(fakeHome, '.claude', 'skills', 'bmad-help', 'SKILL.md')),
+      'e2e: official skills at user level',
+    );
+    ok(!fs.existsSync(path.join(root, '_bmad')), 'e2e: install leaves the project alone');
+    // the project half, run from the installed app as /stella-init does
+    const app = path.join(stellaHome, 'app', 'tools', 'installer', 'bin', 'bmad.js');
+    const i = spawnSync(process.execPath, [app, 'init', '--project', 'E2E'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, BMAD_SKIP_JIRA_VERIFY: '1', HOME: fakeHome, USERPROFILE: fakeHome },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 120_000,
+    });
+    ok(i.status === 0, `e2e: init exits 0\n${i.stdout}\n${i.stderr}`);
+    ok(fs.existsSync(path.join(root, '_bmad', 'config.toml')), 'e2e: _bmad/config.toml present');
     ok(
       /_bmad-output\//.test(fs.readFileSync(path.join(root, '.gitignore'), 'utf8')),
       'e2e: gitignore written',

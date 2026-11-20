@@ -37,6 +37,8 @@ HALT if `pr_url` is missing. Never infer it from the local branch.
 
 Run in order. A command error → HALT and show the exact error, unless the step says otherwise.
 
+No `_bmad/` folder in the project root → BMad-Stella is not set up here: HALT, tell user: run `/stella-init`.
+
 1. `gh auth status` — not logged in → HALT, tell user: `gh auth login`.
 2. `gh pr view {pr_url} --json number,title,body,author,state,isDraft,baseRefName,headRefName,headRefOid,baseRefOid,changedFiles,additions,deletions,url` — keep `number`, `headRefOid`, `baseRefOid`. `state` not `OPEN` → say so in one line and continue.
    Already reviewed? If `_bmad-output/stella/reviewer/{repo}-pr{number}/review.md` exists, read its `**Head:**` value. Same as `headRefOid` → stop here: say "PR #{number} already reviewed at `{sha7}` on {Reviewed date}; nothing changed on the PR", print `review.md` verbatim, and — only if it has no `**Comments:**` line — offer the Post to PR step. The user typing `again` → continue with a full review anyway. Different head → continue; the old files are overwritten in Write Outputs.

@@ -39,7 +39,7 @@ const seconds = (ms) => Math.max(1, Math.round(ms / 1000));
  *   runTeaSkill(root, opts) → status, setupTeaConfig(root) → {status}, userHooks() → {status},
  *   bootstrapMemory(root) → {domainMap, patterns},
  *   playwrightMcp.register(root) → [{name, status, detail}], ui, env, isTTY,
- *   now, home (credentials file lives under it)
+ *   now, home (credentials file lives under it), skipCredentials, skillsAtUserLevel
  * @returns {Promise<object>} summary
  */
 async function install(root, deps) {
@@ -63,12 +63,18 @@ async function install(root, deps) {
     isTTY = Boolean(process.stdin.isTTY),
     now = Date.now,
     home,
+    // Set by `init` when it falls back to this installer (project-init.js, L8/L10):
+    skipCredentials = false, // the user chose to save the credentials file later
+    skillsAtUserLevel = false, // the caller is a user-level skill: no project copies
   } = deps;
   const summary = { root, warnings: [], removed: [], created: [] };
   const note = (text) => ui.line('note', text);
 
   if (!isTTY) {
-    const missing = ['JIRA_EMAIL', 'JIRA_API_TOKEN', 'STELLA_PROJECT'].filter((k) => !env[k]);
+    const needed = skipCredentials
+      ? ['STELLA_PROJECT']
+      : ['JIRA_EMAIL', 'JIRA_API_TOKEN', 'STELLA_PROJECT'];
+    const missing = needed.filter((k) => !env[k]);
     if (missing.length > 0) {
       throw new Error(
         `No interactive terminal. Set ${missing.join(', ')} in the environment to install non-interactively.`,
@@ -141,7 +147,9 @@ async function install(root, deps) {
 
   // 3 + 4. credentials (inquirer lines render inside the tree)
   ui.step(2);
-  const creds = await jira.run(root, { prompt, fetch, log: note, env, home });
+  const creds = skipCredentials
+    ? { email: null, token: null, verified: false, source: 'none', displayName: null }
+    : await jira.run(root, { prompt, fetch, log: note, env, home });
   summary.credentials = {
     email: creds.email,
     verified: creds.verified,
@@ -150,14 +158,17 @@ async function install(root, deps) {
     removedProjectFile: creds.removedProjectFile,
   };
   const moved = creds.source === 'project' || creds.source === 'legacy';
-  ui.line(
-    'ok',
-    creds.verified
-      ? `Signed in as ${creds.displayName || creds.email}${
-          moved ? `  (credentials moved to ${constants.CREDENTIALS_FILE_LABEL})` : ''
-        }`
-      : `${creds.email} (not verified)`,
-  );
+  if (skipCredentials)
+    ui.line('info', 'No Atlassian credentials — project list and domain docs skipped');
+  else
+    ui.line(
+      'ok',
+      creds.verified
+        ? `Signed in as ${creds.displayName || creds.email}${
+            moved ? `  (credentials moved to ${constants.CREDENTIALS_FILE_LABEL})` : ''
+          }`
+        : `${creds.email} (not verified)`,
+    );
   ui.gap();
 
   // 5. project
@@ -281,17 +292,25 @@ async function install(root, deps) {
   layer.copyStellaFiles(root, { project });
   // Plugin mode: skills and hooks come from the bmad-stella plugin (user scope),
   // so no project copies — existing ones are removed to prevent double-loading.
-  summary.pluginMode = layer.pluginActive(root);
+  summary.pluginMode = skillsAtUserLevel || layer.pluginActive(root);
+  // Project hooks belong in the project. Only the plugin supplies them instead: when it
+  // is enabled, or when a user-level skill runs this on a machine without user-level
+  // copies (then that skill, and the hooks with it, came from the plugin).
+  summary.hooksInProject = !(
+    layer.pluginEnabled(root) ||
+    (skillsAtUserLevel && !layer.userLevelStellaSkills())
+  );
   if (summary.pluginMode) {
-    summary.removed.push(...layer.removeStellaClaudeParts(root));
+    summary.removed.push(...layer.removeStellaSkills(root));
     summary.skills = [];
+  } else summary.skills = layer.copySkills(root);
+  if (summary.hooksInProject) summary.hooks = layer.copyHooks(root);
+  else {
+    summary.removed.push(...layer.removeStellaHooks(root));
     summary.hooks = [];
-  } else {
-    summary.skills = layer.copySkills(root);
-    summary.hooks = layer.copyHooks(root);
   }
   summary.removedBmadSkills = layer.removeShadowedBmadSkills(root);
-  summary.settings = layer.registerSettings(root, { hooks: !summary.pluginMode });
+  summary.settings = layer.registerSettings(root, { hooks: summary.hooksInProject });
   summary.created.push(...layer.ensureOutputFolders(root));
 
   // Fire-and-forget: collect domain-map.md/patterns.md now if a legacy
@@ -345,8 +364,12 @@ async function install(root, deps) {
 function layerDetail(s) {
   const d = s.domainDocs;
   const parts = [
-    s.pluginMode ? 'skills + hooks from bmad-stella plugin' : `${s.skills.length} skills`,
-    s.pluginMode ? null : `${s.hooks.length} hooks`,
+    s.pluginMode
+      ? s.hooks.length > 0
+        ? 'skills from user level'
+        : 'skills + hooks from bmad-stella plugin'
+      : `${s.skills.length} skills`,
+    s.hooks.length > 0 || !s.pluginMode ? `${s.hooks.length} hooks` : null,
     'permissions',
     mcpOk(s.mcp) ? 'Atlassian MCP' : null,
     playwrightMcpAnyOk(s.playwrightMcp) ? 'Playwright MCP' : null,

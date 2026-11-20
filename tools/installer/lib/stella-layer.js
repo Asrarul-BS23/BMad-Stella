@@ -28,6 +28,7 @@ const {
   GUARD_DEFAULTS,
   COMMONJS_PACKAGE_JSON,
   JIRA_BASE_URL,
+  MACHINE_STATE_PARTS,
 } = require('./constants');
 
 /**
@@ -158,13 +159,36 @@ const readSettings = (root) => readSettingsFile(rel(root, SETTINGS_LOCAL));
  * settings.local.json. In that case skills and hooks come from the plugin,
  * and the installer must not copy project-level duplicates.
  */
-function pluginActive(root, { home = os.homedir() } = {}) {
+function pluginEnabled(root, { home = os.homedir() } = {}) {
   const files = [path.join(home, '.claude', 'settings.json'), rel(root, SETTINGS_LOCAL)];
   return files.some((file) => {
     const plugins = readSettingsFile(file).enabledPlugins;
     if (!plugins || typeof plugins !== 'object') return false;
     return Object.entries(plugins).some(([key, on]) => on && key.startsWith('bmad-stella@'));
   });
+}
+
+/**
+ * True when `bmad-stella install` put the Stella skills at user level on this machine
+ * without the plugin (~/.claude/skills/). They load in every project, like the
+ * plugin's. The project hooks do not: without the plugin they stay in each project.
+ */
+function userLevelStellaSkills(home = os.homedir()) {
+  try {
+    const state = JSON.parse(fs.readFileSync(path.join(home, ...MACHINE_STATE_PARTS), 'utf8'));
+    return Array.isArray(state.stellaSkills) && state.stellaSkills.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * What the per-project installer asks about the skills: do they already reach this
+ * project from user level (plugin, or `install` without the plugin)? Then project
+ * copies would load every skill twice. For the hooks only `pluginEnabled` counts.
+ */
+function pluginActive(root, { home = os.homedir() } = {}) {
+  return pluginEnabled(root, { home }) || userLevelStellaSkills(home);
 }
 
 function writeSettings(root, settings) {
@@ -268,14 +292,21 @@ function ensureOutputFolders(root) {
 }
 
 // ---- reverse: Stella parts of .claude/ (re-run clean + uninstall) ----
-function removeStellaClaudeParts(root) {
+function removeStellaSkills(root) {
   const removed = [];
   for (const name of [...STELLA_SKILLS, ...RETIRED_STELLA_SKILLS]) {
     if (rmIfPresent(rel(root, `${CLAUDE_SKILLS_DIR}/${name}`)))
       removed.push(`${CLAUDE_SKILLS_DIR}/${name}`);
   }
-  if (rmIfPresent(rel(root, STELLA_CLAUDE_DIR))) removed.push(STELLA_CLAUDE_DIR);
   return removed;
+}
+
+function removeStellaHooks(root) {
+  return rmIfPresent(rel(root, STELLA_CLAUDE_DIR)) ? [STELLA_CLAUDE_DIR] : [];
+}
+
+function removeStellaClaudeParts(root) {
+  return [...removeStellaSkills(root), ...removeStellaHooks(root)];
 }
 
 /** Official skills replaced by a Stella version: not kept after the BMad install. */
@@ -318,6 +349,7 @@ function removeBmadSkills(root, names = bmadSkillNames(root)) {
 module.exports = {
   frictionConfig,
   pluginActive,
+  pluginEnabled,
   copyStellaFiles,
   copySkills,
   copyHooks,
@@ -325,6 +357,9 @@ module.exports = {
   unregisterSettings,
   ensureOutputFolders,
   removeStellaClaudeParts,
+  removeStellaSkills,
+  removeStellaHooks,
+  userLevelStellaSkills,
   bmadSkillNames,
   removeBmadSkills,
   removeShadowedBmadSkills,

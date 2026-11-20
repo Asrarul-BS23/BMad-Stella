@@ -4,19 +4,29 @@ A thin Stella layer on top of the official [BMad Method](https://github.com/bmad
 
 ## Install
 
-Run in the project folder, with Claude Code already installed:
+Once per machine, from any folder, with Claude Code already installed:
 
 ```
 npx bmad-stella@latest install
 ```
 
-`@latest` makes npx re-check the registry instead of reusing a stale cached copy. Installing from the repository (`npx github:<owner>/BMad-Stella install`) needs no suffix — npm re-resolves the branch's current commit on every run. The installer also cleans the npm cache itself before fetching BMad and the TEA skills.
+It sets the machine up under `~/.claude/` (credentials, skills, hooks, a master copy of `_bmad/`) and asks whether to install the plugin for Claude Desktop. About 90 seconds. No project is touched.
 
-Two questions (Atlassian credentials, project), about a minute. Details: [Installation Guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1649147911/Installation-Guide).
+Then, once in each project, start a new Claude Code session there and run:
 
-## Plugin (skills and hooks, once per machine)
+```
+/stella-init
+```
 
-The skills and hooks also ship as a Claude Code plugin. One install covers the Claude Code CLI, the VS Code extension, and the Claude Desktop Code tab on that machine:
+It asks for the project, copies `_bmad/` from the master copy and creates `_bmad-output/`. A few seconds, no download.
+
+`@latest` makes npx re-check the registry instead of reusing a stale cached copy. Installing from the repository (`npx github:<owner>/BMad-Stella install`) needs no suffix — npm re-resolves the branch's current commit on every run. Run the same command again to update; each project then refreshes its `_bmad/` at its next session start.
+
+Details: [Installation Guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1649147911/Installation-Guide).
+
+## Plugin (skills and hooks)
+
+The installer adds the plugin when you answer yes to its question. By hand, one install covers the Claude Code CLI, the VS Code extension, and the Claude Desktop Code tab on that machine:
 
 ```
 claude plugin marketplace add Asrarul-BS23/BMad-Stella
@@ -27,7 +37,7 @@ claude plugin install bmad-stella@stella
 
 For Cowork, add the same marketplace on your claude.ai account instead: Customize > Plugins > Add marketplace > `Asrarul-BS23/BMad-Stella`, then enable `bmad-stella`. Machine installs never reach Cowork.
 
-The plugin does not replace the project install above: skills run against the project's `_bmad/` tree, which only `npx bmad-stella install` creates. Invoke plugin skills by their namespaced name, e.g. `/bmad-stella:stella-build`.
+The plugin ships only the skills and hooks: a project still needs `/stella-init`, which creates its `_bmad/` tree. Invoke plugin skills by their namespaced name, e.g. `/bmad-stella:stella-build`.
 
 ## Skills
 
@@ -37,6 +47,7 @@ The plugin does not replace the project install above: skills run against the pr
 | `/stella-pr-review <PR url>` | Reviews a pull request against its ticket. Read-only.  |
 | `/stella-domain-expert`      | Answers questions from the project's domain docs.      |
 | `/stella-project-context`    | Redo the project context the installer generates.      |
+| `/stella-init`               | Set up a project from the machine install.             |
 | `/caveman`                   | Terse chat mode.                                       |
 
 ## Docs

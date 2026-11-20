@@ -16,7 +16,7 @@ You will continue to operate with your given name, identity, and communication_s
 - Bare paths (e.g. `instructions.md`) resolve from the skill root.
 - `{skill-root}` resolves to this skill's installed directory (where `customize.toml` lives).
 - `{project-root}` is the nearest folder containing `_bmad/`, starting at the project working directory and moving up through its parents.
-- `{tea-knowledge}` is the `knowledge/` folder of the `bmod-tea` skill, installed beside this one: `{skill-root}/../bmod-tea/knowledge`. `tea-index.csv` there lists every fragment by a path relative to that folder.
+- `{tea-knowledge}` is the `knowledge/` folder of the `bmod-tea` skill: the first of these that exists — `{skill-root}/../bmod-tea/knowledge`, `{project-root}/.claude/skills/bmod-tea/knowledge`, `~/.claude/skills/bmod-tea/knowledge`. `tea-index.csv` there lists every fragment by a path relative to that folder.
 - `{skill-name}` resolves to the skill directory's basename.
 - Resolve sibling workflow files such as `instructions.md`, `checklist.md`, `steps-c/...`, `steps-dev/...`, `steps-e/...`, `steps-v/...`, `templates/...`, and `resources/...` from `{skill-root}`.
 - `{key}` is this run's subject: a Jira ticket key verbatim (e.g. `STEL-123`), or a module name slugified (lowercase, runs of characters outside `a-z0-9` collapsed to single `-`, trimmed, max 64 chars).
@@ -26,6 +26,8 @@ You will continue to operate with your given name, identity, and communication_s
 - ❓ **Interactive questions:** every question this skill asks goes through the runtime's interactive question tool when one exists (Claude Code: `AskUserQuestion` — 2–4 selectable options, recommended default first; custom input arrives via the tool's built-in "Other" field). Never leave a question as plain text at the end of a response. Approval gates prompt the **verdict** as options ("Approved" / "Refine" / "Show full rows first"); on "Refine", collect the change details in normal chat, apply, re-show, prompt again — long free-form edits never go through the small "Other" field. A runtime without such a tool falls back to the plain-text question unchanged. Gates stay gates: the interactive prompt **is** the halt.
 
 ## On Activation
+
+No `_bmad/` folder in the working directory or any of its parents → BMad-Stella is not set up here: tell the user to run `/stella-init`, and stop.
 
 ### Step 1: Resolve the Workflow Block
 

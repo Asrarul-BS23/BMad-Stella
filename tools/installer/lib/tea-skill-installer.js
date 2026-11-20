@@ -13,9 +13,13 @@ const { quoteArg } = require('./bmad-runner');
 const TAIL_LINES = 40;
 
 /** The exact argument list after `npx`. */
-function buildArgs() {
+function buildArgs({ copy = false } = {}) {
   const f = TEA_SKILL_INSTALL_FLAGS;
-  return ['-y', 'skills', 'add', TEA_SKILL_PACKAGE, '--agent', f.agent, '--skill', f.skill, '-y'];
+  const args = ['-y', 'skills', 'add', TEA_SKILL_PACKAGE, '--agent', f.agent, '--skill', f.skill];
+  // `copy`: real folders instead of links, so the skills can be copied on to
+  // ~/.claude/skills/ (the user-level template build in machine-setup.js).
+  if (copy) args.push('--copy');
+  return [...args, '-y'];
 }
 
 function commandLine(args) {
@@ -37,19 +41,20 @@ function tail(text) {
 /**
  * Runs the TEA skill install in `root`. Returns the exit status; the caller
  * (installer.js) decides how to treat a non-zero one.
- * @param {object} opts verbose, spawn, log, write, now
+ * @param {object} opts verbose, copy, spawn, log, write, now
  */
 function install(
   root,
   {
     verbose = false,
+    copy = false,
     spawn = spawnSync,
     log = console.log,
     write = (s) => process.stdout.write(s),
     now = Date.now,
   } = {},
 ) {
-  const args = buildArgs();
+  const args = buildArgs({ copy });
   const cmd = commandLine(args);
 
   if (verbose) {
