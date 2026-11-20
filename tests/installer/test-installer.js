@@ -21,6 +21,7 @@ const jira = require(path.join(LIB, 'jira-credentials-manager.js'));
 const picker = require(path.join(LIB, 'project-picker.js'));
 const cleaner = require(path.join(LIB, 'cleaner.js'));
 const runner = require(path.join(LIB, 'bmad-runner.js'));
+const teaSkillInstaller = require(path.join(LIB, 'tea-skill-installer.js'));
 const gitignore = require(path.join(LIB, 'gitignore.js'));
 
 let fails = 0;
@@ -76,7 +77,8 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
   );
   ok(C.PROJECT_JSON_FILE === '_bmad-output/stella/project.json', 'constants: project.json path');
   ok(
-    C.GITIGNORE_LINES.join(',') === '_bmad/,_bmad-output/,.claude/,.env',
+    C.GITIGNORE_LINES.join(',') ===
+      '_bmad/,_bmad-output/,.claude/,.env,.agents/,.tea/,.playwright-mcp/',
     'constants: gitignore lines',
   );
   ok(C.USER_NAME_FALLBACK === 'stella-dev', 'constants: user name fallback');
@@ -554,6 +556,54 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     ok(!cleaner.isRerun(root) && cleaner.clean(root).removed.length === 0, 'cleaner: idempotent');
   }
 
+  // ================= cleaner: _bmad/custom/ file preservation =================
+  {
+    const root = tmp('preserve');
+    fs.mkdirSync(path.join(root, '_bmad', 'custom', 'stella'), { recursive: true });
+    fs.writeFileSync(path.join(root, '_bmad', 'custom', 'stella', 'friction.json'), '{}');
+    fs.writeFileSync(path.join(root, '_bmad', 'custom', 'config.toml'), '[modules.tea]\nx = 1\n');
+    fs.writeFileSync(path.join(root, '_bmad', 'custom', 'bmad-tea.user.toml'), 'personal = true\n');
+
+    const preserved = cleaner.preserveCustomFiles(root);
+    ok(
+      preserved.files.sort().join(',') === 'bmad-tea.user.toml,config.toml',
+      `preserve: only loose files staged, stella/ left out (${preserved && preserved.files})`,
+    );
+    ok(
+      fs.existsSync(path.join(root, '_bmad', 'custom', 'stella', 'friction.json')) &&
+        !fs.existsSync(path.join(root, '_bmad', 'custom', 'config.toml')),
+      'preserve: stella/ untouched, loose files moved out of _bmad/custom/',
+    );
+    ok(
+      path.dirname(preserved.staging).toLowerCase() === root.toLowerCase(),
+      'preserve: staged next to _bmad/ (same drive), not the OS temp dir',
+    );
+
+    // simulate the re-run wipe + BMad reinstall recreating a fresh _bmad/
+    fs.rmSync(path.join(root, '_bmad'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(root, '_bmad'), { recursive: true });
+
+    cleaner.restoreCustomFiles(root, preserved);
+    ok(
+      fs.readFileSync(path.join(root, '_bmad', 'custom', 'config.toml'), 'utf8') ===
+        '[modules.tea]\nx = 1\n' &&
+        fs.readFileSync(path.join(root, '_bmad', 'custom', 'bmad-tea.user.toml'), 'utf8') ===
+          'personal = true\n',
+      'restore: loose files back in _bmad/custom/, content intact',
+    );
+    ok(!fs.existsSync(preserved.staging), 'restore: staging folder cleaned up');
+    ok(
+      !fs.existsSync(path.join(root, '_bmad', 'custom', 'stella')),
+      'restore: stella/ not revived',
+    );
+
+    ok(cleaner.preserveCustomFiles(tmp('no-bmad')) === null, 'preserve: no _bmad/ → null');
+    const emptyRoot = tmp('empty-custom');
+    fs.mkdirSync(path.join(emptyRoot, '_bmad', 'custom'), { recursive: true });
+    ok(cleaner.preserveCustomFiles(emptyRoot) === null, 'preserve: no loose files → null');
+    cleaner.restoreCustomFiles(tmp('restore-noop'), null); // must not throw
+  }
+
   // ================= bmad runner =================
   {
     const args = runner.buildArgs({ projectName: 'LEADRSC', userName: 'Ash' });
@@ -570,6 +620,10 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
         (/"core\.project_name=RISK MONITOR"/.test(line) ||
           /'core\.project_name=RISK MONITOR'/.test(line)),
       'runner: project name with a space is quoted',
+    );
+    ok(
+      runner.quoteArg('*') === (process.platform === 'win32' ? '"*"' : "'*'"),
+      'runner: quoteArg quotes a bare asterisk against shell glob expansion',
     );
     ok(
       runner.gitUserName({ run: () => ({ status: 0, stdout: ' Ash Mahmud \n' }) }) === 'Ash Mahmud',
@@ -657,17 +711,93 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     );
   }
 
+  // ================= TEA skill installer =================
+  {
+    const args = teaSkillInstaller.buildArgs();
+    ok(
+      args.join(' ') ===
+        '-y skills add bmad-code-org/bmad-method-test-architecture-enterprise@v3.6.0 --agent claude-code --skill * -y',
+      'tea skill installer: exact command args',
+    );
+    const line = teaSkillInstaller.commandLine(args);
+    ok(
+      /--skill (\*|'\*'|"\*")/.test(line),
+      `tea skill installer: '*' quoted on the command line (${line})`,
+    );
+    let spawned = null;
+    let written = '';
+    let clock = 1000;
+    const status = teaSkillInstaller.install('/proj', {
+      spawn: (cmd, opts) => {
+        spawned = { cmd, opts };
+        clock += 12_000;
+        return { status: 0, stdout: 'banner\nlots of output', stderr: '' };
+      },
+      log: quiet,
+      write: (s) => (written += s),
+      now: () => clock,
+    });
+    ok(
+      status === 0 &&
+        spawned.cmd.startsWith('npx -y skills add') &&
+        spawned.opts.cwd === '/proj' &&
+        Array.isArray(spawned.opts.stdio) &&
+        spawned.opts.stdio[1] === 'pipe',
+      'tea skill installer: spawns npx in the project root, output captured by default',
+    );
+    ok(
+      written === 'Installing TEA skills ... done (12s)\n',
+      `tea skill installer: quiet mode prints one line (${JSON.stringify(written)})`,
+    );
+
+    // failure → tail of the captured output, colours stripped
+    const logged = [];
+    written = '';
+    const failed = teaSkillInstaller.install('/proj', {
+      spawn: () => ({
+        status: 1,
+        stdout: 'step 1\n\u001B[31m✗ network error\u001B[0m\n',
+        stderr: '',
+      }),
+      log: (l) => logged.push(l),
+      write: (s) => (written += s),
+      now: () => 0,
+    });
+    ok(
+      failed === 1 &&
+        written.endsWith('failed (exit 1)\n') &&
+        logged.some((l) => l.includes('✗ network error')) &&
+        !logged.some((l) => l.includes('\u001B[')),
+      'tea skill installer: failure prints the output tail without colour codes',
+    );
+
+    // verbose → streamed as before
+    spawned = null;
+    teaSkillInstaller.install('/proj', {
+      verbose: true,
+      spawn: (cmd, opts) => {
+        spawned = { cmd, opts };
+        return { status: 0 };
+      },
+      log: quiet,
+    });
+    ok(spawned.opts.stdio === 'inherit', 'tea skill installer: --verbose streams output');
+  }
+
   // ================= gitignore =================
   {
     const root = tmp('gi');
     let r = gitignore.ensure(root);
-    ok(r.added.length === 4, 'gitignore: created with 4 lines');
+    ok(r.added.length === 7, 'gitignore: created with 7 lines');
     let text = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
     ok(
       /^_bmad\/$/m.test(text) &&
         /^_bmad-output\/$/m.test(text) &&
         /^\.claude\/$/m.test(text) &&
-        /^\.env$/m.test(text),
+        /^\.env$/m.test(text) &&
+        /^\.agents\/$/m.test(text) &&
+        /^\.tea\/$/m.test(text) &&
+        /^\.playwright-mcp\/$/m.test(text),
       'gitignore: each line on its own',
     );
     r = gitignore.ensure(root);
@@ -679,7 +809,7 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     r = gitignore.ensure(root);
     text = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
     ok(
-      r.added.join(',') === '_bmad/,_bmad-output/' &&
+      r.added.join(',') === '_bmad/,_bmad-output/,.agents/,.tea/,.playwright-mcp/' &&
         text.startsWith('node_modules/\n/.claude/\n.env\n'),
       'gitignore: existing lines (incl. leading slash) respected, only missing added',
     );
@@ -705,7 +835,7 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
       env: { ...process.env, JIRA_EMAIL: '', JIRA_API_TOKEN: '', STELLA_PROJECT: '' },
     });
     ok(
-      n.status === 1 && /No interactive terminal/.test(n.stdout) && /STELLA_PROJECT/.test(n.stdout),
+      n.status === 1 && /No interactive terminal/.test(n.stdout) && /JIRA_API_TOKEN/.test(n.stdout),
       'bin: no TTY + no env → clear error, no crash',
     );
   }
@@ -723,8 +853,8 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
         JIRA_EMAIL: process.env.JIRA_EMAIL || 'e2e@stella.com',
         JIRA_API_TOKEN: process.env.JIRA_API_TOKEN || 'tok-abcdefghijklmnop',
         BMAD_SKIP_JIRA_VERIFY: '1',
-        STELLA_PROJECT: 'E2E',
-        // user-level hooks go to a throwaway home, never the real one
+        STELLA_PLUGIN: 'n',
+        // everything `install` writes go to a throwaway home, never the real one
         HOME: fakeHome,
         USERPROFILE: fakeHome,
       },
@@ -732,11 +862,28 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
       timeout: 600_000,
     });
     ok(r.status === 0, `e2e: install exits 0\n${r.stdout}\n${r.stderr}`);
-    ok(fs.existsSync(path.join(root, '_bmad', 'config.toml')), 'e2e: _bmad/config.toml present');
+    // `install` is the machine half: it writes under the home folder, not into the project.
+    const stellaHome = path.join(fakeHome, '.claude', 'stella');
     ok(
-      fs.existsSync(path.join(root, '.claude', 'skills', 'bmad-build', 'SKILL.md')),
-      'e2e: bmad-build skill present',
+      fs.existsSync(path.join(stellaHome, 'bmad-template', '_bmad', 'config.toml')),
+      'e2e: master copy of _bmad present',
     );
+    ok(
+      fs.existsSync(path.join(fakeHome, '.claude', 'skills', 'bmad-help', 'SKILL.md')),
+      'e2e: official skills at user level',
+    );
+    ok(!fs.existsSync(path.join(root, '_bmad')), 'e2e: install leaves the project alone');
+    // the project half, run from the installed app as /stella-init does
+    const app = path.join(stellaHome, 'app', 'tools', 'installer', 'bin', 'bmad.js');
+    const i = spawnSync(process.execPath, [app, 'init', '--project', 'E2E'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, BMAD_SKIP_JIRA_VERIFY: '1', HOME: fakeHome, USERPROFILE: fakeHome },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 120_000,
+    });
+    ok(i.status === 0, `e2e: init exits 0\n${i.stdout}\n${i.stderr}`);
+    ok(fs.existsSync(path.join(root, '_bmad', 'config.toml')), 'e2e: _bmad/config.toml present');
     ok(
       /_bmad-output\//.test(fs.readFileSync(path.join(root, '.gitignore'), 'utf8')),
       'e2e: gitignore written',

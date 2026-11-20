@@ -5,6 +5,7 @@
 // synchronous and silent; the orchestrator prints the summary.
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const cjson = require('comment-json');
 const permissions = require('./claude-permissions-manager');
@@ -16,7 +17,9 @@ const {
   LEGACY_BMAD_HOOKS_DIR,
   SETTINGS_LOCAL,
   STELLA_SKILLS,
+  RETIRED_STELLA_SKILLS,
   BMAD_SKILLS_REMOVED,
+  BMAD_SKILL_MANIFEST,
   PROJECT_HOOKS,
   STELLA_OUTPUT_DIR,
   OUTPUT_FOLDERS,
@@ -25,6 +28,7 @@ const {
   GUARD_DEFAULTS,
   COMMONJS_PACKAGE_JSON,
   JIRA_BASE_URL,
+  MACHINE_STATE_PARTS,
 } = require('./constants');
 
 /**
@@ -91,9 +95,15 @@ function copyStellaFiles(root, { project = null } = {}) {
 }
 
 // ---- step 10: skills ----
+// Runs on every install, re-run or not: retired Stella skills are removed, and each Stella
+// skill folder is replaced, never merged, so files a newer version dropped do not linger.
+// Only these exact names are touched; a developer's own skills in .claude/skills/ stay.
 function copySkills(root) {
+  for (const name of RETIRED_STELLA_SKILLS) rmIfPresent(rel(root, `${CLAUDE_SKILLS_DIR}/${name}`));
   for (const name of STELLA_SKILLS) {
-    copyDir(path.join(SRC.skills, name), rel(root, `${CLAUDE_SKILLS_DIR}/${name}`));
+    const dest = rel(root, `${CLAUDE_SKILLS_DIR}/${name}`);
+    rmIfPresent(dest);
+    copyDir(path.join(SRC.skills, name), dest);
   }
   return STELLA_SKILLS;
 }
@@ -127,8 +137,7 @@ const isOurHookEntry = (entry) => {
   return cmd.includes(`${STELLA_HOOKS_DIR}/`) || LEGACY_BMAD_HOOKS_RE.test(cmd);
 };
 
-function readSettings(root) {
-  const file = rel(root, SETTINGS_LOCAL);
+function readSettingsFile(file) {
   try {
     const text = fs.readFileSync(file, 'utf8');
     try {
@@ -141,6 +150,47 @@ function readSettings(root) {
   }
 }
 
+const readSettings = (root) => readSettingsFile(rel(root, SETTINGS_LOCAL));
+
+/**
+ * True when the bmad-stella plugin is enabled for this machine or project:
+ * an `enabledPlugins` key `bmad-stella@<marketplace>` set to true, in the
+ * user settings (where `claude plugin install` records it) or the project's
+ * settings.local.json. In that case skills and hooks come from the plugin,
+ * and the installer must not copy project-level duplicates.
+ */
+function pluginEnabled(root, { home = os.homedir() } = {}) {
+  const files = [path.join(home, '.claude', 'settings.json'), rel(root, SETTINGS_LOCAL)];
+  return files.some((file) => {
+    const plugins = readSettingsFile(file).enabledPlugins;
+    if (!plugins || typeof plugins !== 'object') return false;
+    return Object.entries(plugins).some(([key, on]) => on && key.startsWith('bmad-stella@'));
+  });
+}
+
+/**
+ * True when `bmad-stella install` put the Stella skills at user level on this machine
+ * without the plugin (~/.claude/skills/). They load in every project, like the
+ * plugin's. The project hooks do not: without the plugin they stay in each project.
+ */
+function userLevelStellaSkills(home = os.homedir()) {
+  try {
+    const state = JSON.parse(fs.readFileSync(path.join(home, ...MACHINE_STATE_PARTS), 'utf8'));
+    return Array.isArray(state.stellaSkills) && state.stellaSkills.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * What the per-project installer asks about the skills: do they already reach this
+ * project from user level (plugin, or `install` without the plugin)? Then project
+ * copies would load every skill twice. For the hooks only `pluginEnabled` counts.
+ */
+function pluginActive(root, { home = os.homedir() } = {}) {
+  return pluginEnabled(root, { home }) || userLevelStellaSkills(home);
+}
+
 function writeSettings(root, settings) {
   const file = rel(root, SETTINGS_LOCAL);
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -148,14 +198,22 @@ function writeSettings(root, settings) {
   return file;
 }
 
-/** Our hook entries replaced (never duplicated); foreign entries untouched. */
-function mergeHooks(settings) {
+/**
+ * Our hook entries replaced (never duplicated); foreign entries untouched.
+ * With `register: false` (plugin mode) stale entries are still stripped but
+ * none are added — the plugin's hooks.json registers them instead.
+ */
+function mergeHooks(settings, { register = true } = {}) {
   if (!settings.hooks || typeof settings.hooks !== 'object') settings.hooks = {};
   for (const event of Object.keys(settings.hooks)) {
     if (Array.isArray(settings.hooks[event])) {
       settings.hooks[event] = settings.hooks[event].filter((e) => !isOurHookEntry(e));
       if (settings.hooks[event].length === 0) delete settings.hooks[event];
     }
+  }
+  if (!register) {
+    if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
+    return settings;
   }
   for (const hook of PROJECT_HOOKS) {
     for (const [event, spec] of Object.entries(hook.events)) {
@@ -182,8 +240,8 @@ function mergePermissions(settings) {
 }
 
 // ---- steps 11 + 12: settings.local.json ----
-function registerSettings(root) {
-  const settings = mergePermissions(mergeHooks(readSettings(root)));
+function registerSettings(root, { hooks = true } = {}) {
+  const settings = mergePermissions(mergeHooks(readSettings(root), { register: hooks }));
   return writeSettings(root, settings);
 }
 
@@ -234,14 +292,21 @@ function ensureOutputFolders(root) {
 }
 
 // ---- reverse: Stella parts of .claude/ (re-run clean + uninstall) ----
-function removeStellaClaudeParts(root) {
+function removeStellaSkills(root) {
   const removed = [];
-  for (const name of STELLA_SKILLS) {
+  for (const name of [...STELLA_SKILLS, ...RETIRED_STELLA_SKILLS]) {
     if (rmIfPresent(rel(root, `${CLAUDE_SKILLS_DIR}/${name}`)))
       removed.push(`${CLAUDE_SKILLS_DIR}/${name}`);
   }
-  if (rmIfPresent(rel(root, STELLA_CLAUDE_DIR))) removed.push(STELLA_CLAUDE_DIR);
   return removed;
+}
+
+function removeStellaHooks(root) {
+  return rmIfPresent(rel(root, STELLA_CLAUDE_DIR)) ? [STELLA_CLAUDE_DIR] : [];
+}
+
+function removeStellaClaudeParts(root) {
+  return [...removeStellaSkills(root), ...removeStellaHooks(root)];
 }
 
 /** Official skills replaced by a Stella version: not kept after the BMad install. */
@@ -253,22 +318,38 @@ function removeShadowedBmadSkills(root) {
   return removed;
 }
 
-/** Official BMad skills (uninstall only). */
-function removeBmadSkills(root) {
-  const dir = rel(root, CLAUDE_SKILLS_DIR);
+/** Folder names of the skills BMad installed, from its own manifest; [] when it is missing. */
+function bmadSkillNames(root) {
+  let text;
+  try {
+    text = fs.readFileSync(rel(root, BMAD_SKILL_MANIFEST), 'utf8');
+  } catch {
+    return [];
+  }
+  return text
+    .split(/\r?\n/)
+    .slice(1)
+    .map((line) => (/^"?([\w.-]+)"?,/.exec(line) || [])[1])
+    .filter(Boolean);
+}
+
+/**
+ * Official BMad skills (uninstall only): exactly the names BMad's manifest lists, never a
+ * name pattern, so a developer's own skills stay. Read the names before _bmad/ is deleted.
+ */
+function removeBmadSkills(root, names = bmadSkillNames(root)) {
   const removed = [];
-  if (!fs.existsSync(dir)) return removed;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.isDirectory() && entry.name.startsWith('bmad-')) {
-      rmIfPresent(path.join(dir, entry.name));
-      removed.push(`${CLAUDE_SKILLS_DIR}/${entry.name}`);
-    }
+  for (const name of names) {
+    if (rmIfPresent(rel(root, `${CLAUDE_SKILLS_DIR}/${name}`)))
+      removed.push(`${CLAUDE_SKILLS_DIR}/${name}`);
   }
   return removed;
 }
 
 module.exports = {
   frictionConfig,
+  pluginActive,
+  pluginEnabled,
   copyStellaFiles,
   copySkills,
   copyHooks,
@@ -276,6 +357,10 @@ module.exports = {
   unregisterSettings,
   ensureOutputFolders,
   removeStellaClaudeParts,
+  removeStellaSkills,
+  removeStellaHooks,
+  userLevelStellaSkills,
+  bmadSkillNames,
   removeBmadSkills,
   removeShadowedBmadSkills,
   readSettings,

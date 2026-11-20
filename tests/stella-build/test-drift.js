@@ -16,14 +16,59 @@ const SKILL = path.join(REPO, 'stella', 'skills', 'stella-build');
 const FIXTURE = path.join(REPO, 'tests', 'fixtures', 'bmad-build-6.12.2');
 
 // Files that exist on one side only, by design.
-const SKILL_ONLY = new Set(['CHANGES.md']);
+const SKILL_ONLY = new Set(['CHANGES.md', 'review-prompts/security.md']);
 const FIXTURE_ONLY = new Set(['SOURCE.md']);
 
 const NO_COMMIT =
   'Do not commit, push or open a pull request. The developer reviews the working tree and commits by hand before the next ticket.';
 
+// 2026-11-10 — the security review layer, one per route; the checks come from the stella-security checklists.
+const SECURITY_WHEN =
+  'when = "the change adds a backend entry point or changes its route or authorization, touches role, permission or identity code, or on the frontend renders HTML from data, adds inline or external scripts, handles URL or redirect input, exposes credentials, or changes CSP or security headers"';
+const securityLayer = (table, reviewContent) => [
+  `[[workflow.${table}]]`,
+  'id = "security"',
+  'name = "Security Reviewer"',
+  SECURITY_WHEN,
+  'instruction = """',
+  'Launch a context-free subagent with this prompt:',
+  '',
+  'Read `{skill-root}/review-prompts/security.md` completely and follow it as your review instructions.',
+  '',
+  reviewContent,
+  '',
+  'Do not invoke any skill, and do not spawn subagents of your own — you are the reviewer. If the instruction file is unreadable, report that exact failure and stop. Return your findings as text in your final message; do not route them through any findings-reporting tool the host may offer.',
+  '',
+  '"""',
+];
+
+// 2026-11-17 — live bug hunt before the review, on both routes (AIL-1175); `input` is how the route names its spec.
+const liveBugHunt = (input) => [
+  '### Live Bug Hunt',
+  '',
+  'Before the review, bug-hunt this change live. Invoke the `stella-tea-live-testing` skill',
+  `with menu code \`SD\` and ${input} as the input. Run it — never ask the user whether to.`,
+  'That flow starts the app, generates bug-hunting scenarios from the spec, executes them',
+  'through Playwright MCP, and for every accepted bug proposes a fix and applies it once the',
+  'user approves. Bugs are fixed here so the review reads the corrected code.',
+  '',
+  'If the hunt changed any code, rewrite `{diff_file}` and re-read it before continuing.',
+  '',
+  'Skip the hunt only when Playwright MCP is not connected or the change has no runnable',
+  'interface to drive, and say in one line that you skipped it and why.',
+  '',
+];
+
 const ALLOWED = {
-  'SKILL.md': [{ line: 2, from: 'name: bmad-build', to: 'name: stella-build' }],
+  'SKILL.md': [
+    { line: 2, from: 'name: bmad-build', to: 'name: stella-build' },
+    // 2026-11-19 — user-level install: a project without _bmad/ is set up with /stella-init.
+    {
+      line: 13,
+      from: '- On failure (including `uv` being unavailable), report the command output and HALT. Do not run any workflow source directly.',
+      to: '- On failure (including `uv` being unavailable), report the command output and HALT. Do not run any workflow source directly. When the project has no `_bmad/` folder, BMad-Stella is not set up there: also tell the user to run `/stella-init`.',
+    },
+  ],
 
   // 2026-10-28 — subagents only for the review layers; stated once, here (AIL-552 run used subagents for search and implementation).
   'workflow.md': [
@@ -36,6 +81,12 @@ const ALLOWED = {
       line: 8,
       from: 'If you need an explicit user instruction to run them, ask once now for the whole workflow run.',
       to: null,
+    },
+    // 2026-11-10 — size never stops the run (dev feedback: tickets are a day or less, devs always kept the spec).
+    {
+      line: 29,
+      from: '- **Neither limit is a gate.** Both are proposals with user override.',
+      to: '- **Neither limit is a gate.**',
     },
   ],
 
@@ -81,13 +132,41 @@ const ALLOWED = {
     {
       line: 12,
       from: '2. Investigate the codebase. When you can, send deep searches to subagents and wait for them in this turn. Tell them to return short summaries only, so this session does not fill up with their notes. Keep only what the work needs: the specific files, symbols or lines, what to reuse, and what not to change. Write that into the Code Map. Do not retell the investigation when implementation starts — the spec already has it.',
-      to: '2. Find the code to change. Start from what is already loaded: CLAUDE.md, auto memory, Stella memory, project context. Then read only: the files you will change, their tests, one existing example of the same pattern, and the types they use. Keep only what the work needs: the specific files, symbols or lines, what to reuse, and what not to change. Write that into the Code Map. Do not retell the investigation when implementation starts — the spec already has it.',
+      to: '2. Find the code to change yourself, in this session; no subagents. Start from what is already loaded: CLAUDE.md, auto memory, Stella memory, project context. Then read only: the files you will change, their tests, one existing example of the same pattern, and the types they use. Keep only what the work needs: the specific files, symbols or lines, what to reuse, and what not to change. Write that into the Code Map. Do not retell the investigation when implementation starts — the spec already has it.',
     },
     {
       line: 14,
       from: '   Do not ask the human during investigation. When something is unclear, look in the repository, planning artifacts, or history first. Keep looking until you know, or until those sources have nothing more to say. Leave any remaining choice for the next step.',
       to: '   Do not ask the human during investigation. When something is unclear, look in the repository, planning artifacts, or history first. Leave any remaining choice for the next step.',
     },
+    // 2026-11-10 — no token-count gate: the ticket is the unit of work; step 01 still checks multiple goals.
+    {
+      line: 25,
+      from: '6. Resolve the gates before the checkpoint. Two things must be settled, in whatever order the conversation makes natural; combine them in one message when both apply.',
+      to: '6. Resolve the Open Questions before the checkpoint.',
+    },
+    {
+      line: 26,
+      from: '   - **Token count** (see SCOPE STANDARD). If the spec exceeds 1600 tokens, show the count and give the user a choice:',
+      to: null,
+    },
+    {
+      line: 27,
+      from: '     - **Split** — carve off secondary goals. Propose the split — name each secondary goal. For each deferred goal, append one new entry to `{{.implementation_artifacts}}/deferred-work.md` using the format below. Do not modify existing entries or look for duplicates. Rewrite the current spec to cover only the main goal — do not surgically carve sections out; regenerate the spec for the narrowed scope.',
+      to: null,
+    },
+    { line: 28, from: '     - **Keep full spec** — accept the risks.', to: null },
+    { line: 29, from: '     ```markdown', to: null },
+    { line: 30, from: '     - source_spec: `{spec_file}`', to: null },
+    { line: 31, from: '       summary: <one sentence naming the deferred goal>', to: null },
+    { line: 32, from: '       evidence: <why this was split from the current spec>', to: null },
+    { line: 33, from: '     ```', to: null },
+    {
+      line: 42,
+      from: 'If token count exceeded 1600 and the user chose to keep the full spec, include the token count and explain why it may be a problem.',
+      to: null,
+    },
+    { line: 43, from: '', to: null },
   ],
 
   // 2026-10-28 — implementation in this session; the dispatch and subagent lines go (AIL-552 run launched an implementer subagent).
@@ -108,6 +187,7 @@ const ALLOWED = {
       from: "Stage the diff and read it first: using the repository's version-control tooling, write a unified diff of all changes since `{baseline_commit}` (from `{spec_file}` frontmatter) — untracked files included — to a uniquely-named file in the system temp directory, set `{diff_file}` to its absolute path, and read that file into your own context. Judge against the diff, not against the implementation subagent's report.",
       to: "Stage the diff and read it first: using the repository's version-control tooling, write a unified diff of all changes since `{baseline_commit}` (from `{spec_file}` frontmatter) — untracked files included — to a uniquely-named file in the system temp directory, set `{diff_file}` to its absolute path, and read that file into your own context. Judge against the diff, not against what you remember implementing.",
     },
+    { line: 49, from: '## NEXT', to: [...liveBugHunt('`{spec_file}`'), '## NEXT'] },
   ],
 
   // 2026-10-28 — review patches applied in this session: the subagent re-engagement and its message are removed (deletions only).
@@ -178,7 +258,7 @@ const ALLOWED = {
       from: 'on_complete = ""',
       to: [
         'on_complete = """',
-        'Jira comment (Stella). If `{jira_key}` is empty, read `jira_key` from the spec frontmatter; none → do nothing. Compose a short comment (what changed, verification, review result, anything deferred, spec path), write it to `{project-root}/_bmad-output/stella/cache/jira/{jira_key}/comment.md`, show it, and ask "Post to {jira_key}? (y/n)" in the same message as the completion summary. On y: run `node _bmad/custom/stella/utils/jira-comment {jira_key}` and read its stdout JSON. Exit 20: print its `message`, then post the same text through the Atlassian MCP if it responds, else say "Comment not posted." Any other failure: print its `message`. Never change status, assignee, labels or attachments.',
+        'Jira comment (Stella). If `{jira_key}` is empty, read `jira_key` from the spec frontmatter; none → do nothing. Compose a short comment: what changed in the code, then one line `Impact area: <area names, comma-separated>`, names only, no description. Nothing about how the work was done or checked: no build, test, review or deferred status. Write it to `{project-root}/_bmad-output/stella/cache/jira/{jira_key}/comment.md`, show it, and ask "Post to {jira_key}? (y/n)" in the same message as the completion summary. Nothing comes after the comment and the question. On y: run `node _bmad/custom/stella/utils/jira-comment {jira_key}` and read its stdout JSON. Exit 20: print its `message`, then post the same text through the Atlassian MCP if it responds, else say "Comment not posted." Any other failure: print its `message`. Never change status, assignee, labels or attachments.',
         '"""',
       ],
     },
@@ -211,6 +291,31 @@ const ALLOWED = {
       from: '> When done, report what you changed, how you verified it, and anything left incomplete or risky.',
       to: null,
     },
+    // 2026-11-10 — security review layer added after the official layers of each route.
+    {
+      line: 132,
+      from: '# Review layers for the oneshot route.',
+      to: [
+        ...securityLayer(
+          'review_layers',
+          'Review content: the unified diff at `{diff_file}`. Read that file — it is the content under review.',
+        ),
+        '',
+        '# Review layers for the oneshot route.',
+      ],
+    },
+    {
+      line: 152,
+      from: '"""',
+      to: [
+        '"""',
+        '',
+        ...securityLayer(
+          'oneshot_review_layers',
+          'Review content: the changed files in the current worktree. Inspect them directly before reviewing.',
+        ),
+      ],
+    },
   ],
 
   // Task 6b-2 — git read-only: no commit, no hash, no PR offer.
@@ -225,10 +330,13 @@ const ALLOWED = {
     {
       line: 35,
       from: 'Offer applicable next actions in one short line: when version control and a remote are available, create a pull request (and push first if needed); use `bmad-walkthrough`; or make another change.',
-      to: 'Offer applicable next actions in one short line: use `bmad-walkthrough`; or make another change.',
+      to: null,
     },
+    // 2026-11-10 — no next-actions line: the summary ends the run (user decision).
+    { line: 36, from: '', to: null },
   ],
   'step-oneshot.md': [
+    { line: 29, from: '### Review', to: [...liveBugHunt('the spec path'), '### Review'] },
     { line: 81, from: '### Commit', to: '### Complete' },
     {
       line: 83,
@@ -239,8 +347,9 @@ const ALLOWED = {
     {
       line: 97,
       from: 'Offer next steps in one line: create a PR (push first if needed) when git and a remote exist; use `bmad-walkthrough`; or make another change.',
-      to: 'Offer next steps in one line: use `bmad-walkthrough`; or make another change.',
+      to: null,
     },
+    { line: 98, from: '', to: null },
   ],
 };
 
@@ -336,10 +445,30 @@ const toml = fs.readFileSync(path.join(SKILL, 'customize.toml'), 'utf8');
 ok(/^activation_steps_append = \[\]$/m.test(toml), 'toml: activation_steps_append untouched');
 ok(/^open_spec = ""$/m.test(toml), 'toml: open_spec untouched');
 ok(
-  (toml.match(/^\[\[workflow\.review_layers\]\]$/gm) || []).length === 3,
-  'toml: three review layers, none added',
+  (toml.match(/^\[\[workflow\.review_layers\]\]$/gm) || []).length === 4,
+  'toml: the three official review layers plus security',
 );
-ok(!/stella-security/.test(toml), 'toml: no security review layer (skipped by decision)');
+ok(
+  (toml.match(/^\[\[workflow\.oneshot_review_layers\]\]$/gm) || []).length === 2,
+  'toml: the official oneshot layer plus security',
+);
+ok(
+  (toml.match(/^id = "security"$/gm) || []).length === 2 &&
+    (toml.match(new RegExp(`^${SECURITY_WHEN.replaceAll(/[()]/g, String.raw`\$&`)}$`, 'gm')) || [])
+      .length === 2,
+  'toml: security layer on both routes, each gated by when',
+);
+const securityPrompt = fs.readFileSync(path.join(SKILL, 'review-prompts', 'security.md'), 'utf8');
+ok(
+  securityPrompt.includes('_bmad/custom/stella/checklists/backend-security.md') &&
+    securityPrompt.includes('_bmad/custom/stella/checklists/frontend-security.md'),
+  'security.md: checks against the stella-security checklists',
+);
+ok(
+  securityPrompt.includes('`No security violations found.`') &&
+    !/finding floor|at least N/i.test(securityPrompt),
+  'security.md: a clean result is allowed, no finding floor',
+);
 
 // ---- CHANGES.md names every listed file ----
 const changes = fs.readFileSync(path.join(SKILL, 'CHANGES.md'), 'utf8');

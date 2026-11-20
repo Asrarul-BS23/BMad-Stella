@@ -6,6 +6,13 @@
 const BMAD_VERSION = '6.12.2';
 const BMAD_PACKAGE = `bmad-method@${BMAD_VERSION}`;
 
+// TEA skill package, installed via `npx skills add` right after the BMad install
+// step (owner/repo@tag is a git ref — pins the version, confirmed from the
+// `skills` CLI's own `Source: ...git @<tag>` output).
+const TEA_SKILL_REPO = 'bmad-code-org/bmad-method-test-architecture-enterprise';
+const TEA_SKILL_VERSION = 'v3.6.0';
+const TEA_SKILL_PACKAGE = `${TEA_SKILL_REPO}@${TEA_SKILL_VERSION}`;
+
 const JIRA_BASE_URL = 'https://stellaint.atlassian.net';
 const TOKEN_HELP_URL = 'https://id.atlassian.com/manage-profile/security/api-tokens';
 
@@ -36,7 +43,18 @@ const PROJECT_CONTEXT_DIR = `${STELLA_OUTPUT_DIR}/project-context`;
 const PROJECT_CONTEXT_LOG = `${PROJECT_CONTEXT_DIR}/.state/worker.log`;
 
 // Lines the installer guarantees in .gitignore (each on its own line, added once).
-const GITIGNORE_LINES = ['_bmad/', '_bmad-output/', '.claude/', '.env'];
+// .agents/ and .tea/ are created by the `skills` CLI (TEA skill install), not by us —
+// fixed paths it chooses, not configurable like _bmad/. .playwright-mcp/ is the
+// Playwright MCP server's own output folder (screenshots etc.), created on demand.
+const GITIGNORE_LINES = [
+  '_bmad/',
+  '_bmad-output/',
+  '.claude/',
+  '.env',
+  '.agents/',
+  '.tea/',
+  '.playwright-mcp/',
+];
 const GITIGNORE_HEADER = '# BMad-Stella (added by the installer)';
 
 // v4 leftovers removed on every install; `_bmad/` is removed on a re-run only.
@@ -54,6 +72,35 @@ const BMAD_INSTALL_FLAGS = {
 };
 const USER_NAME_FALLBACK = 'stella-dev';
 
+// TEA skill install flags (user decision): Claude Code only, all skills in the
+// repo. Scope (project) and method (symlink) are the `skills` CLI's own defaults.
+const TEA_SKILL_INSTALL_FLAGS = { agent: 'claude-code', skill: '*' };
+
+// `[modules.tea]` answers written into _bmad/config.toml right after the TEA
+// skill step — what `bmad setup tea` would write, so a fresh install passes
+// every TEA skill's config gate without a manual chat step (plan:
+// tea-module/tea-setup-automation-plan.md). The live defaults are read from the
+// installed bmod.toml ([[bmod.config_questions]]); this ordered list is the
+// fallback when that file is missing or unparsable (matches TEA v3.6.0).
+const TEA_CONFIG_FALLBACK_DEFAULTS = [
+  ['test_artifacts', '{project-root}/_bmad-output/test-artifacts'],
+  ['tea_use_playwright_utils', 'true'],
+  ['tea_use_pactjs_utils', 'true'],
+  ['tea_pact_mcp', 'mcp'],
+  ['tea_browser_automation', 'auto'],
+  ['tea_execution_mode', 'auto'],
+  ['tea_capability_probe', 'true'],
+  ['test_stack_type', 'auto'],
+  ['test_framework', 'auto'],
+  ['auto_validate', 'true'],
+  ['auto_heal_failures', 'true'],
+  ['max_healing_iterations', '3'],
+  ['use_mcp_healing', 'true'],
+];
+// Stella answers that differ from TEA's defaults (user decision 2026-11-17):
+// the flow mandates Playwright MCP, so browser automation is pinned to mcp.
+const TEA_CONFIG_OVERRIDES = { tea_browser_automation: 'mcp' };
+
 const MIN_NODE = { major: 20, minor: 10 };
 // BMad's render scripts declare `requires-python >= 3.11`. When no such Python is
 // on PATH the installer adds a uv-managed one (system Python untouched).
@@ -70,6 +117,14 @@ const ATLASSIAN_MCP = {
 };
 const STALE_ATLASSIAN_MCP_URLS = ['https://mcp.atlassian.com/v1/sse']; // retired 2026-06-30
 
+// Playwright MCP servers — browser automation and the Playwright test runner.
+// Registered once per machine (`-s user`), not per project: shared across every
+// project on the machine, so unlike Atlassian MCP they are never removed by uninstall.
+const PLAYWRIGHT_MCP_SERVERS = [
+  { name: 'playwright', command: 'npx', args: ['-y', '@playwright/mcp@latest'] },
+  { name: 'playwright-test', command: 'npx', args: ['playwright', 'run-test-mcp-server'] },
+];
+
 // ---- Stella layer (Task 11) ----
 const STELLA_CUSTOM_DIR = `${BMAD_DIR}/custom/stella`; // checklists, utils, friction.json, guard.json
 const CLAUDE_DIR = '.claude';
@@ -84,16 +139,24 @@ const SETTINGS_LOCAL = `${CLAUDE_DIR}/settings.local.json`;
 const STELLA_SKILLS = [
   'stella-build',
   'caveman',
-  'stella-security',
   'stella-pr-review',
   'stella-domain-expert',
   'stella-project-context',
+  'stella-tea-live-testing',
 ];
+
+// Stella skills no longer shipped: still removed on re-run and uninstall, so older
+// installs do not keep them. stella-security: its checks run in stella-build's review.
+const RETIRED_STELLA_SKILLS = ['stella-security'];
 
 // Official skills removed after the BMad install because a Stella version replaces
 // them (bmad-build-auto only loops bmad-build). Re-runs reinstall BMad, so this
 // runs every time. No official file is edited; the folders are simply not kept.
 const BMAD_SKILLS_REMOVED = ['bmad-build', 'bmad-build-auto', 'bmad-project-context'];
+
+// BMad's own list of the skills it installed (first column = folder name under .claude/skills/).
+// Uninstall removes exactly these, so a developer's own `bmad-*` skills stay.
+const BMAD_SKILL_MANIFEST = `${BMAD_DIR}/_config/skill-manifest.csv`;
 
 // Project-level hooks copied to .claude/stella/hooks/<name>/ and registered in
 // settings.local.json.
@@ -157,6 +220,44 @@ const FRICTION_LOGS_PAGES = Object.freeze(
 );
 const GUARD_DEFAULTS = { enabled: true };
 
+// ---- User-level install (`install` once per machine + `/stella-init` per project) ----
+// Design: tea-module/rnd-docs/user-level-install-design.md (decisions L1-L7).
+// Everything lives under ~/.claude/; parts are joined onto the home folder at run time.
+const STELLA_HOME_PARTS = ['.claude', 'stella'];
+// Runnable copy of this package (tools/ + stella/ + production dependencies). The
+// `/stella-init` skill and the init-check hook run it — no npx, no network.
+const APP_DIR_PARTS = [...STELLA_HOME_PARTS, 'app'];
+// One pinned BMad + TEA install kept as the master copy; only its _bmad/ is copied
+// into projects. Its .claude/skills/ are copied to ~/.claude/skills/ once.
+const TEMPLATE_DIR_PARTS = [...STELLA_HOME_PARTS, 'bmad-template'];
+const MACHINE_STATE_PARTS = [...STELLA_HOME_PARTS, 'machine.json'];
+const USER_SKILLS_PARTS = ['.claude', 'skills'];
+const USER_SETTINGS_PARTS = ['.claude', 'settings.json'];
+// Project name the template is installed with; replaced with the real one on copy.
+const TEMPLATE_PROJECT_NAME = 'STELLA_TEMPLATE';
+// Files inside _bmad/ that carry the project name.
+const PROJECT_NAME_FILES = ['config.toml', 'bmm/config.yaml', 'core/config.yaml'];
+// Written into the template's _bmad/ and so into every project copy: a project whose
+// marker id differs from the template's is refreshed at session start (L2). A _bmad/
+// without it came from the per-project installer and is never touched automatically.
+const TEMPLATE_MARKER = '.stella-template.json';
+
+// Shipped only at user level (plugin or ~/.claude/skills/), never copied into a project.
+const USER_LEVEL_ONLY_SKILLS = ['stella-init'];
+// The session-start check: "run /stella-init" hint and the automatic template refresh.
+const INIT_CHECK_HOOK = {
+  name: 'init-check',
+  events: { SessionStart: { file: 'session-start.js' } },
+};
+
+// The `bmad-stella` plugin: skills + hooks for the CLI, the VS Code extension and the
+// Claude Desktop Code tab (one shared ~/.claude/ plugin store).
+const PLUGIN = {
+  name: 'bmad-stella',
+  marketplace: 'stella',
+  source: 'Asrarul-BS23/BMad-Stella',
+};
+
 // Written next to our hooks and helpers so Node runs them as CommonJS even when
 // the host project's package.json declares "type": "module" (nearest package.json wins).
 const COMMONJS_PACKAGE_JSON = '{\n  "type": "commonjs"\n}\n';
@@ -170,7 +271,9 @@ module.exports = {
   LEGACY_BMAD_HOOKS_DIR,
   SETTINGS_LOCAL,
   STELLA_SKILLS,
+  RETIRED_STELLA_SKILLS,
   BMAD_SKILLS_REMOVED,
+  BMAD_SKILL_MANIFEST,
   PROJECT_HOOKS,
   OUTPUT_FOLDERS,
   FRICTION_DEFAULTS,
@@ -178,6 +281,12 @@ module.exports = {
   GUARD_DEFAULTS,
   BMAD_VERSION,
   BMAD_PACKAGE,
+  TEA_SKILL_REPO,
+  TEA_SKILL_VERSION,
+  TEA_SKILL_PACKAGE,
+  TEA_SKILL_INSTALL_FLAGS,
+  TEA_CONFIG_FALLBACK_DEFAULTS,
+  TEA_CONFIG_OVERRIDES,
   JIRA_BASE_URL,
   TOKEN_HELP_URL,
   CONFLUENCE_PROJECTS_PAGE,
@@ -205,5 +314,18 @@ module.exports = {
   UV_INSTALL_URL,
   ATLASSIAN_MCP,
   STALE_ATLASSIAN_MCP_URLS,
+  PLAYWRIGHT_MCP_SERVERS,
   COMMONJS_PACKAGE_JSON,
+  STELLA_HOME_PARTS,
+  APP_DIR_PARTS,
+  TEMPLATE_DIR_PARTS,
+  MACHINE_STATE_PARTS,
+  USER_SKILLS_PARTS,
+  USER_SETTINGS_PARTS,
+  TEMPLATE_PROJECT_NAME,
+  PROJECT_NAME_FILES,
+  TEMPLATE_MARKER,
+  USER_LEVEL_ONLY_SKILLS,
+  INIT_CHECK_HOOK,
+  PLUGIN,
 };

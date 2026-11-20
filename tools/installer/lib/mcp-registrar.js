@@ -44,7 +44,7 @@ function getServer(run, cwd) {
 /**
  * @returns {{status:'registered'|'replaced'|'present'|'no-cli'|'failed', url:string, detail:string|null}}
  */
-function register(root, { run = defaultRun } = {}) {
+function register(root, { run = defaultRun, scope = 'local' } = {}) {
   const { name, transport, url } = ATLASSIAN_MCP;
   if (!cliPresent(run, root)) {
     return { status: 'no-cli', url, detail: 'claude command not found' };
@@ -65,7 +65,7 @@ function register(root, { run = defaultRun } = {}) {
       };
     }
   }
-  const r = run(`claude mcp add --transport ${transport} --scope local ${name} ${url}`, {
+  const r = run(`claude mcp add --transport ${transport} --scope ${scope} ${name} ${url}`, {
     cwd: root,
   });
   if (!r || r.status !== 0) {

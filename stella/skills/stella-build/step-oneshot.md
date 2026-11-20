@@ -26,6 +26,19 @@ Build the change from `{spec_file}`. The Intent section is what you implement. A
 
 Write what triggered the stop in `## Implementation Notes`. Then update `{spec_file}`: add back `## Code Map` (filled in from what you learned while implementing) and `## Open Questions` (one question per gap), set `route: 'dispatch'` and `status: 'draft'`. Go back to `[[bmad-snapshot:step-02-plan.md]]` step 6.
 
+### Live Bug Hunt
+
+Before the review, bug-hunt this change live. Invoke the `stella-tea-live-testing` skill
+with menu code `SD` and the spec path as the input. Run it — never ask the user whether to.
+That flow starts the app, generates bug-hunting scenarios from the spec, executes them
+through Playwright MCP, and for every accepted bug proposes a fix and applies it once the
+user approves. Bugs are fixed here so the review reads the corrected code.
+
+If the hunt changed any code, rewrite `{diff_file}` and re-read it before continuing.
+
+Skip the hunt only when Playwright MCP is not connected or the change has no runnable
+interface to drive, and say in one line that you skipped it and why.
+
 ### Review
 
 Say which review layers you are skipping, then start every active layer before reading any results. Run them at the same time when you can. Fill in runtime placeholders first. When a layer tells you to launch a reviewer subagent, launch it with that prompt text. Do not read the reviewer's instruction file yourself. For any other customized instruction, do what it says:
@@ -92,8 +105,6 @@ Give the user a short summary — one or two sentences:
 - Review result, including anything deferred.
 
 Do not list files, repeat the spec, or walk through what you did unless asked.
-
-Offer next steps in one line: use `bmad-walkthrough`; or make another change.
 
 Stop and wait for the user.
 

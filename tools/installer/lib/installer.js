@@ -10,11 +10,15 @@ const constants = require('./constants');
 const preflight = require('./preflight');
 const toolInstaller = require('./tool-installer');
 const mcpRegistrar = require('./mcp-registrar');
+const playwrightMcpRegistrar = require('./playwright-mcp-registrar');
 const jira = require('./jira-credentials-manager');
 const picker = require('./project-picker');
 const cleaner = require('./cleaner');
 const legacyMemory = require('./legacy-memory-migrator');
 const runner = require('./bmad-runner');
+const teaSkillInstaller = require('./tea-skill-installer');
+const teaSetup = require('./tea-setup');
+const npmCache = require('./npm-cache');
 const gitignore = require('./gitignore');
 const layer = require('./stella-layer');
 const memoryBootstrap = require('./memory-bootstrap');
@@ -32,8 +36,10 @@ const seconds = (ms) => Math.max(1, Math.round(ms / 1000));
 /**
  * @param {string} root project folder
  * @param {object} deps prompt (required), fetch, verbose, runBmad(root, opts) → status,
- *   userHooks() → {status}, bootstrapMemory(root) → {domainMap, patterns}, ui, env, isTTY,
- *   now, home (credentials file lives under it)
+ *   runTeaSkill(root, opts) → status, setupTeaConfig(root) → {status}, userHooks() → {status},
+ *   bootstrapMemory(root) → {domainMap, patterns},
+ *   playwrightMcp.register(root) → [{name, status, detail}], ui, env, isTTY,
+ *   now, home (credentials file lives under it), skipCredentials, skillsAtUserLevel
  * @returns {Promise<object>} summary
  */
 async function install(root, deps) {
@@ -42,23 +48,33 @@ async function install(root, deps) {
     fetch,
     verbose = false,
     runBmad = (r, o) => runner.install(r, o),
+    runTeaSkill = (r, o) => teaSkillInstaller.install(r, o),
+    setupTeaConfig = (r) => teaSetup.apply(r),
+    cleanNpmCache = () => npmCache.clean(),
     userHooks = defaultUserHooks,
     bootstrapMemory = (r) => memoryBootstrap.bootstrapIfMissing(r),
     projectContext = (r) => projectContextBootstrap.startIfMissing(r),
     check = preflight.check,
     tools = toolInstaller,
     mcp = mcpRegistrar,
+    playwrightMcp = playwrightMcpRegistrar,
     ui = silentUi(),
     env = process.env,
     isTTY = Boolean(process.stdin.isTTY),
     now = Date.now,
     home,
+    // Set by `init` when it falls back to this installer (project-init.js, L8/L10):
+    skipCredentials = false, // the user chose to save the credentials file later
+    skillsAtUserLevel = false, // the caller is a user-level skill: no project copies
   } = deps;
   const summary = { root, warnings: [], removed: [], created: [] };
   const note = (text) => ui.line('note', text);
 
   if (!isTTY) {
-    const missing = ['JIRA_EMAIL', 'JIRA_API_TOKEN', 'STELLA_PROJECT'].filter((k) => !env[k]);
+    const needed = skipCredentials
+      ? ['STELLA_PROJECT']
+      : ['JIRA_EMAIL', 'JIRA_API_TOKEN', 'STELLA_PROJECT'];
+    const missing = needed.filter((k) => !env[k]);
     if (missing.length > 0) {
       throw new Error(
         `No interactive terminal. Set ${missing.join(', ')} in the environment to install non-interactively.`,
@@ -131,7 +147,9 @@ async function install(root, deps) {
 
   // 3 + 4. credentials (inquirer lines render inside the tree)
   ui.step(2);
-  const creds = await jira.run(root, { prompt, fetch, log: note, env, home });
+  const creds = skipCredentials
+    ? { email: null, token: null, verified: false, source: 'none', displayName: null }
+    : await jira.run(root, { prompt, fetch, log: note, env, home });
   summary.credentials = {
     email: creds.email,
     verified: creds.verified,
@@ -140,14 +158,17 @@ async function install(root, deps) {
     removedProjectFile: creds.removedProjectFile,
   };
   const moved = creds.source === 'project' || creds.source === 'legacy';
-  ui.line(
-    'ok',
-    creds.verified
-      ? `Signed in as ${creds.displayName || creds.email}${
-          moved ? `  (credentials moved to ${constants.CREDENTIALS_FILE_LABEL})` : ''
-        }`
-      : `${creds.email} (not verified)`,
-  );
+  if (skipCredentials)
+    ui.line('info', 'No Atlassian credentials — project list and domain docs skipped');
+  else
+    ui.line(
+      'ok',
+      creds.verified
+        ? `Signed in as ${creds.displayName || creds.email}${
+            moved ? `  (credentials moved to ${constants.CREDENTIALS_FILE_LABEL})` : ''
+          }`
+        : `${creds.email} (not verified)`,
+    );
   ui.gap();
 
   // 5. project
@@ -166,7 +187,10 @@ async function install(root, deps) {
       `Archived ${summary.legacyMigration.plansMigrated} previous plan file(s)  →  _bmad-output/implementation-artifacts/legacy-plans`,
     );
 
-  // 6. clean (v4 leftovers; on re-run also _bmad/ and the Stella parts of .claude/)
+  // 6. clean (v4 leftovers; on re-run also _bmad/ and the Stella parts of .claude/).
+  // _bmad/custom/ files (team/personal overrides, not _bmad/custom/stella/) are staged
+  // first so they survive the wipe and the BMad reinstall below.
+  const preservedCustomFiles = summary.rerun ? cleaner.preserveCustomFiles(root) : null;
   summary.removed.push(...cleaner.clean(root, { rerun: summary.rerun }).removed);
   if (summary.rerun) summary.removed.push(...layer.removeStellaClaudeParts(root));
   if (summary.rerun)
@@ -177,16 +201,39 @@ async function install(root, deps) {
 
   // 7. BMad (spinner unless --verbose streams BMad's own output)
   ui.step(4);
+
+  // 7-pre. One npm cache clean per install, so the BMad and TEA installs below
+  // never resolve a stale cached package. Never fatal — a failed clean is a
+  // warning and the install continues.
+  const s4pre = verbose ? null : ui.spin('cleaning npm cache…');
+  summary.npmCache = cleanNpmCache();
+  if (summary.npmCache.status === 'cleaned') {
+    if (s4pre) s4pre.succeed('npm cache cleaned', `${summary.npmCache.seconds}s`);
+    else ui.line('ok', 'npm cache cleaned', `${summary.npmCache.seconds}s`);
+  } else {
+    const warnText = `npm cache clean failed (${summary.npmCache.detail}) — continuing`;
+    if (s4pre) s4pre.fail(warnText);
+    else ui.line('warn', warnText);
+    summary.warnings.push(warnText);
+  }
+
   const started = now();
   const tail = [];
   const s4 = verbose ? null : ui.spin('installing…');
-  const status = await runBmad(root, {
-    projectName: project.name,
-    userName: runner.gitUserName({ cwd: root }),
-    verbose,
-    write: () => {},
-    log: verbose ? note : (t) => tail.push(t),
-  });
+  let status;
+  try {
+    status = await runBmad(root, {
+      projectName: project.name,
+      userName: runner.gitUserName({ cwd: root }),
+      verbose,
+      write: () => {},
+      log: verbose ? note : (t) => tail.push(t),
+    });
+  } finally {
+    // Put _bmad/custom/ files back whether BMad succeeded or not — otherwise they'd
+    // be stranded in the staging folder with _bmad/ gone or incomplete.
+    cleaner.restoreCustomFiles(root, preservedCustomFiles);
+  }
   const took = `${seconds(now() - started)}s`;
   if (status !== 0) {
     if (s4) s4.fail(`exit ${status}`);
@@ -196,6 +243,44 @@ async function install(root, deps) {
   }
   if (s4) s4.succeed('Installed', took);
   else ui.line('ok', 'Installed', took);
+
+  // 7b. TEA skill package (fail-hard, same mechanism as the BMad step itself —
+  // see tea-module/integration-steps.md for the rationale)
+  const teaStarted = now();
+  const teaTail = [];
+  const s4b = verbose ? null : ui.spin('installing TEA skills…');
+  const teaStatus = await runTeaSkill(root, {
+    verbose,
+    write: () => {},
+    log: verbose ? note : (t) => teaTail.push(t),
+  });
+  const teaTook = `${seconds(now() - teaStarted)}s`;
+  if (teaStatus !== 0) {
+    if (s4b) s4b.fail(`exit ${teaStatus}`);
+    else ui.line('fail', `exit ${teaStatus}`);
+    for (const t of teaTail) ui.cont(t);
+    throw new Error(`TEA skill install exited with code ${teaStatus}. Nothing else was changed.`);
+  }
+  if (s4b) s4b.succeed('TEA skills installed', teaTook);
+  else ui.line('ok', 'TEA skills installed', teaTook);
+
+  // 7c. [modules.tea] config — the answers `bmad setup tea` would write, so the
+  // TEA skills' config gate passes without a manual chat step. Fail-hard like
+  // the TEA step: without modules.tea the live-testing skill refuses to run.
+  const s4c = verbose ? null : ui.spin('writing TEA module config…');
+  try {
+    summary.teaConfig = setupTeaConfig(root);
+  } catch (error) {
+    if (s4c) s4c.fail(error.message);
+    else ui.line('fail', error.message);
+    throw new Error(`TEA module config failed: ${error.message}`);
+  }
+  const teaConfigText =
+    summary.teaConfig.status === 'written'
+      ? `TEA config written  [modules.tea] · ${summary.teaConfig.keys} keys`
+      : `TEA config already present  ${summary.teaConfig.file}`;
+  if (s4c) s4c.succeed(teaConfigText);
+  else ui.line('ok', teaConfigText);
   ui.gap();
 
   // 8. gitignore
@@ -205,10 +290,27 @@ async function install(root, deps) {
   ui.step(5);
   const s5 = ui.spin('copying skills, hooks and helpers…');
   layer.copyStellaFiles(root, { project });
-  summary.skills = layer.copySkills(root);
+  // Plugin mode: skills and hooks come from the bmad-stella plugin (user scope),
+  // so no project copies — existing ones are removed to prevent double-loading.
+  summary.pluginMode = skillsAtUserLevel || layer.pluginActive(root);
+  // Project hooks belong in the project. Only the plugin supplies them instead: when it
+  // is enabled, or when a user-level skill runs this on a machine without user-level
+  // copies (then that skill, and the hooks with it, came from the plugin).
+  summary.hooksInProject = !(
+    layer.pluginEnabled(root) ||
+    (skillsAtUserLevel && !layer.userLevelStellaSkills())
+  );
+  if (summary.pluginMode) {
+    summary.removed.push(...layer.removeStellaSkills(root));
+    summary.skills = [];
+  } else summary.skills = layer.copySkills(root);
+  if (summary.hooksInProject) summary.hooks = layer.copyHooks(root);
+  else {
+    summary.removed.push(...layer.removeStellaHooks(root));
+    summary.hooks = [];
+  }
   summary.removedBmadSkills = layer.removeShadowedBmadSkills(root);
-  summary.hooks = layer.copyHooks(root);
-  summary.settings = layer.registerSettings(root);
+  summary.settings = layer.registerSettings(root, { hooks: summary.hooksInProject });
   summary.created.push(...layer.ensureOutputFolders(root));
 
   // Fire-and-forget: collect domain-map.md/patterns.md now if a legacy
@@ -222,6 +324,10 @@ async function install(root, deps) {
   // Atlassian MCP in Claude Code's local scope (silent; login happens later via /mcp)
   s5.update('registering Atlassian MCP…');
   summary.mcp = mcp.register(root);
+
+  // Playwright MCP servers, user scope (silent, never fatal — same as Atlassian MCP)
+  s5.update('registering Playwright MCP servers…');
+  summary.playwrightMcp = playwrightMcp.register(root);
 
   // 14. domain docs
   s5.update('fetching domain docs…');
@@ -258,10 +364,15 @@ async function install(root, deps) {
 function layerDetail(s) {
   const d = s.domainDocs;
   const parts = [
-    `${s.skills.length} skills`,
-    `${s.hooks.length} hooks`,
+    s.pluginMode
+      ? s.hooks.length > 0
+        ? 'skills from user level'
+        : 'skills + hooks from bmad-stella plugin'
+      : `${s.skills.length} skills`,
+    s.hooks.length > 0 || !s.pluginMode ? `${s.hooks.length} hooks` : null,
     'permissions',
     mcpOk(s.mcp) ? 'Atlassian MCP' : null,
+    playwrightMcpAnyOk(s.playwrightMcp) ? 'Playwright MCP' : null,
     d.status === 'fetched' ? `${d.files.length} domain pages` : null,
     s.userHooks && s.userHooks.status && s.userHooks.status !== 'error' ? 'user hooks' : null,
   ];
@@ -269,6 +380,8 @@ function layerDetail(s) {
 }
 
 const mcpOk = (m) => Boolean(m && ['registered', 'replaced', 'present'].includes(m.status));
+
+const playwrightMcpAnyOk = (results) => Array.isArray(results) && results.some(mcpOk);
 
 /** Warn line when the Atlassian MCP could not be registered; null when it was. */
 function mcpNote(m) {
@@ -282,6 +395,17 @@ function mcpNote(m) {
   return { kind: 'warn', text: `Atlassian MCP not registered — ${m.detail}`, cont: null };
 }
 
+/** Warn line for one Playwright MCP server that could not be registered. */
+function playwrightMcpNote(r) {
+  if (r.status === 'no-cli')
+    return {
+      kind: 'warn',
+      text: `${r.name} MCP not registered — claude command not found`,
+      cont: 'install the Claude Code CLI and re-run',
+    };
+  return { kind: 'warn', text: `${r.name} MCP not registered — ${r.detail}`, cont: null };
+}
+
 /**
  * Lines under step 5: only what is new or failed. Skipped domain docs and the background
  * project-context worker stay silent (user decision 2026-10-27); their state is in the summary.
@@ -293,6 +417,9 @@ function layerNotes(s) {
   return [
     d.status === 'failed' ? { kind: 'warn', text: `Domain docs failed — ${d.reason}` } : null,
     mcpNote(s.mcp),
+    ...(Array.isArray(s.playwrightMcp)
+      ? s.playwrightMcp.filter((r) => !mcpOk(r)).map(playwrightMcpNote)
+      : []),
   ].filter(Boolean);
 }
 
@@ -315,10 +442,11 @@ async function uninstall(root, { prompt, yes = false, mcp = mcpRegistrar } = {})
   const settingsTouched = layer.unregisterSettings(root);
   const gi = gitignore.remove(root);
   const m = mcp.unregister(root);
+  const bmadSkills = layer.bmadSkillNames(root); // BMad's manifest is in _bmad/, which clean() deletes
   const removed = [
     ...cleaner.clean(root, { rerun: true }).removed,
     ...layer.removeStellaClaudeParts(root),
-    ...layer.removeBmadSkills(root),
+    ...layer.removeBmadSkills(root, bmadSkills),
     settingsTouched ? `${constants.SETTINGS_LOCAL} (our entries)` : null,
     m.status === 'removed' ? 'Atlassian MCP (Claude Code local scope)' : null,
     gi.removed.length > 0 ? `.gitignore (${gi.removed.join(', ')})` : null,

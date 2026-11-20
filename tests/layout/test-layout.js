@@ -27,7 +27,6 @@ const MUST_EXIST = [
   'stella/checklists/backend-security.md',
   'stella/checklists/frontend-security.md',
   'stella/skills/caveman/SKILL.md',
-  'stella/skills/stella-security/SKILL.md',
   'stella/skills/stella-pr-review/SKILL.md',
   'stella/skills/stella-pr-review/checklist.md',
   'stella/skills/stella-domain-expert/SKILL.md',
@@ -71,6 +70,7 @@ const MUST_NOT_EXIST = [
   'tools/installer/lib/architecture-docs-fetcher.js',
   'tools/installer/lib/memory-setup.js',
   'tools/installer/lib/resource-locator.js',
+  'stella/skills/stella-security',
 ];
 
 let failures = 0;

@@ -1,0 +1,64 @@
+{
+  "description": "BMad-Stella project hooks: friction-logger (session telemetry), pr-review-guard (blocks edits during PR review), memory (daily job + MEMORY.md inject), init-check (user-level install: /stella-init hint and _bmad/ refresh). Scripts run against the session's project; all state is written under the project's _bmad-output/, never under the plugin root.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/project/friction-logger/session-start.js\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/project/init-check/session-start.js\""
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/project/friction-logger/session-end.js\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/project/pr-review-guard/pre-tool-use.js\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/project/memory/user-prompt-submit.js\""
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/project/memory/user-prompt-expansion.js\""
+          }
+        ]
+      }
+    ]
+  }
+}
