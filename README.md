@@ -1,6 +1,6 @@
 # BMad-Stella
 
-A thin Stella layer on top of the official [BMad Method](https://github.com/bmad-code-org/BMAD-METHOD) v6.12.2 for Claude Code: one install command, Jira-driven builds, security and PR review skills, a project domain expert, and a friction log of every build session.
+A thin Stella layer on top of the official [BMad Method](https://github.com/bmad-code-org/BMAD-METHOD) v6.12.2 for Claude Code: one install command, Jira-driven builds, PR review, live QA testing in a real browser, a project domain expert, and a friction log of every build session.
 
 ## Install
 
@@ -10,7 +10,7 @@ Once per machine, from any folder, with Claude Code already installed:
 npx bmad-stella@latest install
 ```
 
-It sets the machine up under `~/.claude/` (credentials, skills, hooks, a master copy of `_bmad/`) and asks whether to install the plugin for Claude Desktop. About 90 seconds. No project is touched.
+It sets the machine up under `~/.claude/` (credentials, the Stella, BMad and TEA skills, hooks, a master copy of `_bmad/`), registers the Playwright MCP servers, and asks whether to install the plugin for Claude Desktop. About 90 seconds. No project is touched.
 
 Then, once in each project, start a new Claude Code session there and run:
 
@@ -41,14 +41,15 @@ The plugin ships only the skills and hooks: a project still needs `/stella-init`
 
 ## Skills
 
-| Command                      | What it does                                           |
-| ---------------------------- | ------------------------------------------------------ |
-| `/stella-build <JIRA key>`   | Plans, implements and reviews a ticket. Never commits. |
-| `/stella-pr-review <PR url>` | Reviews a pull request against its ticket. Read-only.  |
-| `/stella-domain-expert`      | Answers questions from the project's domain docs.      |
-| `/stella-project-context`    | Redo the project context the installer generates.      |
-| `/stella-init`               | Set up a project from the machine install.             |
-| `/caveman`                   | Terse chat mode.                                       |
+| Command                                         | What it does                                                               |
+| ----------------------------------------------- | -------------------------------------------------------------------------- |
+| `/stella-build <JIRA key>`                      | Plans, implements and reviews a ticket. Never commits.                     |
+| `/stella-pr-review <PR url>`                    | Reviews a pull request against its ticket. Read-only.                      |
+| `/stella-tea-live-testing <JIRA key or module>` | Designs test cases for a ticket or module and runs them in a real browser. |
+| `/stella-domain-expert`                         | Answers questions from the project's domain docs.                          |
+| `/stella-project-context`                       | Redo the project context the installer generates.                          |
+| `/stella-init`                                  | Set up a project from the machine install.                                 |
+| `/caveman`                                      | Terse chat mode.                                                           |
 
 ## Docs
 

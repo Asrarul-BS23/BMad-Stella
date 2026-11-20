@@ -13,7 +13,7 @@ BMad-Stella is installed once per machine. Each project then needs one short com
 Open a terminal in any folder. The folder does not matter; everything goes under `~/.claude/` and no project is touched.
 
 ```
-npx github:Asrarul-BS23/BMad-Stella#v6 install
+npx bmad-stella install
 ```
 
 ```
@@ -41,6 +41,11 @@ Already installed: nothing is asked. The plugin is uninstalled and installed aga
 ```
 
 About 90 seconds.
+
+Also set up, with no question:
+
+- The official BMad and TEA (test architect) skills, next to the Stella skills.
+- The Playwright MCP servers `playwright` and `playwright-test`, registered for your user in Claude Code. `/stella-tea-live-testing` and the live bug hunt in `/stella-build` drive the browser through them.
 
 ## 2. Set up a project (once per project)
 
@@ -103,6 +108,19 @@ What `/stella-init` does there, where the install command never ran:
 - Project: it suggests the project that fits the folder name, the git repository name or the solution file, and asks you to confirm. No clear match: you pick from the list.
 
 The same applies to a machine where the plugin was added by hand and the install command never ran.
+
+## Uninstall
+
+Removes BMad-Stella from one project. Open a terminal in the project folder:
+
+```
+npx bmad-stella uninstall
+```
+
+It asks once to confirm. `--yes` skips the question.
+
+- Removed: `_bmad/` (with your files in `_bmad/custom/`), the project's Stella skills and hooks, their entries in `.claude/settings.local.json` and `.gitignore`, and the project's Atlassian MCP registration.
+- Kept: everything under `_bmad-output/`, the machine install under `~/.claude/`, the plugin and the Playwright MCP servers.
 
 ## Problems
 

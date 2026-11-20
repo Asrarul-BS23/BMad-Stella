@@ -1,3 +1,28 @@
+## [3.1.0] (2026-11-20)
+
+User-level install, plugin packaging and live testing.
+
+### Features
+
+- **installer**: install is now user-level; the `setup` step is gone and `/stella-init` sets up each project, with or without the user-level install
+- **plugin**: `stella/` is packaged as a Claude Code plugin with a repo marketplace, so it works in Claude Desktop and Cowork; the installer skips project skill and hook copies when the plugin is installed
+- **stella-tea-live-testing**: new skill for QA ticket and module testing and a dev-mode bug hunt, with live runs through Playwright MCP, report formats, an issues report and a deliverables folder
+- **TEA**: the installer installs the TEA skill package and runs the TEA setup after the BMad install step
+- **stella-build**: runs a security review layer on security-relevant changes, runs a live bug hunt before code review, and no longer asks to split a spec because of its size
+- **installer**: Playwright MCP configuration and npm cache clean
+
+### Bug Fixes
+
+- **installer**: removes only the skill folders it owns, by exact name
+- **installer**: replaces a deprecated permission and handles `_bmad/custom`
+- **stella-build**: the Jira comment records the code change and its impact area only, without the spec path
+- **stella-build**: step 02 searches the code in the session, with no subagents
+- **pr-review guard**: accepts helper folder paths that end in a slash
+
+### Removed
+
+- **stella-security**: the skill is removed; its checks run in the `stella-build` review
+
 ## [3.0.0] (2026-10-30)
 
 Migration to the BMad v6 skill-based architecture. Breaking: projects installed from 2.x must re-run the installer; `.bmad-core/` and the 14-agent system are gone.

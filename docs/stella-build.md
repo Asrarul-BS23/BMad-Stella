@@ -21,8 +21,9 @@ Plain text also works. Nothing is fetched from Jira.
 1. Clarifies the intent. Asks only when something is unclear.
 2. Writes a spec under `_bmad-output/implementation-artifacts/` and shows it for approval.
 3. Implements it in the same session, from the spec and its context files.
-4. Reviews the diff with three review subagents, plus a security reviewer when the change adds an endpoint, changes authorization, or on the frontend renders HTML from data, adds scripts, handles URL input or changes security headers. Fixes are applied in the same session.
-5. Shows a short summary and offers to post a comment on the Jira ticket. Answer `y` or `n`.
+4. Bug-hunts the change live: starts the app, tests it in a browser from the spec, and proposes a fix for each bug found. A fix is applied only after you approve it.
+5. Reviews the diff with three review subagents, plus a security reviewer when the change adds an endpoint, changes authorization, or on the frontend renders HTML from data, adds scripts, handles URL input or changes security headers. Fixes are applied in the same session.
+6. Shows a short summary and offers to post a comment on the Jira ticket. Answer `y` or `n`.
 
 ## After it ends
 
