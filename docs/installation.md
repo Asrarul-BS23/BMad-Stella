@@ -66,13 +66,13 @@ The project hooks (friction log, PR review guard, memory) live in the project an
 
 ## Update
 
-Run the install command again. Each project's `_bmad/` is then refreshed by itself at its next session start. Files in `_bmad/custom/` and everything under `_bmad-output/` are kept.
+Run the install command again. Each project's `_bmad/` is then refreshed by itself at its next session start.
 
 ## Projects from an older BMad-Stella
 
 Older versions installed into every project. Such a project keeps working. After the install above, its session start prints one line: run `/stella-init` to switch it over.
 
-`/stella-init` then replaces `_bmad/` with the master copy and removes the project's own copies of the skills, which now come from `~/.claude/`. The project hooks stay in the project and are replaced by the current ones. Kept: `_bmad/custom/`, everything under `_bmad-output/`, and your own skills in `.claude/skills/`.
+`/stella-init` then replaces `_bmad/` with the master copy and removes the project's own copies of the skills, which now come from `~/.claude/`. The project hooks stay in the project and are replaced by the current ones.
 
 Until a project is switched, its skills show twice.
 
