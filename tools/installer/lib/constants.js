@@ -82,12 +82,14 @@ const USER_NAME_FALLBACK = 'stella-dev';
 const TEA_SKILL_INSTALL_FLAGS = { agent: 'claude-code', skill: '*' };
 
 // Builder skill install flags (user decision 2026-11-23): only the skills that
-// build a skill, workflow or agent, and the eval runner they invoke. Never
-// `bmad-bmb-setup` (its cleanup removes _bmad/core/ and _bmad/_config/) and not
-// `bmad-module-builder` (we do not ship BMad modules).
+// build a skill, workflow or agent. Never `bmad-bmb-setup` (its cleanup removes
+// _bmad/core/ and _bmad/_config/) and not `bmad-module-builder` (we do not ship
+// BMad modules). `bmad-eval-runner` is left out for now: it needs an API key and
+// fails on Windows as shipped; a Stella version that runs in the background on
+// the user's own Claude login is planned.
 const BUILDER_SKILL_INSTALL_FLAGS = {
   agent: 'claude-code',
-  skill: ['bmad-workflow-builder', 'bmad-eval-runner', 'bmad-agent-builder'],
+  skill: ['bmad-workflow-builder', 'bmad-agent-builder'],
 };
 
 // Where the Builder skills put what they make (user decision 2026-11-23). The
@@ -95,10 +97,13 @@ const BUILDER_SKILL_INSTALL_FLAGS = {
 // loads skills from. Written by builder-setup.js.
 const BUILDER_OUTPUT_FOLDER = '{project-root}/.claude/skills';
 const BUILDER_REPORTS_FOLDER = `{project-root}/${OUTPUT_DIR}/builder-reports`;
-const BUILDER_SKILL_LOCATION_FACT =
+const BUILDER_PERSISTENT_FACTS = [
   'Create a new skill in {project-root}/.claude/skills/ (this project only). ' +
-  'When the user asks for a user-level skill (one for all their projects), create it in ~/.claude/skills/ instead. ' +
-  'Claude Code loads skills from these two folders only.';
+    'When the user asks for a user-level skill (one for all their projects), create it in ~/.claude/skills/ instead. ' +
+    'Claude Code loads skills from these two folders only.',
+  // Both builders offer an eval run through `bmad-eval-runner`, which is not installed.
+  'The bmad-eval-runner skill is not installed here. Do not offer or run evals.',
+];
 
 // `[modules.tea]` answers written into _bmad/config.toml right after the TEA
 // skill step — what `bmad setup tea` would write, so a fresh install passes
@@ -315,7 +320,7 @@ module.exports = {
   BUILDER_SKILL_INSTALL_FLAGS,
   BUILDER_OUTPUT_FOLDER,
   BUILDER_REPORTS_FOLDER,
-  BUILDER_SKILL_LOCATION_FACT,
+  BUILDER_PERSISTENT_FACTS,
   TEA_CONFIG_FALLBACK_DEFAULTS,
   TEA_CONFIG_OVERRIDES,
   JIRA_BASE_URL,

@@ -6,8 +6,9 @@
 //   _bmad/bmb/config.yaml                    the folders the Builder skills read on
 //                                            activation (what `bmad-bmb-setup` would
 //                                            ask; that skill is never installed)
-//   _bmad/custom/bmad-<x>-builder.toml       team override: one standing fact, so a
-//                                            user-level skill goes to ~/.claude/skills/
+//   _bmad/custom/bmad-<x>-builder.toml       team override, standing facts: a user-level
+//                                            skill goes to ~/.claude/skills/, and no
+//                                            evals are offered (no eval runner installed)
 // A file that already exists is never overwritten: the _bmad/custom/ ones are the
 // team's to edit and survive a re-install and a template refresh.
 
@@ -17,7 +18,7 @@ const {
   BMAD_DIR,
   BUILDER_OUTPUT_FOLDER,
   BUILDER_REPORTS_FOLDER,
-  BUILDER_SKILL_LOCATION_FACT,
+  BUILDER_PERSISTENT_FACTS,
 } = require('./constants');
 
 const tomlString = (value) => `"${String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
@@ -33,7 +34,9 @@ const overrideToml = (table) =>
   [
     '# BMad-Stella default (written by the installer). Edit freely: it is kept on re-install.',
     `[${table}]`,
-    `persistent_facts = [${tomlString(BUILDER_SKILL_LOCATION_FACT)}]`,
+    'persistent_facts = [',
+    ...BUILDER_PERSISTENT_FACTS.map((fact) => `  ${tomlString(fact)},`),
+    ']',
     '',
   ].join('\n');
 

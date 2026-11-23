@@ -790,12 +790,12 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     const args = builderSkillInstaller.buildArgs();
     ok(
       args.join(' ') ===
-        '-y skills add bmad-code-org/bmad-builder@v2.2.2 --agent claude-code --skill bmad-workflow-builder --skill bmad-eval-runner --skill bmad-agent-builder -y',
+        '-y skills add bmad-code-org/bmad-builder@v2.2.2 --agent claude-code --skill bmad-workflow-builder --skill bmad-agent-builder -y',
       'builder skill installer: exact command args, one --skill per name',
     );
     ok(
-      !args.includes('bmad-bmb-setup') && !args.includes('*'),
-      'builder skill installer: bmad-bmb-setup never installed',
+      !args.includes('bmad-bmb-setup') && !args.includes('bmad-eval-runner') && !args.includes('*'),
+      'builder skill installer: bmad-bmb-setup and bmad-eval-runner not installed',
     );
     ok(
       builderSkillInstaller.buildArgs({ copy: true }).slice(-2).join(' ') === '--copy -y',
@@ -836,8 +836,9 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     ok(
       /^\[workflow\]$/m.test(read('_bmad/custom/bmad-workflow-builder.toml')) &&
         /^\[agent\]$/m.test(read('_bmad/custom/bmad-agent-builder.toml')) &&
-        read('_bmad/custom/bmad-workflow-builder.toml').includes('~/.claude/skills/'),
-      'builder setup: each override uses its own table and names the user-level folder',
+        read('_bmad/custom/bmad-workflow-builder.toml').includes('~/.claude/skills/') &&
+        read('_bmad/custom/bmad-agent-builder.toml').includes('Do not offer or run evals'),
+      'builder setup: each override uses its own table, names the user-level folder, turns evals off',
     );
     fs.writeFileSync(
       path.join(root, '_bmad', 'custom', 'bmad-workflow-builder.toml'),
