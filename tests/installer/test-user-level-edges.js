@@ -111,6 +111,7 @@ const setupDeps = (extra) => ({
   check: () => pf(),
   runBmad: fakeBmad,
   runTeaSkill: async () => 0,
+  runBuilderSkill: async () => 0,
   cleanNpmCache: () => ({ status: 'cleaned', seconds: 1, detail: null }),
   installAppDeps: () => {},
   pluginInstalled: () => false,

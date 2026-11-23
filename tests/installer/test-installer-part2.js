@@ -96,6 +96,8 @@ const fakeBmad = async (root, { projectName, userName }) => {
 };
 // Fake TEA skill install: never spawn the real `npx skills add` from a test run.
 const fakeTeaSkill = async () => 0;
+// Same for the Builder skill install.
+const fakeBuilderSkill = async () => 0;
 // Fake npm cache clean: never spawn the real `npm cache clean --force` from a test run.
 const fakeNpmCache = () => ({ status: 'cleaned', seconds: 1, detail: null });
 // Fake TEA config write: fakeBmad writes no _bmad/config.toml, so the real
@@ -243,6 +245,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     fetch: fetchMock,
     runBmad: fakeBmad,
     runTeaSkill: fakeTeaSkill,
+    runBuilderSkill: fakeBuilderSkill,
     cleanNpmCache: fakeNpmCache,
     setupTeaConfig: fakeTeaConfig,
     userHooks,
@@ -529,6 +532,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     fetch: fetchMock,
     runBmad: fakeBmad,
     runTeaSkill: fakeTeaSkill,
+    runBuilderSkill: fakeBuilderSkill,
     // A failed cache clean must never abort the install — only warn.
     cleanNpmCache: () => ({ status: 'failed', seconds: 1, detail: 'exit 7' }),
     // An existing [modules.tea] is kept, never rewritten.
@@ -665,6 +669,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     fetch: fetchMock,
     runBmad: fakeBmad,
     runTeaSkill: fakeTeaSkill,
+    runBuilderSkill: fakeBuilderSkill,
     cleanNpmCache: fakeNpmCache,
     setupTeaConfig: fakeTeaConfig,
     userHooks,
@@ -725,6 +730,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       fetch: fetchMock,
       runBmad: fakeBmad,
       runTeaSkill: fakeTeaSkill,
+      runBuilderSkill: fakeBuilderSkill,
       cleanNpmCache: fakeNpmCache,
       setupTeaConfig: fakeTeaConfig,
       userHooks,
@@ -752,6 +758,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       fetch: fetchMock,
       runBmad: async () => 2,
       runTeaSkill: fakeTeaSkill,
+      runBuilderSkill: fakeBuilderSkill,
       cleanNpmCache: fakeNpmCache,
       setupTeaConfig: fakeTeaConfig,
       userHooks,
@@ -781,6 +788,7 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
       fetch: fetchMock,
       runBmad: fakeBmad,
       runTeaSkill: async () => 3,
+      runBuilderSkill: fakeBuilderSkill,
       cleanNpmCache: fakeNpmCache,
       setupTeaConfig: fakeTeaConfig,
       userHooks,
@@ -796,6 +804,37 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     /TEA skill install exited with code 3/.test(threw || '') &&
       !exists(teaFailRoot, '.claude/skills/stella-build'),
     'install: TEA skill failure aborts the whole install (fail-hard), stops before the Stella layer',
+  );
+
+  // ================= unit: Builder skill install failure (fail-hard) =================
+  const builderFailRoot = tmp('builderfail');
+  threw = null;
+  try {
+    await installer.install(builderFailRoot, {
+      mcp: mcpMock,
+      playwrightMcp: playwrightMcpMock,
+      home: HOME,
+      projectContext: () => ({ status: 'present' }),
+      prompt: async () => ({}),
+      fetch: fetchMock,
+      runBmad: fakeBmad,
+      runTeaSkill: fakeTeaSkill,
+      runBuilderSkill: async () => 4,
+      cleanNpmCache: fakeNpmCache,
+      setupTeaConfig: fakeTeaConfig,
+      userHooks,
+      bootstrapMemory: bootstrapMemoryStub,
+      log: quiet,
+      env: { JIRA_EMAIL: 'a@b.co', JIRA_API_TOKEN: 'tok-abcdefghijklmnop', STELLA_PROJECT: 'SLS' },
+      isTTY: false,
+    });
+  } catch (error) {
+    threw = error.message;
+  }
+  ok(
+    /Builder skill install exited with code 4/.test(threw || '') &&
+      !exists(builderFailRoot, '.claude/skills/stella-build'),
+    'install: Builder skill failure aborts the whole install (fail-hard), stops before the Stella layer',
   );
 
   // ================= unit: gitignore.remove =================

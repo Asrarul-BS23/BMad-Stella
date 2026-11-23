@@ -91,6 +91,7 @@ const installDeps = (extra) => ({
   fetch: fetchMock,
   runBmad: fakeBmad,
   runTeaSkill: async () => 0,
+  runBuilderSkill: async () => 0,
   cleanNpmCache: () => ({ status: 'cleaned', seconds: 1, detail: null }),
   setupTeaConfig: () => ({ status: 'written', file: '_bmad/config.toml', keys: 13 }),
   userHooks: async () => ({ status: 'current', changed: false }),

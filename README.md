@@ -10,7 +10,7 @@ Once per machine, from any folder, with Claude Code already installed:
 npx bmad-stella@latest install
 ```
 
-It sets the machine up under `~/.claude/` (credentials, the Stella, BMad and TEA skills, hooks, a master copy of `_bmad/`), registers the Playwright MCP servers, and asks whether to install the plugin for Claude Desktop. About 90 seconds. No project is touched.
+It sets the machine up under `~/.claude/` (credentials, the Stella, BMad, TEA and Builder skills, hooks, a master copy of `_bmad/`), registers the Playwright MCP servers, and asks whether to install the plugin for Claude Desktop. About 90 seconds. No project is touched.
 
 Then, once in each project, start a new Claude Code session there and run:
 

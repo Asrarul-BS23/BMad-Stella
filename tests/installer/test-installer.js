@@ -784,6 +784,74 @@ const jsonRes = (status, body) => ({ ok: status < 300, status, json: async () =>
     ok(spawned.opts.stdio === 'inherit', 'tea skill installer: --verbose streams output');
   }
 
+  // ================= Builder skill installer =================
+  {
+    const builderSkillInstaller = require(path.join(LIB, 'builder-skill-installer.js'));
+    const args = builderSkillInstaller.buildArgs();
+    ok(
+      args.join(' ') ===
+        '-y skills add bmad-code-org/bmad-builder@v2.2.2 --agent claude-code --skill bmad-workflow-builder --skill bmad-eval-runner --skill bmad-agent-builder -y',
+      'builder skill installer: exact command args, one --skill per name',
+    );
+    ok(
+      !args.includes('bmad-bmb-setup') && !args.includes('*'),
+      'builder skill installer: bmad-bmb-setup never installed',
+    );
+    ok(
+      builderSkillInstaller.buildArgs({ copy: true }).slice(-2).join(' ') === '--copy -y',
+      'builder skill installer: copy mode adds --copy',
+    );
+    let written = '';
+    const logged = [];
+    const failed = builderSkillInstaller.install('/proj', {
+      spawn: () => ({ status: 2, stdout: 'boom\n', stderr: '' }),
+      log: (l) => logged.push(l),
+      write: (s) => (written += s),
+      now: () => 0,
+    });
+    ok(
+      failed === 2 &&
+        written === 'Installing Builder skills ... failed (exit 2)\n' &&
+        logged[0] === '--- last lines of Builder skill install output ---',
+      'builder skill installer: own label in the progress and failure lines',
+    );
+  }
+
+  // ================= Builder setup (where built skills go) =================
+  {
+    const builderSetup = require(path.join(LIB, 'builder-setup.js'));
+    const root = tmp('builder-setup');
+    const first = builderSetup.apply(root);
+    const read = (rel) => fs.readFileSync(path.join(root, ...rel.split('/')), 'utf8');
+    ok(
+      first.written.length === 3 && first.present.length === 0,
+      'builder setup: writes the config and both builder overrides',
+    );
+    ok(
+      read('_bmad/bmb/config.yaml').includes(
+        'bmad_builder_output_folder: "{project-root}/.claude/skills"',
+      ) && read('_bmad/bmb/config.yaml').includes('_bmad-output/builder-reports'),
+      'builder setup: new skills go to .claude/skills, reports to _bmad-output',
+    );
+    ok(
+      /^\[workflow\]$/m.test(read('_bmad/custom/bmad-workflow-builder.toml')) &&
+        /^\[agent\]$/m.test(read('_bmad/custom/bmad-agent-builder.toml')) &&
+        read('_bmad/custom/bmad-workflow-builder.toml').includes('~/.claude/skills/'),
+      'builder setup: each override uses its own table and names the user-level folder',
+    );
+    fs.writeFileSync(
+      path.join(root, '_bmad', 'custom', 'bmad-workflow-builder.toml'),
+      '[workflow]\npersistent_facts = ["team rule"]\n',
+    );
+    const second = builderSetup.apply(root);
+    ok(
+      second.written.length === 0 &&
+        second.present.length === 3 &&
+        read('_bmad/custom/bmad-workflow-builder.toml').includes('team rule'),
+      'builder setup: an existing file is never overwritten',
+    );
+  }
+
   // ================= gitignore =================
   {
     const root = tmp('gi');
