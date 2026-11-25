@@ -112,6 +112,75 @@ refuse('SELECT 1 --x\n; DROP TABLE x', { dialect: 'mysql' }, 'mysql: --x is not 
 // production rules
 const PROD = { production: true, piiColumns: ['Email', 'PhoneNumber'] };
 refuse('SELECT * FROM Users', PROD, 'production: star');
+// "*" is refused only as a column list (found in live testing, 2026-11-25)
+pass('SELECT 2 * 3 AS six', PROD, 'production: multiplication of two numbers');
+pass(
+  'SELECT Quantity * UnitPrice AS Total FROM Lines',
+  PROD,
+  'production: multiplication of two columns',
+);
+pass('SELECT Id, Quantity * 2 FROM Lines', PROD, 'production: multiplication after a comma item');
+pass('SELECT COUNT(*) * 2 FROM Lines', PROD, 'production: count star times a number');
+refuse('SELECT DISTINCT * FROM Users', PROD, 'production: distinct star');
+refuse('SELECT TOP 5 * FROM Users', PROD, 'production: top n star');
+refuse('SELECT TOP (5) * FROM Users', PROD, 'production: top (n) star');
+refuse('SELECT Id, * FROM Users', PROD, 'production: star after a comma');
+refuse(
+  'SELECT [u].* FROM Users [u]',
+  { ...PROD, dialect: 'tsql' },
+  'production: star after a quoted alias',
+);
+refuse('SELECT/**/* FROM Users', PROD, 'production: star hidden behind a comment');
+refuse('SELECT Id FROM T WHERE Id IN (SELECT * FROM U)', PROD, 'production: star in a subquery');
+
+// a quoted name is a name, not a statement word (found in live testing)
+pass(
+  'SELECT [Lock], [Set], [Update] FROM T',
+  { dialect: 'tsql' },
+  'quoted column names that look like keywords',
+);
+pass(
+  'SELECT "Lock", "Do" FROM t',
+  { dialect: 'postgresql' },
+  'double-quoted names that look like keywords',
+);
+pass('SELECT `Lock`, `Use` FROM t', { dialect: 'mysql' }, 'backtick names that look like keywords');
+refuse('SELECT Lock FROM T', {}, 'an unquoted keyword is still refused');
+refuse(
+  'SELECT "pg_sleep"(10)',
+  { dialect: 'postgresql' },
+  'a quoted forbidden function is still refused',
+);
+refuse(
+  'SELECT "PG_SLEEP"(10)',
+  { dialect: 'postgresql' },
+  'a quoted forbidden function, other case',
+);
+refuse(
+  'SELECT [xp_cmdshell] FROM T',
+  { dialect: 'tsql' },
+  'a quoted system procedure name is still refused',
+);
+refuse(
+  'SELECT [Lock] FROM T; DROP TABLE T',
+  { dialect: 'tsql' },
+  'a quoted name does not hide a second statement',
+);
+refuse(
+  'SELECT [Email] FROM Users',
+  { ...PROD, dialect: 'tsql' },
+  'production: a quoted pii column is still refused',
+);
+refuse(
+  'SELECT [ email ] FROM Users',
+  { ...PROD, dialect: 'tsql' },
+  'production: a quoted pii column with spaces',
+);
+pass(
+  'SELECT [EmailSentCount] FROM Users',
+  { ...PROD, dialect: 'tsql' },
+  'production: a longer quoted name is not the pii column',
+);
 refuse('SELECT u.* FROM Users u', PROD, 'production: alias star');
 pass('SELECT COUNT(*) FROM Users', PROD, 'production: count star');
 pass('SELECT count( * ) FROM Users', PROD, 'production: count star with spaces');

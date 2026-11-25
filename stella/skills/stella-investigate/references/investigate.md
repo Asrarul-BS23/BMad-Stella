@@ -55,13 +55,27 @@ Reach all five. Take them in this order. Go back to an earlier one when new evid
 
 **5. The case is closed or parked.** Write the conclusion and its confidence:
 
-- **High** — the cause is Confirmed, and every step from the trigger to the symptom is either read in the code or seen in a run you made.
-- **Medium** — the cause is Confirmed or Deduced, but at least one step on the way to the symptom is not read or seen. Name that step.
+- **High** — the cause is Confirmed, and every step from the trigger to the symptom is read in the code, shown by a query result, or reported by a person who followed the steps below.
+- **Medium** — the cause is Confirmed or Deduced, but at least one step on the way to the symptom is not read or shown. Name that step.
 - **Low** — the cause is Hypothesized; name the missing evidence.
 
-Never write that something was reproduced unless you ran it. A path read in the code is "shown in code", not "reproduced".
+Write "reproduced" only when a person followed the steps and told you the result; say who and when. A path read in the code is "shown in code", never "reproduced".
 
-Then write what must change and why, and the steps to reproduce or verify. Last, rewrite the three lines at the top of the case file so they are true for a reader who reads nothing else. Set the status: Concluded, Active, or Blocked on evidence.
+Then write what must change and why.
+
+Then write the steps to reproduce, for a PM or QA person who works in the product, not in the code:
+
+- **Start:** the environment, the user role, and the data that must exist (for example "an order with status Open and no delivery date").
+- **Steps:** numbered actions, one per line. Use the names the user sees: the screen title, the button label, the field label. Take them from the view or resource file at the pinned commit, never from memory.
+- **Expected:** what the product must do.
+- **Actual:** what it does, as the code shows it.
+- **Data check:** when the cause shows in data, the query that returns the bad rows, and its result if you ran it.
+
+Cannot tell how to reach the code from the product (a job, an import, an API with no screen) → write that, and name what triggers it.
+
+When the confidence is not High, ask the user to follow the steps and tell you the result. Go on to close the case without waiting; record the result in a follow-up when it comes.
+
+Last, rewrite the three lines at the top of the case file so they are true for a reader who reads nothing else. Set the status: Concluded, Active, or Blocked on evidence.
 
 ## When to HALT
 

@@ -85,6 +85,12 @@ const FORBIDDEN_RE = new RegExp(String.raw`\b(${FORBIDDEN_WORDS.join('|')})\b`, 
 const FUNCTION_RE = new RegExp(String.raw`\b(${FORBIDDEN_FUNCTIONS.join('|')})\s*\(`, 'i');
 const PROCEDURE_RE = /\b(?:xp|sp)_\w+/i; // SQL Server system procedures
 const SINGLE_QUOTE = "'";
+// stands in for a quoted name in the text the word rules read
+const QUOTED_NAME = 'quoted_name';
+// "*" as a column list: after SELECT (also DISTINCT / ALL / TOP n), after a comma,
+// or after "alias.". A "*" between two values is multiplication and is fine.
+const STAR_COLUMNS_RE =
+  /(?:\bselect\b(?:\s+(?:distinct|all))?(?:\s+top\s*\(?\s*\d+\s*\)?(?:\s+percent)?)?|,|[A-Za-z_]\s*\.)\s*\*/i;
 
 // tsql | postgresql | mysql. Unknown names are read with the SQL Server rules.
 function normalizeDialect(name) {
@@ -95,9 +101,10 @@ function normalizeDialect(name) {
 }
 
 /**
- * Returns the query with comments, string literals and quoted names made harmless,
- * so the word rules see only real SQL words. Returns null when the text cannot be
- * read safely (something is not closed).
+ * Returns `{text, names}`: the query with comments, string literals and quoted
+ * names taken out, so the word rules see only real SQL words, and the list of the
+ * quoted names (a column called [Lock] is a name, not the LOCK statement).
+ * Returns null when the text cannot be read safely (something is not closed).
  *
  * The rules follow the server, not a guess: a wrong guess here could hide a second
  * statement inside what this code thinks is a string.
@@ -110,6 +117,7 @@ function stripLiterals(sql, dialect = 'tsql') {
   const text = String(sql);
   const mysql = dialect === 'mysql';
   let out = '';
+  const names = [];
   let i = 0;
 
   // Index of the closing character, where a doubled one is an escaped one; -1 when open.
@@ -160,15 +168,16 @@ function stripLiterals(sql, dialect = 'tsql') {
     if (close) {
       const end = regionEnd(i + 1, close);
       if (end === -1) return null;
-      // keep the name for the column rules, without characters that could act as SQL
-      out += ' ' + text.slice(i + 1, end).replaceAll(/\W/g, '_') + ' ';
+      // the name goes to the list; a neutral word takes its place in the text
+      names.push(text.slice(i + 1, end));
+      out += ' ' + QUOTED_NAME + ' ';
       i = end + 1;
       continue;
     }
     out += ch;
     i++;
   }
-  return out;
+  return { text: out, names };
 }
 
 function escapeRegExp(text) {
@@ -202,10 +211,13 @@ function checkReadOnly(sql, options = {}) {
     return { ok: false, reason: 'a backslash is not allowed in a MySQL query' };
   }
 
-  const bare = stripLiterals(raw, dialect);
-  if (bare === null) return { ok: false, reason: 'a string, name or comment is not closed' };
+  const stripped = stripLiterals(raw, dialect);
+  if (stripped === null) {
+    return { ok: false, reason: 'a string, name or comment is not closed' };
+  }
+  const { names } = stripped;
 
-  const statements = bare
+  const statements = stripped.text
     .split(';')
     .map((s) => s.trim())
     .filter(Boolean);
@@ -224,16 +236,26 @@ function checkReadOnly(sql, options = {}) {
   if (fn) return { ok: false, reason: `function ${fn[1]}() is not allowed` };
   const proc = body.match(PROCEDURE_RE);
   if (proc) return { ok: false, reason: `"${proc[0]}" is not allowed` };
+  // A quoted name is not a statement word, but it can still be a function or a
+  // system procedure: "pg_sleep"(10) runs on PostgreSQL.
+  for (const quoted of names) {
+    const lower = quoted.trim().toLowerCase();
+    if (FORBIDDEN_FUNCTIONS.includes(lower)) {
+      return { ok: false, reason: `function ${lower}() is not allowed` };
+    }
+    if (/^(?:xp|sp)_/.test(lower)) return { ok: false, reason: `"${quoted}" is not allowed` };
+  }
 
   if (options.production) {
-    // COUNT(*) is the one use of * that returns no personal data.
+    // COUNT(*) is the one column-list use of * that returns no personal data.
     const noCount = body.replaceAll(/\bcount\s*\(\s*\*\s*\)/gi, 'count()');
-    if (noCount.includes('*')) {
+    if (STAR_COLUMNS_RE.test(noCount)) {
       return {
         ok: false,
         reason: 'on production, name the columns: "*" is allowed only as COUNT(*)',
       };
     }
+    const quotedLower = new Set(names.map((n) => n.trim().toLowerCase()));
     for (const column of options.piiColumns || []) {
       const name = String(column).trim();
       if (!name) continue;
@@ -241,7 +263,7 @@ function checkReadOnly(sql, options = {}) {
         String.raw`(^|[^A-Za-z0-9_])${escapeRegExp(name)}([^A-Za-z0-9_]|$)`,
         'i',
       );
-      if (re.test(body)) {
+      if (re.test(body) || quotedLower.has(name.toLowerCase())) {
         return {
           ok: false,
           reason: `column "${name}" holds personal data and cannot be read on production; use COUNT or the primary key`,

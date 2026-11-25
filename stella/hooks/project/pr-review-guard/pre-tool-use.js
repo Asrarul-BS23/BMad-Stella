@@ -1,6 +1,6 @@
 'use strict';
 
-// pr-review guard — PreToolUse hook (Edit | MultiEdit | Write | Bash | PowerShell | Agent | Task).
+// pr-review guard — PreToolUse hook (Edit | MultiEdit | Write | NotebookEdit | Bash | PowerShell | Agent | Task).
 // While a `stella-pr-review` session is active, blocks anything outside the
 // read-only command set the review skill allows. Runs in every permission
 // mode, so it holds even when prompts are auto-approved.
@@ -118,9 +118,8 @@ function productionPrompt(verdict, cwd) {
 }
 
 // stella-investigate is active: decide one tool call.
-function guardInvestigation(root, state, toolName, toolInput, cwd) {
+function guardInvestigation(root, toolName, toolInput, cwd) {
   const verdict = investigate.decide(toolName, toolInput, {
-    allowRun: state.allowRun,
     isProduction: (envName) => isProductionEnv(root, envName),
   });
   if (verdict.allow) {
@@ -137,14 +136,12 @@ function guardInvestigation(root, state, toolName, toolInput, cwd) {
     reason: verdict.reason,
     detail: String(detail).slice(0, 200),
   });
-  const runHint = state.allowRun
-    ? 'Test and repro commands are allowed (*allow-run was given); git changes, database clients and file changes are not.'
-    : 'To run tests or a repro in dev, ask the user to type *allow-run.';
   process.stderr.write(
     `Investigation active (stella-investigate): the code is read-only — ${verdict.reason}.\n` +
       `Allowed shell commands: ${investigate.ALLOWED_SUMMARY}.\n` +
-      `Write only under ${paths.INVESTIGATIONS_LABEL}/ or to the stella-investigate profile in ${paths.CUSTOM_LABEL}/. ${runHint}\n` +
-      `To leave the investigation and edit again, the user types *exit or starts stella-build.\n`,
+      `Write only under ${paths.INVESTIGATIONS_LABEL}/ or to the stella-investigate profile in ${paths.CUSTOM_LABEL}/. ` +
+      `No project code is run: write the steps to reproduce for the user instead.\n` +
+      `Only the user ends the investigation: by typing *exit or a skill command such as /stella-build.\n`,
   );
   return 2;
 }
@@ -168,7 +165,7 @@ function main(raw) {
   // Scratch sandbox lives only for the duration of a review.
   if (state.justStarted || state.justEnded) cleanupScratch(root);
   if (state.skill === INVESTIGATE_SKILL) {
-    return guardInvestigation(root, state, toolName, toolInput, payload.cwd || root);
+    return guardInvestigation(root, toolName, toolInput, payload.cwd || root);
   }
   if (!state.active) return 0;
 

@@ -294,7 +294,33 @@ ok(
   /git pull/.test(guard) && /checkout/.test(guard) && /merge/.test(guard),
   'Guard section forbids pull, merge, checkout',
 );
-ok(/\*allow-run/.test(guard) && /\*exit/.test(guard), 'Guard section names *allow-run and *exit');
+ok(/\*exit/.test(guard), 'Guard section names *exit');
+ok(!/allow-run/.test(allText), 'no file mentions *allow-run: the skill runs no project code');
+ok(
+  /Never tests, builds, app starts or scripts/.test(guard),
+  'Guard section: no project code is run',
+);
+ok(
+  /Only the user ends the guard/.test(guard) &&
+    /Starting another skill yourself does not end it/.test(guard),
+  'Guard section: only the user ends the guard',
+);
+for (const cmd of [
+  'npm test',
+  'dotnet test',
+  'dotnet build',
+  'node scripts/repro.js',
+  'dotnet ef database update',
+]) {
+  ok(
+    policy.checkBash(cmd, { isProduction: () => false }).allow === false,
+    `the guard runs no project code: ${cmd}`,
+  );
+}
+ok(
+  policy.checkBash(`git diff --stat ${SHA} ${SHA}`, { isProduction: () => false }).allow === true,
+  'the guard allows git diff with the flag before the commits',
+);
 ok(/Start no subagents/.test(workflow), 'no subagents (decision 12)');
 
 // ---- paths agree with the guard and the helper ----
@@ -491,10 +517,22 @@ ok(
   /in the language of the environment's `db\.tool`/.test(workflow),
   'database: the query language follows the client',
 );
-ok(
-  /Run nothing that can write outside this machine/.test(workflow),
-  'running code: nothing that writes to a shared system',
+const proving = workflow.slice(
+  workflow.indexOf('## Proving a cause'),
+  workflow.indexOf('## Route'),
 );
+ok(proving.length > 200, 'workflow has a "Proving a cause" section');
+ok(
+  /Never run project code: no tests, no build, no app start, no script/.test(proving),
+  'proving: no project code is run',
+);
+ok(
+  /1\. \*\*In the code\.\*\*/.test(proving) &&
+    /2\. \*\*In the data\.\*\*/.test(proving) &&
+    /3\. \*\*By a person\.\*\*/.test(proving),
+  'proving: code, then data, then a person, in that order',
+);
+ok(!/## Running code/.test(workflow), 'the "Running code" section is gone');
 ok(
   /the `layout` text in the profile wins/.test(workflow),
   'another environment: layout wins over the project context',
@@ -505,9 +543,43 @@ ok(
 );
 ok(/Keep typed tokens/.test(workflow), 'language: tokens and template headings stay as written');
 ok(
-  /Never write that something was reproduced unless you ran it/.test(refs.investigate),
-  'confidence: reproduced only when run',
+  /Write "reproduced" only when a person followed the steps and told you the result/.test(
+    refs.investigate,
+  ),
+  'confidence: "reproduced" only when a person tried the steps',
 );
+ok(
+  !/a run you made|unless you ran it/.test(refs.investigate),
+  'confidence: no wording that implies the skill runs code',
+);
+for (const part of [
+  '**Start:**',
+  '**Steps:**',
+  '**Expected:**',
+  '**Actual:**',
+  '**Data check:**',
+]) {
+  ok(refs.investigate.includes(part), `steps to reproduce: the instruction names ${part}`);
+}
+ok(
+  /for a PM or QA person who works in the product, not in the code/.test(refs.investigate),
+  'steps to reproduce: written for PM and QA',
+);
+ok(
+  /Use the names the user sees/.test(refs.investigate) &&
+    /never from memory/.test(refs.investigate),
+  'steps to reproduce: real screen and field names, read from the code',
+);
+ok(/## Steps to reproduce/.test(template), 'case template has the steps section');
+for (const part of [
+  '**Start:**',
+  '**Expected:**',
+  '**Actual:**',
+  '**Data check:**',
+  '**Tried by:**',
+]) {
+  ok(template.includes(part), `case template steps: ${part}`);
+}
 ok(
   /in chat and in a case file use the environment names/.test(refs.compare),
   'compare: A and B stay out of chat',
@@ -637,10 +709,6 @@ ok(/ask for that one thing and nothing else/.test(workflow), 'profile gap: one t
 ok(
   /Never split, rename or re-encode a query to get past a refusal/.test(workflow),
   'database: a refusal is not worked around',
-);
-ok(
-  /read the connection settings the command will use/.test(workflow),
-  'running code: the target is checked before a run',
 );
 
 // ---- plain words: no upstream metaphors, no v4 strings ----

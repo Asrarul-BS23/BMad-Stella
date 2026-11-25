@@ -7,7 +7,7 @@
 ## RULES
 
 - **Language** — Speak in `{{.communication_language}}`. Write any file output in `{{.document_output_language}}`.
-  Sentences quoted in this workflow are given in English: say them in the user's language. Keep typed tokens (`*exit`, `*allow-run`, commands), the three grade words, and the headings and status words of the case template exactly as written, so a later run can find them.
+  Sentences quoted in this workflow are given in English: say them in the user's language. Keep typed tokens (`*exit`, commands), the three grade words, and the headings and status words of the case template exactly as written, so a later run can find them.
 - **Read-only.** Never edit, create or delete project code. Never fix. The diagnosis is the end of this skill.
 - **One environment, one truth.** A fact read in one environment says nothing about another. A staging fact is only a guess for production until it is read in production.
 - **Pin first.** Resolve each source to one commit before reading any code, and read only at that commit.
@@ -37,7 +37,8 @@ A hook is active from the first command until the user types `*exit` or starts a
   `git fetch origin` · `git rev-parse` · `git tag --list` · `git branch -r` · `git status` · `git ls-tree {sha}` · `git cat-file -t` · `git show {sha}:{path}` · `git grep -n -e` · `git log` · `git diff {sha} {sha}` · `node _bmad/custom/stella/utils/db-query` · `node _bmad/custom/stella/utils/jira-attachments {KEY}`
   For a repository in another folder, the same git commands as `git -C "<repo folder>" …`.
 - Never: `git pull`, `merge`, `checkout`, `switch`, or any git command that changes something. Never a database client directly (`sqlcmd`, `psql`, `mysql`). Never a subagent.
-- Tests and repro commands are blocked until the user types `*allow-run`. See "Running code".
+- Never tests, builds, app starts or scripts. See "Proving a cause".
+- Only the user ends the guard, by typing `*exit` or a skill command. Starting another skill yourself does not end it.
 
 ## On Activation
 
@@ -146,11 +147,13 @@ node _bmad/custom/stella/utils/db-query --env {environment} --file {path to a .s
 - **No database entry for the environment** (usual for production), and a finding depends on its data: add `--print`. The helper runs nothing and prints the checked query. Give it to the user for a person who has access, and continue when they paste the result. Nobody can run it → record it as missing evidence. A dev or staging result may stand in, but it is Hypothesized for production: say so each time you use it.
 - Exit 15 (no password) → name the missing variable and offer two ways. Recommended: the user adds the line `{NAME}=…` to the secrets file themselves, so the password never enters this chat; give the full file path. Or: the user gives the password here and you write that line. HALT until one is done, then run again.
 
-## Running code
+## Proving a cause
 
-Tests and repro commands run only in an environment whose source is `working-tree`, and only after the user allows it. Ask once: "May I run tests or repro commands here? Type `*allow-run` to allow it for this session." The typed `*allow-run` is the permission; a yes in other words does not unlock the guard. Git changes, database clients and file changes stay blocked after it.
+Never run project code: no tests, no build, no app start, no script. The guard blocks it, and the people who use this skill check the result in the product, not in a terminal. A cause is proven in these three ways, in this order:
 
-Run nothing that can write outside this machine: no migration, no seed or import script, and no app start that connects to a shared database or a real external service. Before a run, read the connection settings the command will use. They point at anything other than this machine, or you cannot find them → do not run it; tell the user what it would connect to and ask.
+1. **In the code.** Trace the path from the trigger to the symptom and cite every step. This is always done.
+2. **In the data.** When the problem shows in data, run the query that returns the rows in the bad state. Use it whenever the environment has a database entry.
+3. **By a person.** Write steps to reproduce that a PM or QA person can follow in the product, and ask the user to try them when the first two leave a doubt. The format is in the investigate file.
 
 ## Route
 

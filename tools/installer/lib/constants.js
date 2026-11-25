@@ -203,7 +203,7 @@ const PROJECT_HOOKS = [
     events: {
       PreToolUse: {
         file: 'pre-tool-use.js',
-        matcher: 'Edit|MultiEdit|Write|Bash|PowerShell|Agent|Task',
+        matcher: 'Edit|MultiEdit|Write|NotebookEdit|Bash|PowerShell|Agent|Task',
       },
     },
   },

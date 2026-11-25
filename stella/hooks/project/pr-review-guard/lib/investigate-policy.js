@@ -5,8 +5,8 @@
 // Mirrors the Guard section of the stella-investigate skill: while an
 // investigation is active the agent reads code and evidence, writes only its
 // case files and the personal profile, and reaches a database only through the
-// db-query helper. After the user types *allow-run, test and repro commands are
-// let through, but git changes, direct database clients and file changes stay blocked.
+// db-query helper. It runs no project code: no tests, no builds, no app start.
+// The shell is a closed list; nothing switches it open.
 // All folder names come from ./paths — nothing is hardcoded here.
 
 const paths = require('./paths');
@@ -80,8 +80,9 @@ const ALLOWED_COMMANDS = [
   },
   {
     name: 'git diff {a} {b}',
-    // two commit ids are mandatory so the working tree is never the subject
-    re: new RegExp(`^git diff ${SHA} ${SHA}(?:\\s|$)`),
+    // two commit ids are mandatory so the working tree is never the subject;
+    // --stat / --name-only may come before them or after
+    re: new RegExp(`^git diff(?: --stat| --name-only)* ${SHA} ${SHA}(?:\\s|$)`),
     flags: new Set(['--name-only', '--stat', '--']),
   },
   {
@@ -195,30 +196,6 @@ function checkDbHelper(tokens, isProduction) {
 }
 
 // ---------------------------------------------------------------------------
-// After *allow-run: tests and repro commands pass, these never do
-// ---------------------------------------------------------------------------
-
-const DB_CLIENT_RE =
-  /(^|[\s;&|(])(?:sqlcmd|osql|bcp|sqlpackage|psql|pg_dump|pg_restore|mysql|mysqldump|mongosh|mongo|sqlite3|redis-cli)(?:\.exe)?(?=\s|$)/i;
-const FILE_CHANGE_RE =
-  /(^|[\s;&|(])(?:rm|rmdir|del|erase|rd|mv|move|ren|rename|tee|Remove-Item|Move-Item|Rename-Item|Set-Content|Add-Content|Clear-Content|Out-File)(?=\s|$)/i;
-const SED_IN_PLACE_RE = /(^|[\s;&|(])sed\s+(?:\S+\s+)*-i/;
-// `>` or `>>` into a file. `2>&1`, `>/dev/null`, `>$null` and `>NUL` are not file writes.
-const REDIRECT_RE = /(^|[^0-9&>])>{1,2}\s*(?!&|\/dev\/null|\$null|nul\b)\S/i;
-const GIT_RE = /(^|[\s;&|(])git(?:\.exe)?(?=\s|$)/i;
-
-function runModeDenial(command) {
-  const bare = stripQuoted(command);
-  if (GIT_RE.test(bare)) return 'git is limited to the read commands, one per call';
-  if (DB_CLIENT_RE.test(bare)) return 'a database is reached only through the db-query helper';
-  if (FILE_CHANGE_RE.test(bare) || SED_IN_PLACE_RE.test(bare)) {
-    return 'commands that delete, move or rewrite files are not allowed';
-  }
-  if (REDIRECT_RE.test(bare)) return 'writing command output into a file is not allowed';
-  return null;
-}
-
-// ---------------------------------------------------------------------------
 
 // `git -C <repo> <command>` reads another repository; the rules see `git <command>`.
 function dropGitDir(tokens) {
@@ -254,7 +231,7 @@ function checkListed(tokens) {
 
 /**
  * @param {string} rawCommand
- * @param {{allowRun?: boolean, isProduction?: (env: string) => boolean}} [ctx]
+ * @param {{isProduction?: (env: string) => boolean}} [ctx]
  */
 function checkBash(rawCommand, ctx = {}) {
   const raw = String(rawCommand || '').trim();
@@ -262,39 +239,33 @@ function checkBash(rawCommand, ctx = {}) {
   const isProduction = typeof ctx.isProduction === 'function' ? ctx.isProduction : () => true;
 
   const cmd = stripLeadingCd(raw);
-  const single = !SHELL_OPERATOR_RE.test(stripQuoted(cmd));
-  if (single) {
-    const tokens = tokenize(cmd);
-    if (LAUNCHER_RE.test(cmd)) return { allow: true };
-
-    const db = checkDbHelper(tokens, isProduction);
-    if (db) return db;
-
-    if (
-      tokens[0] === 'node' &&
-      tokens.length >= 2 &&
-      JIRA_FETCH_HELPER_RE.test(normalizePath(unquote(tokens[1])))
-    ) {
-      if (tokens.length !== 3 || !ISSUE_KEY_RE.test(unquote(tokens[2]))) {
-        return { allow: false, reason: 'jira-attachments takes exactly one issue key, no flags' };
-      }
-      return { allow: true };
-    }
-
-    const listed = checkListed(dropGitDir(tokens));
-    if (listed) return listed;
-  }
-
-  if (ctx.allowRun) {
-    const why = runModeDenial(cmd);
-    return why ? { allow: false, reason: why } : { allow: true };
-  }
-  if (!single) {
+  if (SHELL_OPERATOR_RE.test(stripQuoted(cmd))) {
     return {
       allow: false,
       reason: 'compound or redirected command (pipes, &&, ;, >, $() are not allowed)',
     };
   }
+
+  const tokens = tokenize(cmd);
+  if (LAUNCHER_RE.test(cmd)) return { allow: true };
+
+  const db = checkDbHelper(tokens, isProduction);
+  if (db) return db;
+
+  if (
+    tokens[0] === 'node' &&
+    tokens.length >= 2 &&
+    JIRA_FETCH_HELPER_RE.test(normalizePath(unquote(tokens[1])))
+  ) {
+    if (tokens.length !== 3 || !ISSUE_KEY_RE.test(unquote(tokens[2]))) {
+      return { allow: false, reason: 'jira-attachments takes exactly one issue key, no flags' };
+    }
+    return { allow: true };
+  }
+
+  const listed = checkListed(dropGitDir(tokens));
+  if (listed) return listed;
+
   return { allow: false, reason: `'${cmd.slice(0, 60)}' is not an allowed command` };
 }
 
@@ -302,7 +273,7 @@ function checkBash(rawCommand, ctx = {}) {
  * Policy entry point for an active investigation.
  * @param {string} toolName
  * @param {object} toolInput
- * @param {{allowRun?: boolean, isProduction?: (env: string) => boolean}} [ctx]
+ * @param {{isProduction?: (env: string) => boolean}} [ctx]
  * @returns {{allow: boolean, ask?: boolean, grant?: boolean, reason?: string}}
  */
 function decide(toolName, toolInput, ctx = {}) {
@@ -384,7 +355,6 @@ module.exports = {
   checkBash,
   checkDbHelper,
   isWritable,
-  runModeDenial,
   profileSaysProduction,
   nameLooksProduction,
   ALLOWED_SUMMARY,

@@ -77,7 +77,19 @@
 
 **Fix direction:** {what needs to change and why}
 
-**To reproduce or verify:** {setup, action, expected result}
+## Steps to reproduce
+
+**Start:** {environment, user role, data that must exist}
+
+1. {action, with the screen, button and field names the user sees}
+
+**Expected:** {what the product must do}
+
+**Actual:** {what it does, as the code shows it}
+
+**Data check:** {the query that returns the bad rows, and its result with the time it was read — only when the cause shows in data}
+
+**Tried by:** {who followed the steps, when, and what they saw — only once someone did}
 
 ## Follow-up: {YYYY-MM-DD}
 

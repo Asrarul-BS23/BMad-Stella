@@ -38,8 +38,6 @@ const OTHER_SKILL_RE = /^(?:bmad|stella)-(?!pr-review$)/i;
 const FINDINGS_FILE_RE = new RegExp(
   `(^|${paths.SEP})${paths.REVIEWER_RE_PART}${paths.SEP}(?!\\.scratch${paths.SEP})[^\\\\/]+${paths.SEP}review\\.md$`,
 );
-// stella-investigate only: the user lets test and repro commands run (dev)
-const ALLOW_RUN_RE = /(^|\n)\s*\*allow-run\b/i;
 
 // User message text, whether content is a plain string or an array of blocks.
 function userText(content) {
@@ -54,8 +52,9 @@ function userText(content) {
 }
 
 /**
- * What one transcript line means for the guard.
- * @returns {null | {kind: 'start', skill: string} | {kind: 'end'} | {kind: 'review-written'} | {kind: 'allow-run'}}
+ * What one transcript line means for the guard. `by` says who caused it: a line
+ * the user typed, or a tool call of the agent.
+ * @returns {null | {kind: 'start', skill: string, by: string} | {kind: 'end', by: string} | {kind: 'review-written', by: string}}
  */
 function classify(line) {
   let obj;
@@ -69,14 +68,15 @@ function classify(line) {
     const c = userText(obj.message && obj.message.content);
     if (!c) return null;
     if (COMMAND_TAG_RE.test(c) || COMMAND_TEXT_RE.test(c)) {
-      return { kind: 'start', skill: REVIEW_SKILL };
+      return { kind: 'start', skill: REVIEW_SKILL, by: 'user' };
     }
     if (INVESTIGATE_TAG_RE.test(c) || INVESTIGATE_TEXT_RE.test(c)) {
-      return { kind: 'start', skill: INVESTIGATE_SKILL };
+      return { kind: 'start', skill: INVESTIGATE_SKILL, by: 'user' };
     }
-    if (OTHER_COMMAND_TAG_RE.test(c) || OTHER_COMMAND_TEXT_RE.test(c)) return { kind: 'end' };
-    if (EXIT_RE.test(c)) return { kind: 'end' };
-    if (ALLOW_RUN_RE.test(c)) return { kind: 'allow-run' };
+    if (OTHER_COMMAND_TAG_RE.test(c) || OTHER_COMMAND_TEXT_RE.test(c)) {
+      return { kind: 'end', by: 'user' };
+    }
+    if (EXIT_RE.test(c)) return { kind: 'end', by: 'user' };
     return null;
   }
   if (obj.type === 'assistant') {
@@ -86,13 +86,19 @@ function classify(line) {
       if (!block || block.type !== 'tool_use' || !block.input) continue;
       if (block.name === 'Skill') {
         const skill = String(block.input.skill || '').trim();
-        if (skill.toLowerCase() === REVIEW_SKILL) return { kind: 'start', skill: REVIEW_SKILL };
-        if (INVESTIGATE_SKILL_RE.test(skill)) return { kind: 'start', skill: INVESTIGATE_SKILL };
-        if (OTHER_SKILL_RE.test(skill)) return { kind: 'end' };
+        if (skill.toLowerCase() === REVIEW_SKILL) {
+          return { kind: 'start', skill: REVIEW_SKILL, by: 'agent' };
+        }
+        if (INVESTIGATE_SKILL_RE.test(skill)) {
+          return { kind: 'start', skill: INVESTIGATE_SKILL, by: 'agent' };
+        }
+        if (OTHER_SKILL_RE.test(skill)) return { kind: 'end', by: 'agent' };
         continue;
       }
       const fp = String(block.input.file_path || '').replaceAll('\\', '/');
-      if (block.name === 'Write' && FINDINGS_FILE_RE.test(fp)) return { kind: 'review-written' };
+      if (block.name === 'Write' && FINDINGS_FILE_RE.test(fp)) {
+        return { kind: 'review-written', by: 'agent' };
+      }
     }
   }
   return null;
@@ -110,26 +116,23 @@ function classifyLine(line) {
 
 function cachePath(root, sessionId) {
   const safe = String(sessionId).replaceAll(/[^A-Za-z0-9_-]/g, '_');
-  return path.join(paths.stateDir(root), `${safe}.json`);
+  // Own file name. Guard copies from before stella-investigate keep `<id>.json` in
+  // another format. Sharing one file made each copy misread the other's state.
+  return path.join(paths.stateDir(root), `${safe}.guard.json`);
 }
 
 function readCache(file) {
   try {
     const c = JSON.parse(fs.readFileSync(file, 'utf8'));
     if (typeof c.scannedLines === 'number' && typeof c.active === 'boolean') {
-      // caches written before stella-investigate existed carry no skill name
+      // a cache with no skill name means "PR review", the only guarded skill then
       const skill = c.active ? c.skill || REVIEW_SKILL : null;
-      return {
-        scannedLines: c.scannedLines,
-        active: c.active,
-        skill,
-        allowRun: c.allowRun === true,
-      };
+      return { scannedLines: c.scannedLines, active: c.active, skill };
     }
   } catch {
     /* missing or corrupt */
   }
-  return { scannedLines: 0, active: false, skill: null, allowRun: false };
+  return { scannedLines: 0, active: false, skill: null };
 }
 
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -199,18 +202,12 @@ function cleanupScratch(root) {
  * @param {string} root        BMad project root
  * @param {string} sessionId
  * @param {string} transcriptPath
- * @returns {{active: boolean, justStarted: boolean, justEnded: boolean, skill: string|null, allowRun: boolean}}
+ * @returns {{active: boolean, justStarted: boolean, justEnded: boolean, skill: string|null}}
  *   `active`, `justStarted` and `justEnded` describe the PR review only (its scratch
  *   sandbox depends on them). `skill` names whichever guarded skill is active.
  */
 function reviewState(root, sessionId, transcriptPath) {
-  const none = {
-    active: false,
-    justStarted: false,
-    justEnded: false,
-    skill: null,
-    allowRun: false,
-  };
+  const none = { active: false, justStarted: false, justEnded: false, skill: null };
   if (!transcriptPath || !fs.existsSync(transcriptPath)) return none;
 
   const file = cachePath(root, sessionId);
@@ -224,27 +221,26 @@ function reviewState(root, sessionId, transcriptPath) {
   const from = lines.length >= cache.scannedLines ? cache.scannedLines : 0;
   const beforeSkill = from === 0 ? null : cache.skill;
   let skill = beforeSkill;
-  let allowRun = from === 0 ? false : cache.allowRun;
 
   for (let i = from; i < lines.length; i++) {
     if (!lines[i]) continue;
     const mark = classify(lines[i]);
     if (!mark) continue;
+    // An investigation changes state only on a line the user typed. A tool call of
+    // the agent (launching another skill, writing a review file) must not be a way
+    // for the agent to switch its own guard off.
+    if (skill === INVESTIGATE_SKILL && mark.by !== 'user') continue;
     if (mark.kind === 'start') {
       skill = mark.skill;
-      allowRun = false;
     } else if (mark.kind === 'end' || (mark.kind === 'review-written' && skill === REVIEW_SKILL)) {
       skill = null;
-      allowRun = false;
-    } else if (mark.kind === 'allow-run' && skill === INVESTIGATE_SKILL) {
-      allowRun = true;
     }
   }
 
-  writeCache(file, { scannedLines: lines.length, active: skill !== null, skill, allowRun });
+  writeCache(file, { scannedLines: lines.length, active: skill !== null, skill });
   const before = beforeSkill === REVIEW_SKILL;
   const active = skill === REVIEW_SKILL;
-  return { active, justStarted: active && !before, justEnded: before && !active, skill, allowRun };
+  return { active, justStarted: active && !before, justEnded: before && !active, skill };
 }
 
 /** @deprecated kept for callers that only need the boolean */

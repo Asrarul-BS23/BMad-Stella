@@ -45,7 +45,7 @@ In `investigate` mode it confirms the problem and the environment with you befor
 
 - Nothing in your code is changed. The skill stops at the cause.
 - Case files are under `_bmad-output/stella/investigations/<ticket or name>/case.md`. Start the skill again with the same ticket or name to continue a case.
-- To edit code again, type `*exit` or start `/stella-build`. The skill offers `/stella-build` for the fix; it never starts it.
+- To edit code again, type `*exit` or start `/stella-build`. Only a line you type ends the read-only state. The skill offers `/stella-build` for the fix; it never starts it.
 
 ## Good to know
 
@@ -57,6 +57,6 @@ In `investigate` mode it confirms the problem and the environment with you befor
 - An environment named `prod`, `production`, `prd` or `live` is treated as production, also without `production = true` in the profile. Write `production = false` to turn that off.
 - Production: the database entry must say `read_only = true`, and a query cannot use `SELECT *` or a column listed as personal data. Use a login that can only read.
 - No access to a database, usual for production: the skill gives you the checked query for a person who has access. Paste the result back.
-- Tests and repro commands run only in your checkout, after you type `*allow-run`. The skill runs nothing that writes to a shared database or service.
+- The skill runs no project code: no tests, no build, no app start. It proves a cause from the code and, where it can, from a read-only query. Each case ends with steps to reproduce that you can follow in the product; tell the skill what you saw.
 - The skill starts no subagents. All reading happens in your session.
 - The profile and the secrets file are personal and never committed.

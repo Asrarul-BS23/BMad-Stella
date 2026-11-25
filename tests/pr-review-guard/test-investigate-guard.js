@@ -232,10 +232,7 @@ ok(inv.decide('Glob', { pattern: '**/*.cs' }).allow === true, 'Glob allowed');
 for (const t of ['Agent', 'Task']) {
   const d = inv.decide(t, { prompt: 'find the export code', subagent_type: 'Explore' });
   ok(d.allow === false && /subagents are not allowed/.test(d.reason), `${t} tool blocked`);
-  ok(
-    inv.decide(t, null, { allowRun: true }).allow === false,
-    `${t} tool blocked after allow-run too`,
-  );
+  ok(inv.decide(t, null).allow === false, `${t} tool blocked with no input`);
 }
 ok(inv.decide('WebFetch', { url: 'https://x' }).allow === true, 'tools outside the policy pass');
 // the wider hook matcher must not change the PR review: it still lets these through
@@ -257,60 +254,44 @@ ok(
   'PowerShell: git pull blocked',
 );
 
-// ================= 5. after *allow-run =================
-const runCtx = { allowRun: true, isProduction: () => false };
+// ================= 5. no project code is run: the shell is a closed list =================
+// Tests, builds, app starts and scripts are never allowed. Nothing switches the list open.
 for (const cmd of [
   'npm test',
   'dotnet test --filter OrderTests',
   'pytest tests/test_orders.py -k locked',
   'npm run test:unit 2>&1',
-  'npx jest orders > /dev/null',
   'dotnet build; dotnet test',
   'cd src && npm test',
   'node scripts/repro.js',
   'curl -s http://localhost:5000/health',
-  'git status --porcelain', // read commands still pass
-]) {
-  ok(inv.checkBash(cmd, runCtx).allow === true, `allow-run allows: ${cmd}`);
-}
-for (const cmd of [
-  'git commit -m x',
-  'git pull',
-  'git checkout .',
-  'npm test && git push',
-  'npm test; git stash',
-  'git.exe reset --hard',
-  'sqlcmd -S s -Q "DELETE FROM t"',
-  'npm test && psql -c "select 1"',
-  'mysql -e "drop table t"',
+  // found in live testing (2026-11-25): these passed while test running was allowed
+  'Invoke-Sqlcmd -Query "DELETE FROM Orders"',
+  'dotnet ef database update',
+  `node -e "require('fs').writeFileSync('src/a.cs','x')"`,
+  "python -c \"open('src/a.cs','w').write('x')\"",
+  'Copy-Item a.cs b.cs',
+  'New-Item src/new.cs',
+  'cp a.cs b.cs',
   'rm -rf node_modules',
-  'del /q src\\a.cs',
   'Remove-Item src -Recurse',
-  'mv a.cs b.cs',
   'Set-Content src/a.cs "x"',
   "sed -i 's/a/b/' src/a.cs",
-  'npm test > result.txt',
   'echo x >> src/a.cs',
   'npm test | tee out.log',
+  'git.exe reset --hard',
 ]) {
-  ok(inv.checkBash(cmd, runCtx).allow === false, `allow-run still blocks: ${cmd}`);
+  ok(inv.checkBash(cmd, notProd).allow === false, `never run: ${cmd.slice(0, 60)}`);
+  // a context left over from an older build must not open anything
+  ok(
+    inv.checkBash(cmd, { allowRun: true, isProduction: () => false }).allow === false,
+    `an old allowRun flag changes nothing: ${cmd.slice(0, 40)}`,
+  );
 }
+ok(inv.runModeDenial === undefined, 'the run-mode code is gone');
 ok(
-  inv.checkBash('npm test', { allowRun: false }).allow === false,
-  'without allow-run: npm test blocked',
-);
-ok(
-  inv.decide('Edit', { file_path: 'C:\\proj\\src\\a.cs' }, runCtx).allow === false,
-  'allow-run never unlocks Edit on source',
-);
-v = inv.checkBash(`node ${DB} --env production --query "SELECT 1"`, {
-  allowRun: true,
-  isProduction: () => true,
-});
-ok(v.ask === true, 'allow-run: a production query still asks');
-ok(
-  inv.runModeDenial('echo "git pull is a command"') === null,
-  'allow-run: words inside quotes are not commands',
+  inv.decide('Edit', { file_path: 'C:\\proj\\src\\a.cs' }, { allowRun: true }).allow === false,
+  'an old allowRun flag never unlocks Edit on source',
 );
 
 // ================= 6. production lookup in the profile =================
@@ -452,13 +433,20 @@ ok(
   'not start: reading the skill file',
 );
 ok(kind(user('/stella-investigator x')) === 'end', 'another stella command is an end, not a start');
-ok(kind(user('*allow-run')) === 'allow-run', 'allow-run: typed');
+// *allow-run is gone: a typed or pasted line with it means nothing
+ok(kind(user('*allow-run')) === null, 'allow-run: no longer a marker');
+ok(kind(userArr('log line\n*allow-run')) === null, 'allow-run: a pasted line is no marker either');
+// who caused a marker: only a user-typed one may change an investigation
+const by = (l) => (rs.classify(l) || {}).by;
+ok(by(user('/stella-investigate x')) === 'user', 'by: typed start');
+ok(by(user('*exit')) === 'user', 'by: typed *exit');
+ok(by(user('/stella-build')) === 'user', 'by: typed skill command');
+ok(by(tool('Skill', { skill: 'stella-build' })) === 'agent', 'by: Skill call of the agent');
+ok(by(tool('Skill', { skill: 'stella-investigate' })) === 'agent', 'by: agent start');
 ok(
-  kind(userArr('ok\n  *allow-run')) === 'allow-run',
-  'allow-run: on its own line in a longer message',
+  by(tool('Write', { file_path: '/p/_bmad-output/stella/reviewer/r-pr1/review.md' })) === 'agent',
+  'by: review file written by the agent',
 );
-ok(kind(user('do not *allow-run yet')) === null, 'allow-run: not inside a sentence');
-ok(kind(user('*allow-running')) === null, 'allow-run: not a longer word');
 ok(kind(user('*exit')) === 'end', 'end: *exit');
 ok(kind(user('/stella-build')) === 'end', 'end: stella-build');
 ok(kind(tool('Skill', { skill: 'stella-build' })) === 'end', 'end: Skill stella-build');
@@ -470,7 +458,10 @@ ok(
   rs.classifyLine(user('/stella-investigate x')) === 'end',
   'PR review view: investigate starting ends the review',
 );
-ok(rs.classifyLine(user('*allow-run')) === null, 'PR review view: allow-run means nothing');
+ok(
+  rs.classifyLine(tool('Skill', { skill: 'bmad-help' })) === 'end',
+  'PR review view: a Skill call still ends a review (unchanged)',
+);
 ok(kind('not json') === null && kind('') === null, 'garbage lines ignored');
 
 // ================= 8. end to end: the hook =================
@@ -526,9 +517,11 @@ r = run('Edit', { file_path: SRC });
 ok(r.code === 2, 'e2e: Edit on source blocked');
 ok(/Investigation active \(stella-investigate\)/.test(r.err), 'e2e: refusal names the skill');
 ok(
-  /\*allow-run/.test(r.err) && /\*exit/.test(r.err),
-  'e2e: refusal says how to allow runs and how to leave',
+  /\*exit/.test(r.err) && /Only the user ends the investigation/.test(r.err),
+  'e2e: refusal says how to leave, and that only the user can',
 );
+ok(!/allow-run/.test(r.err), 'e2e: refusal no longer offers a way to run code');
+ok(/steps to reproduce/.test(r.err), 'e2e: refusal points to written steps to reproduce');
 ok(r.err.includes(paths.INVESTIGATIONS_LABEL), 'e2e: refusal names the case folder');
 ok(run('Write', { file_path: CASE }).code === 0, 'e2e: Write to the case file allowed');
 ok(run('Edit', { file_path: CASE }).code === 0, 'e2e: Edit of the case file allowed');
@@ -540,7 +533,11 @@ ok(
   run('PowerShell', { command: 'git checkout staging' }).code === 2,
   'e2e: PowerShell git checkout blocked',
 );
-ok(run('Bash', { command: 'npm test' }).code === 2, 'e2e: npm test blocked before *allow-run');
+ok(run('Bash', { command: 'npm test' }).code === 2, 'e2e: npm test blocked');
+ok(
+  run('NotebookEdit', { notebook_path: 'a.ipynb' }).code === 2,
+  'e2e: NotebookEdit blocked in an investigation',
+);
 ok(run('Read', { file_path: SRC }).code === 0, 'e2e: Read is never touched');
 r = run('Agent', { prompt: 'search the repo', subagent_type: 'Explore' });
 ok(
@@ -608,42 +605,51 @@ fs.writeFileSync(
 ok(run('Bash', query('staging')).decision === 'ask', 'e2e: .profile.toml is read first');
 fs.rmSync(path.join(CUSTOM, 'stella-investigate.profile.toml'));
 
-// 8d. *allow-run
+// 8d. nothing opens the shell: a typed *allow-run is not a marker any more
 say(user('*allow-run'));
-ok(run('Bash', { command: 'npm test' }).code === 0, 'e2e: npm test allowed after *allow-run');
-ok(run('Bash', { command: 'git commit -m x' }).code === 2, 'e2e: git commit still blocked');
-r = run('Edit', { file_path: SRC });
-ok(
-  r.code === 2 && /allowed \(\*allow-run was given\)/.test(r.err),
-  'e2e: Edit still blocked; message reflects allow-run',
-);
+ok(run('Bash', { command: 'npm test' }).code === 2, 'e2e: npm test stays blocked after *allow-run');
+ok(run('Bash', { command: 'dotnet ef database update' }).code === 2, 'e2e: a migration is blocked');
+ok(run('Edit', { file_path: SRC }).code === 2, 'e2e: Edit stays blocked');
 ok(run('Bash', query('production')).decision === 'ask', 'e2e: production query still asks');
 
-// 8e. *exit ends it; a new start does not inherit allow-run
+// 8e. the agent cannot switch its own guard off (found in live testing, 2026-11-25)
+say(tool('Skill', { skill: 'bmad-help' }));
+ok(run('Edit', { file_path: SRC }).code === 2, 'e2e: a Skill call by the agent does not end it');
+say(tool('Skill', { skill: 'stella-build' }));
+ok(
+  run('Edit', { file_path: SRC }).code === 2,
+  'e2e: the agent starting stella-build does not end it',
+);
+say(tool('Skill', { skill: 'stella-pr-review' }));
+r = run('Edit', { file_path: SRC });
+ok(
+  r.code === 2 && /Investigation active/.test(r.err),
+  'e2e: the agent starting a PR review does not swap the guard',
+);
+say(
+  tool('Write', {
+    file_path: path.join(ROOT, '_bmad-output', 'stella', 'reviewer', 'r-pr12', 'review.md'),
+  }),
+);
+ok(
+  run('Edit', { file_path: SRC }).code === 2,
+  'e2e: the agent writing a review.md does not end an investigation',
+);
+ok(run('Write', { file_path: CASE }).code === 0, 'e2e: the case file is still writable');
+
+// 8f. *exit typed by the user ends it; a Skill call can start a new one
 say(user('*exit'));
 ok(run('Edit', { file_path: SRC }).code === 0, 'e2e: after *exit Edit is allowed');
 ok(run('Bash', { command: 'git pull' }).code === 0, 'e2e: after *exit git pull is allowed');
 say(tool('Skill', { skill: 'stella-investigate' }));
-ok(
-  run('Bash', { command: 'npm test' }).code === 2,
-  'e2e: a new investigation starts without allow-run',
-);
 ok(run('Edit', { file_path: SRC }).code === 2, 'e2e: Skill tool start guards too');
+ok(run('Bash', { command: 'npm test' }).code === 2, 'e2e: a new investigation runs no code either');
 
-// 8f. *allow-run typed outside an investigation does nothing later
-say(user('*exit'));
-say(user('*allow-run'));
-say(user('/stella-investigate x'));
-ok(
-  run('Bash', { command: 'npm test' }).code === 2,
-  'e2e: allow-run given before the start does not count',
-);
-
-// 8g. starting stella-build ends the investigation
+// 8g. the user starting stella-build ends the investigation
 say(user('<command-name>/stella-build</command-name>'));
-ok(run('Edit', { file_path: SRC }).code === 0, 'e2e: stella-build ends the investigation');
+ok(run('Edit', { file_path: SRC }).code === 0, 'e2e: stella-build typed by the user ends it');
 
-// 8h. switching between the two guarded skills
+// 8h. the user switching between the two guarded skills
 say(user('/stella-investigate x'));
 say(user('/stella-pr-review https://github.com/o/r/pull/12'));
 r = run('Write', { file_path: CASE });
@@ -655,6 +661,14 @@ ok(
   run('Bash', { command: 'git fetch origin' }).code === 2,
   'e2e: PR review rules apply (no plain fetch)',
 );
+ok(
+  run('NotebookEdit', { notebook_path: 'a.ipynb' }).code === 2,
+  'e2e: NotebookEdit blocked in a PR review',
+);
+ok(
+  run('Agent', { prompt: 'x' }).code === 0,
+  'e2e: a PR review does not block subagents (unchanged)',
+);
 say(user('/stella-investigate y'));
 ok(run('Write', { file_path: CASE }).code === 0, 'e2e: investigation took over again');
 r = run('Write', {
@@ -664,16 +678,27 @@ ok(
   r.code === 2 && /Investigation active/.test(r.err),
   'e2e: review files are not writable in an investigation',
 );
-// a review.md written during an investigation must not end it
-say(
-  tool('Write', {
-    file_path: path.join(ROOT, '_bmad-output', 'stella', 'reviewer', 'r-pr12', 'review.md'),
-  }),
-);
-ok(
-  run('Edit', { file_path: SRC }).code === 2,
-  'e2e: writing a review.md does not end an investigation',
-);
+
+// 8h2. two guard copies (found in live testing): an older copy keeps `<session>.json`
+// in its own format. The new guard must neither read it nor write it.
+{
+  const stateDir = path.dirname(rs.cachePath(ROOT, 's1'));
+  ok(rs.cachePath(ROOT, 's1').endsWith('s1.guard.json'), 'state file has its own name');
+  const oldFile = path.join(stateDir, 's1.json');
+  const oldContent = JSON.stringify({ scannedLines: 99_999, active: true });
+  fs.writeFileSync(oldFile, oldContent);
+  r = run('Write', { file_path: CASE });
+  ok(r.code === 0, 'an old copy saying "active" does not turn the investigation into a PR review');
+  r = run('Bash', { command: 'git rev-parse HEAD' });
+  ok(r.code === 0, 'git rev-parse still allowed next to an old state file');
+  ok(fs.readFileSync(oldFile, 'utf8') === oldContent, 'the old copy state file is left untouched');
+  fs.writeFileSync(oldFile, JSON.stringify({ scannedLines: 99_999, active: false }));
+  ok(
+    run('Edit', { file_path: SRC }).code === 2,
+    'an old copy saying "not active" does not switch the investigation off',
+  );
+  fs.rmSync(oldFile);
+}
 
 // 8i. sessions are separate
 ok(
@@ -732,17 +757,22 @@ ok(bad.status === 0, 'e2e: unreadable hook input -> allow (fail open)');
     rs.reviewState(root3, 'nl', t3).skill === rs.INVESTIGATE_SKILL,
     'trailing newline: investigate start right after a scan is seen',
   );
-  fs.appendFileSync(t3, user('*allow-run') + '\r\n');
   ok(
-    rs.reviewState(root3, 'nl', t3).allowRun === true,
-    'trailing CRLF: allow-run right after a scan is seen',
+    rs.reviewState(root3, 'nl', t3).skill === rs.INVESTIGATE_SKILL,
+    'a scan with no new lines keeps the state',
   );
-  ok(rs.reviewState(root3, 'nl', t3).allowRun === true, 'a scan with no new lines keeps the state');
-  // the transcript file is replaced by a shorter one -> rescan from the start
-  fs.writeFileSync(t3, user('hello') + '\n');
-  const fresh = rs.reviewState(root3, 'nl', t3);
+  fs.appendFileSync(t3, user('*exit') + '\r\n');
   ok(
-    fresh.skill === null && fresh.allowRun === false,
+    rs.reviewState(root3, 'nl', t3).skill === null,
+    'trailing CRLF: *exit right after a scan is seen',
+  );
+  ok(rs.reviewState(root3, 'nl', t3).allowRun === undefined, 'the state carries no allowRun field');
+  // the transcript file is replaced by a shorter one -> rescan from the start
+  fs.appendFileSync(t3, user('/stella-investigate y') + '\n');
+  ok(rs.reviewState(root3, 'nl', t3).skill === rs.INVESTIGATE_SKILL, 'started again');
+  fs.writeFileSync(t3, user('hello') + '\n');
+  ok(
+    rs.reviewState(root3, 'nl', t3).skill === null,
     'shorter transcript: state is rebuilt from the start',
   );
   fs.rmSync(root3, { recursive: true, force: true });

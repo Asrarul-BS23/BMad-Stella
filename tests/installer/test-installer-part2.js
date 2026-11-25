@@ -404,7 +404,8 @@ const homeCredentials = () => path.join(HOME, '.claude', 'stella', 'credentials.
     e.hooks[0].command.includes('pr-review-guard'),
   );
   ok(
-    guardEntry && guardEntry.matcher === 'Edit|MultiEdit|Write|Bash|PowerShell|Agent|Task',
+    guardEntry &&
+      guardEntry.matcher === 'Edit|MultiEdit|Write|NotebookEdit|Bash|PowerShell|Agent|Task',
     'settings: guard registered with matcher',
   );
   ok(
