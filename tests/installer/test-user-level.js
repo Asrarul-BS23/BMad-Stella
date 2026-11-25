@@ -74,6 +74,16 @@ const fakeTeaSkill = async (root, opts) => {
   write(root, '.claude/skills/bmod-tea/SKILL.md', '---\nname: bmod-tea\n---\n');
   return 0;
 };
+const builderCalls = [];
+const fakeBuilderSkill = async (root, opts) => {
+  builderCalls.push(opts);
+  write(
+    root,
+    '.claude/skills/bmad-workflow-builder/SKILL.md',
+    '---\nname: bmad-workflow-builder\n---\n',
+  );
+  return 0;
+};
 const fakeNpmCache = () => ({ status: 'cleaned', seconds: 1, detail: null });
 const fetchMock = async (url) => {
   if (url.includes('/rest/api/3/myself')) return jsonRes(200, { displayName: 'Ash' });
@@ -140,6 +150,7 @@ const setupDeps = (extra) => ({
   check: pfOk,
   runBmad: fakeBmad,
   runTeaSkill: fakeTeaSkill,
+  runBuilderSkill: fakeBuilderSkill,
   cleanNpmCache: fakeNpmCache,
   installAppDeps: () => {},
   pluginInstalled: () => false,
@@ -260,6 +271,16 @@ const hookCommands = (settings) =>
   );
   ok(!exists(HOME, '.claude/stella/bmad-template.new'), 'setup: staging folder gone');
   ok(teaCalls.at(-1).copy === true, 'setup: TEA skills installed as plain folders');
+  ok(builderCalls.at(-1).copy === true, 'setup: Builder skills installed as plain folders');
+  ok(
+    fs.existsSync(userSkill('bmad-workflow-builder')),
+    'setup: Builder skills copied to user level',
+  );
+  ok(
+    read(HOME, '.claude/stella/bmad-template/_bmad/bmb/config.yaml').includes('.claude/skills') &&
+      exists(HOME, '.claude/stella/bmad-template/_bmad/custom/bmad-workflow-builder.toml'),
+    'setup: Builder output folder settings written into the master copy',
+  );
 
   ok(
     exists(HOME, '.claude/stella/app/tools/installer/bin/bmad.js') &&

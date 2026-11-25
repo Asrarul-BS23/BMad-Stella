@@ -13,6 +13,11 @@ const TEA_SKILL_REPO = 'bmad-code-org/bmad-method-test-architecture-enterprise';
 const TEA_SKILL_VERSION = 'v3.6.0';
 const TEA_SKILL_PACKAGE = `${TEA_SKILL_REPO}@${TEA_SKILL_VERSION}`;
 
+// BMad Builder skill package, installed the same way after the TEA steps.
+const BUILDER_SKILL_REPO = 'bmad-code-org/bmad-builder';
+const BUILDER_SKILL_VERSION = 'v2.2.2';
+const BUILDER_SKILL_PACKAGE = `${BUILDER_SKILL_REPO}@${BUILDER_SKILL_VERSION}`;
+
 const JIRA_BASE_URL = 'https://stellaint.atlassian.net';
 const TOKEN_HELP_URL = 'https://id.atlassian.com/manage-profile/security/api-tokens';
 
@@ -75,6 +80,30 @@ const USER_NAME_FALLBACK = 'stella-dev';
 // TEA skill install flags (user decision): Claude Code only, all skills in the
 // repo. Scope (project) and method (symlink) are the `skills` CLI's own defaults.
 const TEA_SKILL_INSTALL_FLAGS = { agent: 'claude-code', skill: '*' };
+
+// Builder skill install flags (user decision 2026-11-23): only the skills that
+// build a skill, workflow or agent. Never `bmad-bmb-setup` (its cleanup removes
+// _bmad/core/ and _bmad/_config/) and not `bmad-module-builder` (we do not ship
+// BMad modules). `bmad-eval-runner` is left out for now: it needs an API key and
+// fails on Windows as shipped; a Stella version that runs in the background on
+// the user's own Claude login is planned.
+const BUILDER_SKILL_INSTALL_FLAGS = {
+  agent: 'claude-code',
+  skill: ['bmad-workflow-builder', 'bmad-agent-builder'],
+};
+
+// Where the Builder skills put what they make (user decision 2026-11-23). The
+// Builder's own default, `{project-root}/skills`, is not a folder Claude Code
+// loads skills from. Written by builder-setup.js.
+const BUILDER_OUTPUT_FOLDER = '{project-root}/.claude/skills';
+const BUILDER_REPORTS_FOLDER = `{project-root}/${OUTPUT_DIR}/builder-reports`;
+const BUILDER_PERSISTENT_FACTS = [
+  'Create a new skill in {project-root}/.claude/skills/ (this project only). ' +
+    'When the user asks for a user-level skill (one for all their projects), create it in ~/.claude/skills/ instead. ' +
+    'Claude Code loads skills from these two folders only.',
+  // Both builders offer an eval run through `bmad-eval-runner`, which is not installed.
+  'The bmad-eval-runner skill is not installed here. Do not offer or run evals.',
+];
 
 // `[modules.tea]` answers written into _bmad/config.toml right after the TEA
 // skill step — what `bmad setup tea` would write, so a fresh install passes
@@ -285,6 +314,13 @@ module.exports = {
   TEA_SKILL_VERSION,
   TEA_SKILL_PACKAGE,
   TEA_SKILL_INSTALL_FLAGS,
+  BUILDER_SKILL_REPO,
+  BUILDER_SKILL_VERSION,
+  BUILDER_SKILL_PACKAGE,
+  BUILDER_SKILL_INSTALL_FLAGS,
+  BUILDER_OUTPUT_FOLDER,
+  BUILDER_REPORTS_FOLDER,
+  BUILDER_PERSISTENT_FACTS,
   TEA_CONFIG_FALLBACK_DEFAULTS,
   TEA_CONFIG_OVERRIDES,
   JIRA_BASE_URL,

@@ -18,6 +18,8 @@ const legacyMemory = require('./legacy-memory-migrator');
 const runner = require('./bmad-runner');
 const teaSkillInstaller = require('./tea-skill-installer');
 const teaSetup = require('./tea-setup');
+const builderSkillInstaller = require('./builder-skill-installer');
+const builderSetup = require('./builder-setup');
 const npmCache = require('./npm-cache');
 const gitignore = require('./gitignore');
 const layer = require('./stella-layer');
@@ -36,7 +38,8 @@ const seconds = (ms) => Math.max(1, Math.round(ms / 1000));
 /**
  * @param {string} root project folder
  * @param {object} deps prompt (required), fetch, verbose, runBmad(root, opts) → status,
- *   runTeaSkill(root, opts) → status, setupTeaConfig(root) → {status}, userHooks() → {status},
+ *   runTeaSkill(root, opts) → status, setupTeaConfig(root) → {status},
+ *   runBuilderSkill(root, opts) → status, userHooks() → {status},
  *   bootstrapMemory(root) → {domainMap, patterns},
  *   playwrightMcp.register(root) → [{name, status, detail}], ui, env, isTTY,
  *   now, home (credentials file lives under it), skipCredentials, skillsAtUserLevel
@@ -50,6 +53,7 @@ async function install(root, deps) {
     runBmad = (r, o) => runner.install(r, o),
     runTeaSkill = (r, o) => teaSkillInstaller.install(r, o),
     setupTeaConfig = (r) => teaSetup.apply(r),
+    runBuilderSkill = (r, o) => builderSkillInstaller.install(r, o),
     cleanNpmCache = () => npmCache.clean(),
     userHooks = defaultUserHooks,
     bootstrapMemory = (r) => memoryBootstrap.bootstrapIfMissing(r),
@@ -281,6 +285,30 @@ async function install(root, deps) {
       : `TEA config already present  ${summary.teaConfig.file}`;
   if (s4c) s4c.succeed(teaConfigText);
   else ui.line('ok', teaConfigText);
+
+  // 7d. BMad Builder skills (build a custom skill, workflow or agent). Fail-hard
+  // like the TEA step, so every install ends with the same skill set.
+  const builderStarted = now();
+  const builderTail = [];
+  const s4d = verbose ? null : ui.spin('installing Builder skills…');
+  const builderStatus = await runBuilderSkill(root, {
+    verbose,
+    write: () => {},
+    log: verbose ? note : (t) => builderTail.push(t),
+  });
+  const builderTook = `${seconds(now() - builderStarted)}s`;
+  if (builderStatus !== 0) {
+    if (s4d) s4d.fail(`exit ${builderStatus}`);
+    else ui.line('fail', `exit ${builderStatus}`);
+    for (const t of builderTail) ui.cont(t);
+    throw new Error(
+      `Builder skill install exited with code ${builderStatus}. The Stella layer was not installed.`,
+    );
+  }
+  // New skills go to .claude/skills/ (the Builder's own default folder is not loaded).
+  summary.builderConfig = builderSetup.apply(root);
+  if (s4d) s4d.succeed('Builder skills installed', builderTook);
+  else ui.line('ok', 'Builder skills installed', builderTook);
   ui.gap();
 
   // 8. gitignore

@@ -23,6 +23,8 @@ const jira = require('./jira-credentials-manager');
 const runner = require('./bmad-runner');
 const teaSkillInstaller = require('./tea-skill-installer');
 const teaSetup = require('./tea-setup');
+const builderSkillInstaller = require('./builder-skill-installer');
+const builderSetup = require('./builder-setup');
 const npmCache = require('./npm-cache');
 const pluginInstaller = require('./plugin-installer');
 const layer = require('./stella-layer');
@@ -107,8 +109,8 @@ function installApp({ home, repoRoot = REPO_ROOT, installAppDeps = defaultInstal
 }
 
 /**
- * Builds the master copy: the pinned official BMad install, the TEA skills (as
- * plain folders) and the [modules.tea] answers, in a staging folder that
+ * Builds the master copy: the pinned official BMad install, the TEA and Builder
+ * skills (as plain folders) and the [modules.tea] answers, in a staging folder that
  * replaces ~/.claude/stella/bmad-template/ only when every step succeeded.
  * @returns {Promise<object>} the template marker
  */
@@ -120,6 +122,7 @@ async function buildTemplate({
   runBmad,
   runTeaSkill,
   setupTeaConfig,
+  runBuilderSkill,
 }) {
   const final = userLevel.templateDir(home);
   const staged = final + NEW_SUFFIX;
@@ -137,6 +140,12 @@ async function buildTemplate({
     const teaStatus = await runTeaSkill(staged, { ...opts, copy: true });
     if (teaStatus !== 0) throw new Error(`TEA skill install exited with code ${teaStatus}.`);
     setupTeaConfig(staged);
+    const builderStatus = await runBuilderSkill(staged, { ...opts, copy: true });
+    if (builderStatus !== 0) {
+      throw new Error(`Builder skill install exited with code ${builderStatus}.`);
+    }
+    // Into the master copy's _bmad/, so every project gets it with /stella-init.
+    builderSetup.apply(staged);
 
     const bmadDir = path.join(staged, constants.BMAD_DIR);
     rm(path.join(bmadDir, 'render'));
@@ -165,7 +174,7 @@ function replaceDir(src, dest) {
 }
 
 /**
- * ~/.claude/skills/: the official BMad + TEA skills from the template (minus the
+ * ~/.claude/skills/: the official BMad + TEA + Builder skills from the template (minus the
  * ones a Stella skill replaces), and the Stella skills unless the plugin ships
  * them. Each folder is replaced by exact name; a developer's own skills stay.
  * Stella copies from an earlier run are removed in plugin mode only when that
@@ -267,7 +276,7 @@ const mcpOk = (m) => Boolean(m && ['registered', 'replaced', 'present'].includes
 
 /**
  * @param {object} deps prompt (required), fetch, verbose, ui, env, isTTY, now, home,
- *   repoRoot, check, tools, runBmad, runTeaSkill, setupTeaConfig, cleanNpmCache,
+ *   repoRoot, check, tools, runBmad, runTeaSkill, setupTeaConfig, runBuilderSkill, cleanNpmCache,
  *   pluginInstalled() → boolean, installPlugin({reinstall}) → {status, detail},
  *   installAppDeps(dir), mcp, playwrightMcp, userHooks
  * @returns {Promise<object>} summary
@@ -288,6 +297,7 @@ async function setup(deps) {
     runBmad = (r, o) => runner.install(r, o),
     runTeaSkill = (r, o) => teaSkillInstaller.install(r, o),
     setupTeaConfig = (r) => teaSetup.apply(r),
+    runBuilderSkill = (r, o) => builderSkillInstaller.install(r, o),
     cleanNpmCache = () => npmCache.clean(),
     installPlugin = (o) => pluginInstaller.ensure(o),
     // The CLI's own list, or the enabled flag in the settings when the CLI is missing.
@@ -425,6 +435,7 @@ async function setup(deps) {
       runBmad,
       runTeaSkill,
       setupTeaConfig,
+      runBuilderSkill,
     });
   } catch (error) {
     if (s1) s1.fail(error.message);
@@ -476,7 +487,7 @@ async function setup(deps) {
   userLevel.writeMachineState(summary.state, home);
   s3.succeed(
     [
-      `${summary.skills.bmadSkills.length} BMad + TEA skills`,
+      `${summary.skills.bmadSkills.length} BMad + TEA + Builder skills`,
       summary.pluginMode
         ? 'Stella skills + hooks from the plugin'
         : `${summary.skills.stellaSkills.length} Stella skills   session check hook`,

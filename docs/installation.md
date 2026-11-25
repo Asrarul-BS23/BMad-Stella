@@ -45,6 +45,7 @@ About 90 seconds.
 Also set up, with no question:
 
 - The official BMad and TEA (test architect) skills, next to the Stella skills.
+- Two BMad Builder skills for building your own skill, workflow or agent: `bmad-workflow-builder` and `bmad-agent-builder`. A skill you build goes to the project's `.claude/skills/`. Ask for a user-level skill and it goes to `~/.claude/skills/`.
 - The Playwright MCP servers `playwright` and `playwright-test`, registered for your user in Claude Code. `/stella-tea-live-testing` and the live bug hunt in `/stella-build` drive the browser through them.
 
 ## 2. Set up a project (once per project)
