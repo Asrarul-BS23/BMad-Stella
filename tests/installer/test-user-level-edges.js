@@ -534,15 +534,28 @@ const CREDS = ['dev@stella.com', 'tok-abcdefghijklmnop'];
     r = cli(ws, ['init', '--project', 'SLS', '--root', 'nope']);
     ok(r.status === 1 && r.stdout.includes('--root: no such folder'), 'cli: bad --root → exit 1');
 
+    // These two checks failed once in a full run and passed on every re-run. On a
+    // failure, print what the child process did, so the cause can be read from the log.
+    const okChild = (condition, message, child) => {
+      ok(condition, message);
+      if (condition) return;
+      const cut = (text) => String(text || '').slice(0, 2000);
+      console.log(`     exit code: ${child.status}, signal: ${child.signal}`);
+      if (child.error) console.log(`     spawn error: ${child.error.message}`);
+      console.log(`     stdout: ${cut(child.stdout)}`);
+      console.log(`     stderr: ${cut(child.stderr)}`);
+    };
+
     const noCreds = tmp('cli-h');
     r = spawnSync(process.execPath, [BIN, 'init', '--list-projects'], {
       cwd: none,
       encoding: 'utf8',
       env: { ...process.env, HOME: noCreds, USERPROFILE: noCreds },
     });
-    ok(
+    okChild(
       r.status === 1 && r.stdout.includes('No saved Atlassian credentials'),
       'cli: --list-projects without credentials → exit 1, says to run setup',
+      r,
     );
     r = spawnSync(process.execPath, [BIN, 'install'], {
       cwd: none,
@@ -555,9 +568,10 @@ const CREDS = ['dev@stella.com', 'tok-abcdefghijklmnop'];
         JIRA_API_TOKEN: '',
       },
     });
-    ok(
+    okChild(
       r.status === 1 && r.stdout.includes('No interactive terminal') && !exists(noCreds, '.claude'),
       'cli: install without a terminal and without credentials → exit 1, nothing written',
+      r,
     );
   }
 

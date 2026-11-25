@@ -26,6 +26,14 @@ For QA, on a ticket or a module name. Designs scenarios, writes test cases, runs
 
 After opening your PR, or when reviewing someone else's. Checks the PR against its ticket, writes findings under `_bmad-output/stella/reviewer/`, and offers to post them to GitHub. Details: [PR Review Guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1609760769/PR+Review+Guide).
 
+## Investigating a problem
+
+```
+/stella-investigate why does export fail on production?
+```
+
+When you need to know how an environment behaves, or why something is wrong there. Reads the code of the environment you name (dev, staging, production) at one pinned commit, plus what you paste: a client message, an image, a log. Can run read-only database queries. Changes nothing; type `*exit` to edit again. Case files are under `_bmad-output/stella/investigations/`. Details: [stella-investigate](stella-investigate.md).
+
 ## Other skills
 
 ```

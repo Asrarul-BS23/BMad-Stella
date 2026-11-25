@@ -128,6 +128,21 @@ class ClaudePermissionsManager {
       'Bash(git log *)',
       'Bash(git diff *)',
 
+      // Investigation (stella-investigate) — git READ commands that pin an environment to a
+      // commit. `git fetch origin` only updates the remote copies (origin/<branch>) and tags;
+      // no local branch and no checked-out file changes. The db-query helper is NOT listed:
+      // the guard hook decides each query (allow outside production, ask on production).
+      'Bash(git fetch origin)',
+      'Bash(git fetch origin --tags)',
+      'Bash(git rev-parse *)',
+      'Bash(git tag --list)',
+      'Bash(git tag --list *)',
+      'Bash(git branch -r)',
+      'Bash(git branch -r *)',
+      'Bash(git status)',
+      'Bash(git status *)',
+      'Bash(git ls-tree *)',
+
       // `cd` changes nothing by itself. Agents prefix commands with `cd <root> &&` when the
       // shell cwd drifts; Claude Code splits compound commands and checks each part, so
       // without this rule the harmless `cd` part sends the whole command to a prompt/classifier.
@@ -148,6 +163,16 @@ class ClaudePermissionsManager {
       'PowerShell(git grep *)',
       'PowerShell(git log *)',
       'PowerShell(git diff *)',
+      'PowerShell(git fetch origin)',
+      'PowerShell(git fetch origin --tags)',
+      'PowerShell(git rev-parse *)',
+      'PowerShell(git tag --list)',
+      'PowerShell(git tag --list *)',
+      'PowerShell(git branch -r)',
+      'PowerShell(git branch -r *)',
+      'PowerShell(git status)',
+      'PowerShell(git status *)',
+      'PowerShell(git ls-tree *)',
       'PowerShell(node _bmad/custom/stella/utils/pr-comments *)',
       'PowerShell(node _bmad/custom/stella/utils/pr-comments/index.js *)',
       'PowerShell(node _bmad/custom/stella/utils/jira-attachments)',

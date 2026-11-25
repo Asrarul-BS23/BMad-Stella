@@ -82,6 +82,7 @@ function copyStellaFiles(root, { project = null } = {}) {
     'jira-comment',
     'pr-comments',
     'project-context-worker',
+    'db-query',
   ]) {
     copyDir(path.join(SRC.utils, util), path.join(dest, 'utils', util));
   }

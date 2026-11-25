@@ -46,6 +46,7 @@ The plugin ships only the skills and hooks: a project still needs `/stella-init`
 | `/stella-build <JIRA key>`                      | Plans, implements and reviews a ticket. Never commits.                     |
 | `/stella-pr-review <PR url>`                    | Reviews a pull request against its ticket. Read-only.                      |
 | `/stella-tea-live-testing <JIRA key or module>` | Designs test cases for a ticket or module and runs them in a real browser. |
+| `/stella-investigate <question or JIRA key>`    | Answers from one environment's code and evidence. Read-only.               |
 | `/stella-domain-expert`                         | Answers questions from the project's domain docs.                          |
 | `/stella-project-context`                       | Redo the project context the installer generates.                          |
 | `/stella-init`                                  | Set up a project from the machine install.                                 |
@@ -58,6 +59,7 @@ The plugin ships only the skills and hooks: a project still needs `/stella-init`
 - [User guide](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1167622152/BMAD+Stella+User+Guide), the daily loop from ticket to PR
 - [stella-build](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1650950184/Stella+Build)
 - [PR review](https://stellaint.atlassian.net/wiki/spaces/AIL/pages/1609760769/PR+Review+Guide)
+- [stella-investigate](docs/stella-investigate.md)
 
 ## Requirements
 
