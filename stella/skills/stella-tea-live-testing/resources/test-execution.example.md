@@ -14,18 +14,19 @@ source_sha: '9f2c41d8b7e35a06c1d4f8e29b7a3c5d6e081f42'
 
 ## Results
 
-| ID             | Title                               | Expected Results                                               | Actual Results                                                    | Status      | Evidence/Comments                                    |
-| -------------- | ----------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------- | ----------- | ---------------------------------------------------- |
-| TC-STEL-123-01 | Create supplement with valid data   | Supplement saved; appears in list with correct name and dosage | Supplement saved; appears in list with correct name and dosage    | Pass        |                                                      |
-| TC-STEL-123-02 | Reject empty supplement name        | Validation error on Name; nothing saved                        | Form submitted; row created with blank name                       | Fail        | No validation fired on Save                          |
-| TC-STEL-123-03 | Edit supplement as customer role    | Both fields persist after save and reopen                      | Edit form opens and saves text fields; dosage field not persisted | Partly Pass | Dosage reverts on reopen                             |
-| TC-STEL-123-04 | Delete supplement with confirmation | Delete button available; confirmation removes the supplement   | Delete button missing on staging — feature flag off               | Blocked     | Precondition failed: `supplements_delete` flag off   |
-| TC-STEL-123-05 | Audit log lists supplement deletion | Audit log entry appears for the deletion                       |                                                                   | Not Run     | Depends on TC-STEL-123-04 (Blocked); user chose skip |
+| ID             | Title                               | Expected Results                                               | Actual Results                                                    | Status      | Severity | Evidence/Comments                                    |
+| -------------- | ----------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------- | ----------- | -------- | ---------------------------------------------------- |
+| TC-STEL-123-01 | Create supplement with valid data   | Supplement saved; appears in list with correct name and dosage | Supplement saved; appears in list with correct name and dosage    | Pass        |          |                                                      |
+| TC-STEL-123-02 | Reject empty supplement name        | Validation error on Name; nothing saved                        | Form submitted; row created with blank name                       | Fail        | High     | No validation fired on Save                          |
+| TC-STEL-123-03 | Edit supplement as customer role    | Both fields persist after save and reopen                      | Edit form opens and saves text fields; dosage field not persisted | Partly Pass | Medium   | Dosage reverts on reopen                             |
+| TC-STEL-123-04 | Delete supplement with confirmation | Delete button available; confirmation removes the supplement   | Delete button missing on staging — feature flag off               | Blocked     |          | Precondition failed: `supplements_delete` flag off   |
+| TC-STEL-123-05 | Audit log lists supplement deletion | Audit log entry appears for the deletion                       |                                                                   | Not Run     |          | Depends on TC-STEL-123-04 (Blocked); user chose skip |
 
 ## Failure Detail
 
 ### TC-STEL-123-02 — Reject empty supplement name (Fail)
 
+- **Severity:** High
 - **Steps to reproduce:** 1. Login as admin. 2. Open Supplements → Add. 3. Leave Name empty, fill Dosage `10mg`. 4. Click Save.
 - **Expected:** Validation error on Name; nothing saved.
 - **Actual:** Save succeeded; list shows a row with an empty name.
@@ -35,6 +36,7 @@ source_sha: '9f2c41d8b7e35a06c1d4f8e29b7a3c5d6e081f42'
 
 ### TC-STEL-123-03 — Edit supplement as customer role (Partly Pass)
 
+- **Severity:** Medium
 - **Steps to reproduce:** 1. Login as customer. 2. Open an owned supplement. 3. Change Name to `Vitamin D3`. 4. Change Dosage to `20mg`. 5. Save and reopen.
 - **Expected:** Both fields persist.
 - **Actual:** Name persisted; Dosage reverted to `10mg` on reopen.

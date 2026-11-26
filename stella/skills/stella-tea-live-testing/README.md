@@ -41,6 +41,8 @@ Copy the two templates from this skill's `config/` folder into `{project-root}/_
 - `stella-tea-live-testing.user.toml` — environments (base URLs, role-keyed users), defaults. Gitignored; non-secret only.
 - `stella-tea-live-testing.secrets.env` — password values, referenced by name (`password_env`) from the TOML. Gitignored.
 
+The skill also keeps `stella-tea-live-testing.learnings.md` there: corrections you confirmed ("we never test this", "this failure is known"), which later runs follow. Edit or delete lines freely.
+
 Secret resolution order at run time: `secrets.env` → OS environment variable → ask. Any missing config value is asked for, never fatal; the skill offers to rewrite a wiped config from these templates.
 
 ## Artifacts

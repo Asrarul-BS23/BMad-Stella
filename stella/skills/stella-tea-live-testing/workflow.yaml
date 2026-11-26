@@ -14,7 +14,7 @@ template: "./templates/test-cases-template.md"
 
 # Variables and inputs
 variables:
-  flow_mode: "auto-detect" # auto-detect (default), qa, dev — see SKILL.md Flow Mode priority order
+  flow_mode: "auto-detect" # auto-detect (default), qa, dev — see SKILL.md Flow Mode priority order; qa when nothing decides, never asked
   environment: "" # execution environment name; empty = {workflow.defaults.environment}, ask if unset
   user: "" # role-keyed login user; empty = {workflow.defaults.user}, ask if unset
   viewports: "" # empty = desktop only (default); comma list enables on-request responsive runs,

@@ -53,11 +53,11 @@ This list is the **single source** of the flow-mode priority order; SKILL.md and
    - A module name (a named area of the system, no ticket pattern, no spec file) → `flow_mode = qa`. The dev flow's input is always an implementation spec, so a module name always means `qa`.
    - A bmad-builder implementation spec (a path to it, or words like "my implementation", "the spec", "before handoff") → `flow_mode = dev`.
 4. **Personal default.** `{workflow.defaults.flow_mode}` is set and the input does not contradict it → use it.
-5. **Ask.** Display exactly one question (interactive, per the `SKILL.md` convention — options: "QA run" / "Dev bug hunt") and **halt** until answered:
-
-   > "Is this (A) a **QA run** — design, lock, and execute test cases for a ticket or module — or (B) a **dev bug hunt** — test your own implemented ticket from its spec before handoff?"
+5. **Default `qa`.** No rule above fired → `flow_mode = qa`. Never ask the user which mode to run.
 
 State the resolved `flow_mode` and which rule resolved it.
+
+**Save the mode once.** When `[workflow.defaults] flow_mode` is empty or missing, save the resolved `flow_mode` there in `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml` (Config Ask-Fallback autosave in `{skill-root}/resources/execution-rules.md` section 6 — one-line notice, no save question). This applies to every run, a `SD` run included. A value already saved is never overwritten.
 
 ## 2. Route Dev Flow Now
 
@@ -69,7 +69,7 @@ State the resolved `flow_mode` and which rule resolved it.
 
 1. **Ticket input:** `{key}` = the ticket key verbatim, uppercase (e.g. `STEL-123`).
 2. **Module input:** `{key}` = the module name slugified: lowercase; replace every run of characters outside `a-z0-9` with a single `-`; trim leading/trailing `-`; truncate to 64 characters. Record the original module name alongside the slug — later steps and published pages use the human name, paths use the slug.
-3. **No input supplied:** ask "Which Jira ticket key or module name is this run for?" and **halt**. Apply rule 1 or 2 to the answer.
+3. **No input supplied:** ask "Which Jira ticket key or module name is this run for?" and **halt** — this is the only thing a run without input asks here. Apply rule 1 or 2 to the answer.
 
 Carry `flow_mode`, `{key}`, and `input_type` (`ticket` | `module`) forward through every remaining step.
 
@@ -116,14 +116,16 @@ Load next step: `{nextStepFile}`
 
 ### ✅ SUCCESS:
 
-- `flow_mode` resolved by the priority order, with the deciding rule stated
+- `flow_mode` resolved by the priority order, with the deciding rule stated; `qa` when no rule fired
+- Resolved mode saved as the default only when none was saved
 - Dev flow routed out before any checkpoint was written
 - `{key}` resolved before the first save; checkpoint written to the path it names
 - Any pre-existing checkpoint reported to the user and resumed or replaced on their answer
 
 ### ❌ SYSTEM FAILURE:
 
-- Guessing `flow_mode` when the rules gave no answer
+- Asking the user which mode to run
+- Overwriting a saved `flow_mode`
 - Writing a checkpoint for a dev run
 - Saving progress before `{key}` is resolved
 - Appending this run's progress to a previous run's checkpoint

@@ -178,6 +178,20 @@ th {
   background: var(--neutral);
 }
 
+/* Severity badges (Fail / Partly Pass cases only) */
+.badge.sev-critical {
+  background: #7a1410;
+}
+.badge.sev-high {
+  background: #c2410c;
+}
+.badge.sev-medium {
+  background: var(--warn);
+}
+.badge.sev-low {
+  background: var(--neutral);
+}
+
 code {
   background: var(--code);
   padding: 1px 4px;

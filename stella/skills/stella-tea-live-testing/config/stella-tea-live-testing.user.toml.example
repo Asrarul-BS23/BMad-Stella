@@ -25,7 +25,13 @@ user = "admin"
 #                            # md = markdown only. Saved by the skill on first ask.
 # report_theme = "light"     # light | dark — HTML report theme. Light is the default;
 #                            # saved by the skill only when you ask for dark. PDF stays light.
-# flow_mode = "dev"          # optional personal default flow (qa | dev)
+# flow_mode = "qa"           # qa | dev — default flow, used when the input does not decide.
+#                            # Saved by the skill when empty; the skill never overwrites it.
+# explore_code = true        # true | false — QA flow: explore code or not. Saved by the skill
+#                            # on first ask; later runs follow it and do not ask again.
+# code_path = ""             # where the code is: "" = this project folder, or a folder path.
+#                            # "invalid" = no code found; the skill skips code and never asks
+#                            # again. Edit it to point at the right folder.
 # module_publish = ""        # saved by the skill: confluence | jira | files
 # spec_path = ""             # dev mode: saved by the skill after you point it at specs once
 

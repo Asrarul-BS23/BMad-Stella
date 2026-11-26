@@ -81,3 +81,18 @@ When any value a run needs is missing from config (environment, base URL, user, 
 ## 9. No Redundant Questions
 
 A value already supplied this run (invocation, config, or checkpoint) is resolved — never re-ask it. Ask only when a needed value is absent from invocation, config, and checkpoint. This rule removes redundant asks; it never shrinks a gate — the execution-integrity halts above, the blocked cascade (section 3), and any approval gate stay in force regardless of how talkative the user has been.
+
+## 10. Severity
+
+Every `Fail` and `Partly Pass` case gets one severity. `Pass`, `Blocked`, and `Not Run` cases get none.
+
+| Severity   | Meaning                                                                                   |
+| ---------- | ----------------------------------------------------------------------------------------- |
+| `Critical` | The main flow cannot be completed, or data is lost or wrong, or access control is broken. |
+| `High`     | An important function fails and there is no easy way around it.                           |
+| `Medium`   | A function fails, but the user can still reach the goal another way.                      |
+| `Low`      | Cosmetic or wording issue; the function works.                                            |
+
+- Judge by the impact on the user, not by how the failure looks or how hard the fix seems.
+- A matching `priority` learning (`{skill-root}/resources/learnings.md`) decides the severity where it applies.
+- 🚫 Severity never changes a verdict: a `Low` failure is still `Fail`. Severity ranks failures; it never softens, hides, or drops one.

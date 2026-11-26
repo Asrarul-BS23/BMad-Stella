@@ -37,7 +37,11 @@ This workflow uses **step-file architecture** for disciplined execution:
 
 ### Shared Execution Rules
 
-Both flows execute test cases under one rulebook: `{skill-root}/resources/execution-rules.md`. It defines the execution integrity rule, every status, evidence naming, blocked semantics, viewport handling, and the config ask-fallback. The execution steps (`steps-c/step-06-execute.md`, `steps-dev/step-03-execute-triage.md`) load it before driving the browser. QA and dev execution behavior never drifts apart because it lives in one file.
+Both flows execute test cases under one rulebook: `{skill-root}/resources/execution-rules.md`. It defines the execution integrity rule, every status, evidence naming, blocked semantics, viewport handling, and the config ask-fallback. The execution steps (`steps-c/step-06-execute.md`, `steps-dev/step-03-execute-triage.md`) load it before driving the browser. QA and dev execution behavior never drifts apart because it lives in one file. It also defines the severity scale every failed case is ranked with.
+
+### Learnings
+
+`{skill-root}/resources/learnings.md` is the rulebook for corrections the user wants kept: when the skill proposes a rule, how it is saved with one question, and how later runs follow it. Both flows read the saved learnings; a learning never changes a verdict.
 
 ---
 

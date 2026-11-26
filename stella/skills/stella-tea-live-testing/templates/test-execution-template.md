@@ -19,12 +19,14 @@ One row per executed case (times viewport combination when viewports were reques
 Expected Results: copied verbatim from the case, never reworded. Fill Actual Results for
 every attempted case. Evidence/Comments: NOTES ONLY — never a screenshot path or link.
 All screenshots appear embedded in the per-case sections below. For a skipped dependent,
-name the blocking case here.
+name the blocking case here. Severity: Critical | High | Medium | Low for Fail and
+Partly Pass rows only; empty for every other status. A failure that matches a
+known-issue learning gets "Known issue: {rule}" in Evidence/Comments.
 -->
 
-| ID          | Title   | Expected Results | Actual Results | Status   | Evidence/Comments |
-| ----------- | ------- | ---------------- | -------------- | -------- | ----------------- |
-| TC-{key}-01 | {title} | {expected}       | {observed}     | {status} | {notes}           |
+| ID          | Title   | Expected Results | Actual Results | Status   | Severity   | Evidence/Comments |
+| ----------- | ------- | ---------------- | -------------- | -------- | ---------- | ----------------- |
+| TC-{key}-01 | {title} | {expected}       | {observed}     | {status} | {severity} | {notes}           |
 
 ## Failure Detail
 
@@ -32,6 +34,7 @@ name the blocking case here.
 
 ### TC-{key}-{n} — {title} ({status})
 
+- **Severity:** {Critical | High | Medium | Low}
 - **Steps to reproduce:** {numbered, exactly as driven}
 - **Expected:** {from the case}
 - **Actual:** {what the browser showed}

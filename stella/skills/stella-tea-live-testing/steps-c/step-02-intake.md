@@ -124,8 +124,17 @@ Both run types reach here. Gather everything still unresolved, then ask **once**
    - **Scope confirm** (always): "Scenario design will cover this scope — anything to add or exclude?" Options: "Scope is right" (recommended) / additions or exclusions via "Other". Ticket run: the question is grounded in the digest.
    - **Environment** (when unresolved): options from the environments configured in the workflow block.
    - **User/role** (when unresolved): options from the environment's configured roles.
-   - **Impacted areas/systems** (ticket runs, **only when step-03's commit-driven exploration will be skipped for lack of code access** — no git repo at `{project-root}` and no link to the code): "Which other areas/systems does this change impact?" Options seeded from the brief's linked issues and named screens, plus "No other areas"; free input via "Other". With code access this question never appears — the ripple analysis covers it.
-4. **After the answers:** record the confirmed scope (and any impacted-areas answer) in the checkpoint body. Any config value supplied → apply the Config Ask-Fallback in `{executionRules}` (section 6): **autosave** non-secret answers into `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml` (from `{userConfigExample}` when absent) with a one-line notice — no save question; secret **values** go into `stella-tea-live-testing.secrets.env` (from `{secretsExample}`) only after an explicit yes. Do **not** resolve password values now — execution resolves them at step 6; here you only confirm the references exist or are provided.
+   - **Code exploration** (only when `{workflow.defaults.explore_code}` is not saved): "Do you want me to explore code?" Options: "Yes" / "No".
+   - **Impacted areas/systems** (ticket runs, **only when this run does not explore code** — item 4): "Which other areas/systems does this change impact?" Options seeded from the brief's linked issues and named screens, plus "No other areas" and "Skip"; free input via "Other". The user may skip it or give no input — the run continues either way. When the run explores code this question never appears — the ripple analysis covers it.
+4. **Settle code exploration** (QA flow only). The saved `[workflow.defaults] explore_code` and `code_path` decide it; a saved answer is never asked again.
+   - Answer **No** → save `explore_code = false`.
+   - Answer **Yes** → save `explore_code = true`, then ask one interactive question: "Where is the code?" Options: "This project folder" (recommended) / a custom path via "Other". Project folder → save `code_path = ""`. A custom folder is saved only when it holds a project — it exists and contains source code. When it does not, say there is no code in that folder and ask once more. When the second folder holds none either, say the run moves on without code and save `code_path = "invalid"`.
+   - `code_path = "invalid"` → no code exploration and no question, on this run and later ones, until the user names a new folder or edits the `.user.toml`.
+   - A saved folder that no longer exists → say so in one line and run without code this time; keep the saved value and ask nothing.
+
+   **This run explores code** only when `explore_code = true` and `code_path` resolves to an existing folder (`""` or not set = `{project-root}`) — that folder is the **code folder**. Step-03 follows this and nothing else. On a ticket run that does not explore code, ask the impacted-areas question now when the bundle did not carry it.
+
+5. **After the answers:** record the confirmed scope, whether the run explores code (and the code folder), and any impacted-areas answer in the checkpoint body. Any config value supplied → apply the Config Ask-Fallback in `{executionRules}` (section 6): **autosave** non-secret answers into `{project-root}/_bmad/custom/stella-tea-live-testing.user.toml` (from `{userConfigExample}` when absent) with a one-line notice — no save question; secret **values** go into `stella-tea-live-testing.secrets.env` (from `{secretsExample}`) only after an explicit yes. Do **not** resolve password values now — execution resolves them at step 6; here you only confirm the references exist or are provided.
 
 ### 5. Save Progress
 
@@ -138,14 +147,16 @@ Load next step: `{nextStepFile}`
 ### ✅ SUCCESS:
 
 - Ticket run: brief written from real Jira data, ACs numbered, comments carried verbatim; derived ACs confirmed by the user; an attachment-fetch failure noted, not halted on
-- Scope confirmed through the **single** section-4 interactive bundle — never a series of sequential asks; decision context stated before the bundle
+- Scope confirmed through the **single** section-4 interactive bundle — never a series of sequential asks; decision context stated before the bundle. The only follow-ups are the first-run code-folder question and, on a ticket run that turned out not to explore code, the impacted-areas question
 - Environment resolved; every missing config value asked for inside the bundle, never silently defaulted
-- Impacted-areas question asked only on a ticket run without code access
+- Code exploration asked once per project, saved, and never asked again; a custom folder saved only after it was checked
+- Impacted-areas question asked only on a ticket run that does not explore code, and always skippable
 
 ### ❌ SYSTEM FAILURE:
 
 - Brief content invented or paraphrased beyond field conversion
 - Continuing without a reachable Jira MCP on a ticket run
+- Re-asking a saved code-exploration answer, or saving a custom folder that holds no code
 - A credential value written to any file under `{test_artifacts}`
 
 **Master Rule:** Skipping steps is FORBIDDEN.

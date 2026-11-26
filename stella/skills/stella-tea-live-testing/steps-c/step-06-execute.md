@@ -66,10 +66,10 @@ For each case in scope (the full `{casesFile}` in file order, or only the chosen
 1. Announce `TC-{key}-{n} — {title}`.
 2. Establish the precondition, including role login **before** the test body.
 3. Drive each numbered step through Playwright MCP exactly as written. Observe the result of each step against the expected results.
-4. Assign the status per `{executionRules}` section 2. Record per-step results for `Fail` / `Partly Pass`.
+4. Assign the status per `{executionRules}` section 2. Record per-step results for `Fail` / `Partly Pass`, and give each such case a severity per `{executionRules}` section 10 — the severity ranks the failure and never changes its status.
 5. Capture screenshots per `{executionRules}` section 4 — every executed case, at the moment the expected result (or its absence) is visible, following the **mandatory capture sequence** (verdict → green/red mark (box, or arrow when no single element) → shoot → remove) — into `{evidenceDir}`.
 6. On a `Blocked` case with dependents, run the blocked-cascade question (`{executionRules}` section 3) and **halt** for the answer.
-7. Record the case's result (status, observed actuals, per-step detail, evidence paths) in working notes for step-07 **before** starting the next case.
+7. Record the case's result (status, severity when failed, observed actuals, per-step detail, evidence paths) in working notes for step-07 **before** starting the next case.
 
 If the user interrupts the run, update the checkpoint **without** appending `step-06-execute` to `stepsCompleted`: keep `nextStep: '{skill-root}/steps-c/step-06-execute.md'`, record the last executed case and each finished case's result in the checkpoint body — also record `{datetime}`, `environment`, and `source_sha` there, so the resumed run is the same run — set `lastSaved: '{date}'`, and stop. Resume then re-enters this step and continues from the first unexecuted case — finished cases keep their recorded results; nothing re-runs. Section 3's completion save happens only when every case has a final status.
 
@@ -87,6 +87,7 @@ Load next step: `{nextStepFile}`
 - Evidence captured for every executed case (Pass included), named per the rules, under the run's `{datetime}` folder
 - Credentials resolved before the first case; none written to any artifact
 - Blocked cascades asked, never silently decided
+- Every `Fail` / `Partly Pass` case carries a severity; no other status does
 - A scoped run only asked when a propagation actually occurred since the last run; full suite is the default otherwise
 
 ### ❌ SYSTEM FAILURE:
