@@ -130,6 +130,7 @@ Each `{key}`'s outputs split in two. **Deliverables** — files handed to the te
   exploration/                           <- exploration images copied with scenarios.md, links rewritten
   evidence/{datetime}/tc-{n}.png         <- screenshots for EVERY executed case (Pass included); tc-{n}-step-{m}.png for per-step shots
   progress.md                            <- this key's progress checkpoint (stores flowMode and Confluence page id)
+  validation-report-{run_timestamp}.md   <- Validate mode findings; one per validation, never overwritten
 ```
 
 QA execute runs additionally merge their results into `{test_artifacts}/live-verification-results.json` — the root-level file TEA's `trace` reads. Dev runs never write it: dev runs never count as QA coverage. `test-cases.md` is likewise a QA-flow artifact only — dev runs never write it; the `mode: dev` execution report is a dev run's only artifact.

@@ -56,6 +56,11 @@ outputs:
     path: "{test_artifacts}/live-verification-results.json"
     flow: qa
 
+  - id: validation-report
+    description: "Validate mode findings against checklist.md; one file per validation, never overwritten"
+    path: "{test_artifacts}/stella/{key}/validation-report-{run_timestamp}.md"
+    flow: both
+
   - id: progress-checkpoint
     description: "Per-key resume checkpoint; also stores flowMode and the Confluence page id"
     path: "{test_artifacts}/stella/{key}/progress.md"

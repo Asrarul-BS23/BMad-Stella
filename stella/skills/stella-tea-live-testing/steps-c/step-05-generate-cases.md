@@ -86,7 +86,7 @@ Case-level edits here do not touch `{scenariosFile}`. If a requested change cont
 
 **Ticket runs — attachment cleanup:** run `node {project-root}/_bmad/custom/stella/utils/jira-attachments {key} --purge`, then delete `{attachmentsDir}` (the copy made at intake). Attachments are scenario-design input only; once cases are locked, they serve no further purpose. The brief's Context section keeps the text record that they existed — only the files are removed.
 
-**Module runs — pre-run publish offer:** two-stage interactive ask, exactly as step-07 §4 defines it. Stage 1: "Publish the case sheet?" (yes/no). Stage 2, on yes: destination (Confluence / new Jira ticket / files only), with the saved `module_publish` first as the recommended option when it exists — never silently applied; autosave the answer. Then follow step-07 §4's anchor flow for the chosen backend: one high-level anchor (Confluence folder/page link, or Jira project/sprint; saved anchor recommended), explore the nested tree under it for structure and naming conventions, and propose the placement — any **new** folder/page/ticket is shown with its parent, proposed name, and content **before** the yes. Autosave the anchor and refreshed `convention_brief`. Publish the case sheet as `{casesFile}` now reads (verdict columns empty) — identical content to what step-07 would publish later. Save the created `confluencePageId` / `jiraCaseTicketKey` to the checkpoint. This destination ask runs **once** per key, here; step-07 does not repeat it — its own publish step later **offers** an update of the same saved page/ticket (explicit yes required), never a silent one.
+**Module runs — pre-run publish offer:** two-stage interactive ask, exactly as step-07 §4 defines it. Stage 1: "Publish the case sheet?" (yes/no). Stage 2, on yes: destination (Confluence / new Jira ticket / files only), with the saved `module_publish` first as the recommended option when it exists — never silently applied; autosave the answer. Then follow step-07 §4's anchor flow for the chosen backend: one high-level anchor (Confluence folder/page link, or Jira project/sprint; saved anchor recommended), explore the nested tree under it for structure and naming conventions, and propose the placement — any **new** folder/page/ticket is shown with its parent, proposed name, and content **before** the yes. Autosave the anchor and refreshed `convention_brief`. Publish the case sheet as `{casesFile}` now reads (verdict columns empty) — identical content to what step-07 would publish later. Save the created `confluencePageId` / `jiraCaseTicketKey` to the checkpoint. When a page or ticket is published here, step-07 does not ask for the destination again — its own publish step later **offers** an update of the same saved page/ticket (explicit yes required), never a silent one. When nothing is published here, step-07 makes the same offer once more after the run.
 
 ### 6. Save Progress
 
@@ -102,7 +102,7 @@ Load next step: `{nextStepFile}`
 - Continuous IDs, sectioned tables, empty verdict columns
 - Re-entry propagated only changed scenarios, with a cause-linked change summary; `generated_from` refreshed on every propagation
 - Lock flipped only on explicit approval
-- Ticket-run approval purges fetched attachments; module-run approval offers publish once, consistent with step-07's defaults
+- Ticket-run approval purges fetched attachments; module-run approval offers publish, consistent with step-07's defaults
 
 ### ❌ SYSTEM FAILURE:
 

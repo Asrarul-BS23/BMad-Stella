@@ -400,6 +400,53 @@ const rulesOf = (md) => {
   );
 }
 
+// --- Text consistency fixes ----------------------------------------------
+{
+  const spec = read('steps-dev', 'step-01-spec-intake.md');
+  ok(
+    /then autosave the answer to `\[workflow\.defaults\] spec_path`/.test(spec),
+    'spec_path: saved',
+  );
+  ok(!/offer to save the answer/.test(spec), 'spec_path: no save question');
+
+  const cases = read('steps-c', 'step-05-generate-cases.md');
+  const report = read('steps-c', 'step-07-report.md');
+  ok(
+    !/step-07 does not repeat it/.test(cases),
+    'publish: step-05 no longer denies the step-07 ask',
+  );
+  ok(
+    /When nothing is published here, step-07 makes the same offer once more/.test(cases),
+    'publish: steps agree',
+  );
+  ok(
+    /nothing published yet/.test(report),
+    'publish: step-07 still offers when nothing was published',
+  );
+  ok(!/open item 7/.test(report), 'report: no pointer to a missing design doc');
+
+  const assess = read('steps-e', 'step-01-assess.md');
+  ok(
+    /`test-cases\.md` under `\{test_artifacts\}\/\*\/`/.test(assess),
+    'edit: names the deliverables folder',
+  );
+  ok(
+    /`scenarios\.md` under `\{test_artifacts\}\/stella\/\*\/`/.test(assess),
+    'edit: names the internal folder',
+  );
+
+  const VALIDATION = 'validation-report-{run_timestamp}.md';
+  ok(read('SKILL.md').includes(VALIDATION), 'outputs: SKILL lists the validation report');
+  ok(read('workflow.yaml').includes(`stella/{key}/${VALIDATION}`), 'outputs: workflow lists it');
+  ok(
+    read('steps-v', 'step-01-validate.md').includes(`stella/{key}/${VALIDATION}`),
+    'outputs: same path as the step',
+  );
+
+  const doc = fs.readFileSync(path.join(REPO, 'docs', 'stella-tea-live-testing.md'), 'utf8');
+  ok(!/Answer `y` or `n`/.test(doc), 'doc: no y/n answer');
+}
+
 console.log(
   `tea-live-testing: ${total - fails}/${total} passed${fails ? ` — ${fails} FAILED` : ''}`,
 );

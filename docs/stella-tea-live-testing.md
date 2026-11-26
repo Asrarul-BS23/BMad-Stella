@@ -22,7 +22,7 @@ A module name also works. Nothing is fetched from Jira.
 2. Designs test scenarios from the ticket, the code changes and the live UI, and shows them for approval.
 3. Writes test cases from the approved scenarios and shows them for approval.
 4. Runs each approved case in the browser, one by one, and takes a screenshot of every result.
-5. Writes the run report, opens it, and offers to publish. Answer `y` or `n`.
+5. Writes the run report, opens it, and offers to publish. Nothing is published unless you choose it.
 
 At each approval, choose **Approved** or **Refine**. Nothing continues before you approve.
 
