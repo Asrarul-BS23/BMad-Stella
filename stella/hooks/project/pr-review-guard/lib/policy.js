@@ -385,4 +385,14 @@ module.exports = {
   unsafeScriptReason,
   ALLOWED_SUMMARY,
   ALLOWED_COMMANDS,
+  // shared with lib/investigate-policy.js
+  tokenize,
+  unquote,
+  flagName,
+  stripQuoted,
+  stripLeadingCd,
+  normalizePath,
+  SHELL_OPERATOR_RE,
+  ISSUE_KEY_RE,
+  JIRA_FETCH_HELPER_RE,
 };

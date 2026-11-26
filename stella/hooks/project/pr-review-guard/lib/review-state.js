@@ -1,9 +1,10 @@
 'use strict';
 
-// pr-review guard — "is a PR review active in this session?"
-// Derived from the session transcript, never from a sentinel the agent could
-// forget. Incremental: a per-session cache stores how many transcript lines
-// were already scanned and the state they produced, so each tool call only
+// Guard state — "which guarded skill is active in this session?"
+// Two skills are guarded: stella-pr-review and stella-investigate. At most one is
+// active at a time. Derived from the session transcript, never from a sentinel the
+// agent could forget. Incremental: a per-session cache stores how many transcript
+// lines were already scanned and the state they produced, so each tool call only
 // reads the new tail.
 
 const fs = require('node:fs');
@@ -11,23 +12,29 @@ const path = require('node:path');
 const paths = require('./paths');
 
 const REVIEW_SKILL = 'stella-pr-review';
+const INVESTIGATE_SKILL = 'stella-investigate';
 
-// Review START markers — exactly two (user decision, v6 migration):
+// START markers — exactly two per skill (user decision, v6 migration):
 //   1. the user typed the skill command (Claude Code records it as
 //      <command-name>/stella-pr-review</command-name>, or as raw text)
 //   2. Claude Code launched the skill (a `Skill` tool call naming it)
 // A Read of the skill file, or the name in prose, is NOT a start.
 const COMMAND_TAG_RE = /<command-name>\/?stella-pr-review<\/command-name>/i;
 const COMMAND_TEXT_RE = /^\s*\/stella-pr-review(?:\s|$)/i;
+// stella-investigate also ships in the plugin, where the command carries the
+// plugin name in front: /bmad-stella:stella-investigate
+const INVESTIGATE_TAG_RE = /<command-name>\/?(?:[a-z0-9-]+:)?stella-investigate<\/command-name>/i;
+const INVESTIGATE_TEXT_RE = /^\s*\/(?:[a-z0-9-]+:)?stella-investigate(?:\s|$)/i;
+const INVESTIGATE_SKILL_RE = /^(?:[a-z0-9-]+:)?stella-investigate$/i;
 
-// Review END markers
+// END markers
 const EXIT_RE = /(^|\n)\s*\*exit\b/i;
 // any other BMad / Stella skill command
 const OTHER_COMMAND_TAG_RE =
   /<command-name>\/?(?:bmad|stella)-(?!pr-review<)[^<]+<\/command-name>/i;
 const OTHER_COMMAND_TEXT_RE = /^\s*\/(?:bmad|stella)-(?!pr-review(?:\s|$))\S+/i;
 const OTHER_SKILL_RE = /^(?:bmad|stella)-(?!pr-review$)/i;
-// review ends when the report is written: <reviewer>/<review-folder>/review.md
+// a PR review ends when the report is written: <reviewer>/<review-folder>/review.md
 const FINDINGS_FILE_RE = new RegExp(
   `(^|${paths.SEP})${paths.REVIEWER_RE_PART}${paths.SEP}(?!\\.scratch${paths.SEP})[^\\\\/]+${paths.SEP}review\\.md$`,
 );
@@ -44,8 +51,12 @@ function userText(content) {
   return '';
 }
 
-// Returns 'start' | 'end' | null for one transcript line.
-function classifyLine(line) {
+/**
+ * What one transcript line means for the guard. `by` says who caused it: a line
+ * the user typed, or a tool call of the agent.
+ * @returns {null | {kind: 'start', skill: string, by: string} | {kind: 'end', by: string} | {kind: 'review-written', by: string}}
+ */
+function classify(line) {
   let obj;
   try {
     obj = JSON.parse(line);
@@ -56,9 +67,16 @@ function classifyLine(line) {
     if (obj.isMeta) return null; // injected skill bodies, not the human
     const c = userText(obj.message && obj.message.content);
     if (!c) return null;
-    if (COMMAND_TAG_RE.test(c) || COMMAND_TEXT_RE.test(c)) return 'start';
-    if (OTHER_COMMAND_TAG_RE.test(c) || OTHER_COMMAND_TEXT_RE.test(c)) return 'end';
-    if (EXIT_RE.test(c)) return 'end';
+    if (COMMAND_TAG_RE.test(c) || COMMAND_TEXT_RE.test(c)) {
+      return { kind: 'start', skill: REVIEW_SKILL, by: 'user' };
+    }
+    if (INVESTIGATE_TAG_RE.test(c) || INVESTIGATE_TEXT_RE.test(c)) {
+      return { kind: 'start', skill: INVESTIGATE_SKILL, by: 'user' };
+    }
+    if (OTHER_COMMAND_TAG_RE.test(c) || OTHER_COMMAND_TEXT_RE.test(c)) {
+      return { kind: 'end', by: 'user' };
+    }
+    if (EXIT_RE.test(c)) return { kind: 'end', by: 'user' };
     return null;
   }
   if (obj.type === 'assistant') {
@@ -68,30 +86,53 @@ function classifyLine(line) {
       if (!block || block.type !== 'tool_use' || !block.input) continue;
       if (block.name === 'Skill') {
         const skill = String(block.input.skill || '').trim();
-        if (skill.toLowerCase() === REVIEW_SKILL) return 'start';
-        if (OTHER_SKILL_RE.test(skill)) return 'end';
+        if (skill.toLowerCase() === REVIEW_SKILL) {
+          return { kind: 'start', skill: REVIEW_SKILL, by: 'agent' };
+        }
+        if (INVESTIGATE_SKILL_RE.test(skill)) {
+          return { kind: 'start', skill: INVESTIGATE_SKILL, by: 'agent' };
+        }
+        if (OTHER_SKILL_RE.test(skill)) return { kind: 'end', by: 'agent' };
         continue;
       }
       const fp = String(block.input.file_path || '').replaceAll('\\', '/');
-      if (block.name === 'Write' && FINDINGS_FILE_RE.test(fp)) return 'end';
+      if (block.name === 'Write' && FINDINGS_FILE_RE.test(fp)) {
+        return { kind: 'review-written', by: 'agent' };
+      }
     }
   }
   return null;
 }
 
+// The PR review's view of one line: 'start' | 'end' | null. Another guarded skill
+// starting ends the review, like any other skill command does.
+function classifyLine(line) {
+  const mark = classify(line);
+  if (!mark) return null;
+  if (mark.kind === 'start') return mark.skill === REVIEW_SKILL ? 'start' : 'end';
+  if (mark.kind === 'end' || mark.kind === 'review-written') return 'end';
+  return null;
+}
+
 function cachePath(root, sessionId) {
   const safe = String(sessionId).replaceAll(/[^A-Za-z0-9_-]/g, '_');
-  return path.join(paths.stateDir(root), `${safe}.json`);
+  // Own file name. Guard copies from before stella-investigate keep `<id>.json` in
+  // another format. Sharing one file made each copy misread the other's state.
+  return path.join(paths.stateDir(root), `${safe}.guard.json`);
 }
 
 function readCache(file) {
   try {
     const c = JSON.parse(fs.readFileSync(file, 'utf8'));
-    if (typeof c.scannedLines === 'number' && typeof c.active === 'boolean') return c;
+    if (typeof c.scannedLines === 'number' && typeof c.active === 'boolean') {
+      // a cache with no skill name means "PR review", the only guarded skill then
+      const skill = c.active ? c.skill || REVIEW_SKILL : null;
+      return { scannedLines: c.scannedLines, active: c.active, skill };
+    }
   } catch {
     /* missing or corrupt */
   }
-  return { scannedLines: 0, active: false };
+  return { scannedLines: 0, active: false, skill: null };
 }
 
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -161,30 +202,45 @@ function cleanupScratch(root) {
  * @param {string} root        BMad project root
  * @param {string} sessionId
  * @param {string} transcriptPath
- * @returns {{active: boolean, justStarted: boolean, justEnded: boolean}}
+ * @returns {{active: boolean, justStarted: boolean, justEnded: boolean, skill: string|null}}
+ *   `active`, `justStarted` and `justEnded` describe the PR review only (its scratch
+ *   sandbox depends on them). `skill` names whichever guarded skill is active.
  */
 function reviewState(root, sessionId, transcriptPath) {
-  const none = { active: false, justStarted: false, justEnded: false };
+  const none = { active: false, justStarted: false, justEnded: false, skill: null };
   if (!transcriptPath || !fs.existsSync(transcriptPath)) return none;
 
   const file = cachePath(root, sessionId);
   const cache = readCache(file);
 
   const lines = fs.readFileSync(transcriptPath, 'utf8').split(/\r?\n/);
+  // A transcript that ends with a line break gives one empty last element. It is
+  // not a line: counting it would make the next scan skip the first new line.
+  if (lines.at(-1) === '') lines.pop();
   // Transcript was replaced/truncated (new session file reused id) -> rescan from 0
   const from = lines.length >= cache.scannedLines ? cache.scannedLines : 0;
-  const before = from === 0 ? false : cache.active;
-  let active = before;
+  const beforeSkill = from === 0 ? null : cache.skill;
+  let skill = beforeSkill;
 
   for (let i = from; i < lines.length; i++) {
     if (!lines[i]) continue;
-    const mark = classifyLine(lines[i]);
-    if (mark === 'start') active = true;
-    else if (mark === 'end') active = false;
+    const mark = classify(lines[i]);
+    if (!mark) continue;
+    // An investigation changes state only on a line the user typed. A tool call of
+    // the agent (launching another skill, writing a review file) must not be a way
+    // for the agent to switch its own guard off.
+    if (skill === INVESTIGATE_SKILL && mark.by !== 'user') continue;
+    if (mark.kind === 'start') {
+      skill = mark.skill;
+    } else if (mark.kind === 'end' || (mark.kind === 'review-written' && skill === REVIEW_SKILL)) {
+      skill = null;
+    }
   }
 
-  writeCache(file, { scannedLines: lines.length, active });
-  return { active, justStarted: active && !before, justEnded: before && !active };
+  writeCache(file, { scannedLines: lines.length, active: skill !== null, skill });
+  const before = beforeSkill === REVIEW_SKILL;
+  const active = skill === REVIEW_SKILL;
+  return { active, justStarted: active && !before, justEnded: before && !active, skill };
 }
 
 /** @deprecated kept for callers that only need the boolean */
@@ -195,6 +251,7 @@ function isReviewActive(root, sessionId, transcriptPath) {
 module.exports = {
   reviewState,
   isReviewActive,
+  classify,
   classifyLine,
   scratchDir,
   cleanupScratch,
@@ -202,4 +259,5 @@ module.exports = {
   pruneCaches,
   CACHE_MAX_AGE_MS,
   REVIEW_SKILL,
+  INVESTIGATE_SKILL,
 };

@@ -1,6 +1,6 @@
 'use strict';
 
-// pr-review guard — PreToolUse hook (Edit | MultiEdit | Write | Bash | PowerShell).
+// pr-review guard — PreToolUse hook (Edit | MultiEdit | Write | NotebookEdit | Bash | PowerShell | Agent | Task).
 // While a `stella-pr-review` session is active, blocks anything outside the
 // read-only command set the review skill allows. Runs in every permission
 // mode, so it holds even when prompts are auto-approved.
@@ -9,7 +9,12 @@
 // must never notice it exists (standing rule). Start/end detection lives in
 // lib/review-state.js; the allow/deny policy in lib/policy.js.
 //
+// The same hook guards `stella-investigate` (lib/investigate-policy.js): read-only
+// on the code, writes only to its case folder and profile, a database only through
+// the db-query helper. A production query is sent to the user for a yes.
+//
 // Exit 0 = allow. Exit 2 = block; stderr is shown to the agent as the reason.
+// Exit 0 with a JSON permission decision on stdout = ask the user, or skip the prompt.
 // Fail-open by design: any internal error allows the call and logs it — a
 // broken hook must never lock a developer out of their own project.
 //
@@ -21,11 +26,12 @@ const path = require('node:path');
 
 if (process.env.BMAD_HOOK_SUBPROCESS === '1') process.exit(0);
 
-let decide, ALLOWED_SUMMARY, reviewState, cleanupScratch, paths;
+let decide, ALLOWED_SUMMARY, reviewState, cleanupScratch, paths, investigate, INVESTIGATE_SKILL;
 try {
   paths = require('./lib/paths');
   ({ decide, ALLOWED_SUMMARY } = require('./lib/policy'));
-  ({ reviewState, cleanupScratch } = require('./lib/review-state'));
+  ({ reviewState, cleanupScratch, INVESTIGATE_SKILL } = require('./lib/review-state'));
+  investigate = require('./lib/investigate-policy');
 } catch {
   process.exit(0); // cannot even load — fail open
 }
@@ -66,6 +72,80 @@ function isDisabled(root) {
   }
 }
 
+// True when the personal profile marks the environment as production. No profile,
+// or an environment the profile does not name, counts as production: ask the user.
+function isProductionEnv(root, envName) {
+  for (const file of paths.profileFiles(root)) {
+    let text;
+    try {
+      text = fs.readFileSync(file, 'utf8');
+    } catch {
+      continue; // try the next profile file
+    }
+    return investigate.profileSaysProduction(text, envName);
+  }
+  return true;
+}
+
+function permission(decision, reason) {
+  process.stdout.write(
+    JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: decision,
+        permissionDecisionReason: reason,
+      },
+    }) + '\n',
+  );
+}
+
+const MAX_SHOWN_QUERY = 1500;
+
+// The text of the confirm prompt for a production query: the reason, then the SQL.
+// A query given as a file is read here, so the user sees it and not only a path.
+function productionPrompt(verdict, cwd) {
+  let sql = verdict.query;
+  if (!sql && verdict.file) {
+    try {
+      sql = fs.readFileSync(path.resolve(cwd, verdict.file), 'utf8');
+    } catch {
+      return `${verdict.reason}\nThe query file could not be read: ${verdict.file}`;
+    }
+  }
+  const text = String(sql || '').trim();
+  const shown = text.length > MAX_SHOWN_QUERY ? `${text.slice(0, MAX_SHOWN_QUERY)}\n… (cut)` : text;
+  return `${verdict.reason}\nQuery:\n${shown}`;
+}
+
+// stella-investigate is active: decide one tool call.
+function guardInvestigation(root, toolName, toolInput, cwd) {
+  const verdict = investigate.decide(toolName, toolInput, {
+    isProduction: (envName) => isProductionEnv(root, envName),
+  });
+  if (verdict.allow) {
+    if (verdict.ask) permission('ask', productionPrompt(verdict, cwd));
+    else if (verdict.grant) permission('allow', 'read-only query through the db-query helper');
+    return 0;
+  }
+
+  const detail =
+    toolName === 'Bash' || toolName === 'PowerShell'
+      ? toolInput.command
+      : toolInput.file_path || '';
+  log(root, `blocked ${toolName} (investigate)`, {
+    reason: verdict.reason,
+    detail: String(detail).slice(0, 200),
+  });
+  process.stderr.write(
+    `Investigation active (stella-investigate): the code is read-only — ${verdict.reason}.\n` +
+      `Allowed shell commands: ${investigate.ALLOWED_SUMMARY}.\n` +
+      `Write only under ${paths.INVESTIGATIONS_LABEL}/ or to the stella-investigate profile in ${paths.CUSTOM_LABEL}/. ` +
+      `No project code is run: write the steps to reproduce for the user instead.\n` +
+      `Only the user ends the investigation: by typing *exit or a skill command such as /stella-build.\n`,
+  );
+  return 2;
+}
+
 function main(raw) {
   let payload;
   try {
@@ -84,6 +164,9 @@ function main(raw) {
   const state = reviewState(root, sessionId, transcriptPath);
   // Scratch sandbox lives only for the duration of a review.
   if (state.justStarted || state.justEnded) cleanupScratch(root);
+  if (state.skill === INVESTIGATE_SKILL) {
+    return guardInvestigation(root, toolName, toolInput, payload.cwd || root);
+  }
   if (!state.active) return 0;
 
   // Scratch scripts are read relative to the project root when the path is relative.

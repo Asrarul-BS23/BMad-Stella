@@ -12,6 +12,13 @@ const SCRATCH_DIR = [...REVIEWER_DIR, '.scratch']; // pure-computation scripts
 const STATE_DIR = [...REVIEWER_DIR, '.state']; // per-session cache + guard debug log
 const HELPER_PATH = ['_bmad', 'custom', 'stella', 'utils', 'pr-comments']; // posts findings (Post to PR step)
 const JIRA_FETCH_HELPER_PATH = ['_bmad', 'custom', 'stella', 'utils', 'jira-attachments']; // read-only ticket fetch
+// stella-investigate: case folders, the read-only query helper and the personal profile
+const INVESTIGATIONS_DIR = ['_bmad-output', 'stella', 'investigations'];
+const DB_HELPER_PATH = ['_bmad', 'custom', 'stella', 'utils', 'db-query'];
+const CUSTOM_DIR = ['_bmad', 'custom'];
+// `.profile.toml` wins when both exist (same order as the db-query helper)
+const PROFILE_FILES = ['stella-investigate.profile.toml', 'stella-investigate.user.toml'];
+const SECRETS_FILE = 'stella-investigate.secrets.env';
 
 // Path-regex building blocks (forward or back slashes, used on normalized paths).
 const SEP = String.raw`[\\/]`;
@@ -20,12 +27,16 @@ const seg = (parts) => parts.map((p) => p.replaceAll('.', String.raw`\.`)).join(
 const REVIEWER_RE_PART = seg(REVIEWER_DIR); // _bmad-output[\/]stella[\/]reviewer
 const HELPER_RE_PART = seg(HELPER_PATH); // _bmad[\/]custom[\/]stella[\/]utils[\/]pr-comments
 const JIRA_FETCH_HELPER_RE_PART = seg(JIRA_FETCH_HELPER_PATH); // …[\/]utils[\/]jira-attachments
+const INVESTIGATIONS_RE_PART = seg(INVESTIGATIONS_DIR); // _bmad-output[\/]stella[\/]investigations
+const DB_HELPER_RE_PART = seg(DB_HELPER_PATH); // …[\/]utils[\/]db-query
+const CUSTOM_RE_PART = seg(CUSTOM_DIR); // _bmad[\/]custom
 
 const rootMarker = (dir) => path.join(dir, ...ROOT_MARKER);
 const configFile = (root) => path.join(root, ...CONFIG_FILE);
 const reviewerDir = (root) => path.join(root, ...REVIEWER_DIR);
 const scratchDir = (root) => path.join(root, ...SCRATCH_DIR);
 const stateDir = (root) => path.join(root, ...STATE_DIR);
+const profileFiles = (root) => PROFILE_FILES.map((name) => path.join(root, ...CUSTOM_DIR, name));
 
 module.exports = {
   rootMarker,
@@ -33,10 +44,19 @@ module.exports = {
   reviewerDir,
   scratchDir,
   stateDir,
+  profileFiles,
   SEP,
   REVIEWER_RE_PART,
   HELPER_RE_PART,
   JIRA_FETCH_HELPER_RE_PART,
+  INVESTIGATIONS_RE_PART,
+  DB_HELPER_RE_PART,
+  CUSTOM_RE_PART,
+  PROFILE_FILES,
+  SECRETS_FILE,
+  INVESTIGATIONS_LABEL: INVESTIGATIONS_DIR.join('/'),
+  DB_HELPER_LABEL: DB_HELPER_PATH.join('/'),
+  CUSTOM_LABEL: CUSTOM_DIR.join('/'),
   REVIEWER_LABEL: REVIEWER_DIR.join('/'),
   SCRATCH_LABEL: SCRATCH_DIR.join('/'),
   HELPER_LABEL: HELPER_PATH.join('/'),

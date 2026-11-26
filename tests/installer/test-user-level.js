@@ -430,7 +430,8 @@ const hookCommands = (settings) =>
       projectHooks.every((c) =>
         c.startsWith('node "${CLAUDE_PROJECT_DIR}/.claude/stella/hooks/'),
       ) &&
-      local.hooks.PreToolUse[0].matcher === 'Edit|MultiEdit|Write|Bash|PowerShell',
+      local.hooks.PreToolUse[0].matcher ===
+        'Edit|MultiEdit|Write|NotebookEdit|Bash|PowerShell|Agent|Task',
     'init: project hooks registered in settings.local.json, as the per-project installer did',
   );
   ok(

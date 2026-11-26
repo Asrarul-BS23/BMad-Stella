@@ -172,6 +172,7 @@ const STELLA_SKILLS = [
   'stella-domain-expert',
   'stella-project-context',
   'stella-tea-live-testing',
+  'stella-investigate',
 ];
 
 // Stella skills no longer shipped: still removed on re-run and uninstall, so older
@@ -200,7 +201,10 @@ const PROJECT_HOOKS = [
   {
     name: 'pr-review-guard',
     events: {
-      PreToolUse: { file: 'pre-tool-use.js', matcher: 'Edit|MultiEdit|Write|Bash|PowerShell' },
+      PreToolUse: {
+        file: 'pre-tool-use.js',
+        matcher: 'Edit|MultiEdit|Write|NotebookEdit|Bash|PowerShell|Agent|Task',
+      },
     },
   },
   {
@@ -221,6 +225,7 @@ const PROJECT_HOOKS = [
 const OUTPUT_FOLDERS = [
   'domain-knowledge',
   'reviewer',
+  'investigations',
   'bmad-logs',
   'cache/jira',
   'memory/.state',
