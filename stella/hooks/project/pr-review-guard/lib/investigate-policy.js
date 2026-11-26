@@ -9,6 +9,7 @@
 // The shell is a closed list; nothing switches it open.
 // All folder names come from ./paths — nothing is hardcoded here.
 
+const path = require('node:path');
 const paths = require('./paths');
 const {
   tokenize,
@@ -127,10 +128,59 @@ const PROFILE_FILE_RE = new RegExp(
   `(^|${SEP})${CUSTOM_RE_PART}${SEP}stella-investigate\\.(?:(?:user|profile)\\.toml|secrets\\.env)$`,
 );
 
-function isWritable(filePath) {
-  const p = normalizePath(filePath);
-  if (p.includes('/../') || p.endsWith('/..')) return false;
-  return CASE_FILE_RE.test(p) || PROFILE_FILE_RE.test(p);
+// A `_bmad` folder inside a case folder would look like a second project: with its own
+// copy of the helpers and its own profile. "_bmad." and "_bmad " are the same folder on Windows.
+const BMAD_SEGMENT_RE = /(^|\/)_bmad[. ]*(\/|$)/i;
+
+const PROFILE_ASK =
+  'stella-investigate wants to change its profile. The profile says which environments are production and how each database is reached. Check the change before you say yes.';
+
+// The absolute form of a path the agent typed. Git Bash writes a drive as /d/…
+function toAbsolute(typed, base) {
+  let p = normalizePath(unquote(String(typed || '')));
+  if (process.platform === 'win32') {
+    const drive = /^\/([A-Za-z])(\/.*)?$/.exec(p);
+    if (drive) p = `${drive[1]}:${drive[2] || '/'}`;
+  }
+  return path.resolve(base, p);
+}
+
+const samePath = (a, b) => path.relative(a, b) === '';
+
+// True when `inner` is `outer` or a folder below it.
+function isInside(outer, inner) {
+  const rel = path.relative(outer, inner);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+/**
+ * What kind of writable file this is: 'case', 'profile', 'secrets', or null (not writable).
+ * With `ctx.root` the path is resolved first and must be in that project's own folders.
+ */
+function writeKind(filePath, ctx = {}) {
+  let p = normalizePath(filePath);
+  if (!p) return null;
+  const anchored = Boolean(ctx.root);
+  if (anchored) {
+    const abs = toAbsolute(p, ctx.cwd || ctx.root);
+    if (!isInside(ctx.root, abs) || samePath(ctx.root, abs)) return null;
+    p = normalizePath(path.relative(ctx.root, abs));
+  }
+  if (p.includes('/../') || p.endsWith('/..')) return null;
+
+  const caseFile = CASE_FILE_RE.exec(p);
+  if (caseFile) {
+    if (anchored && caseFile.index !== 0) return null;
+    const below = p.slice(caseFile.index + caseFile[0].length - 1);
+    return BMAD_SEGMENT_RE.test(below) ? null : 'case';
+  }
+  const profileFile = PROFILE_FILE_RE.exec(p);
+  if (!profileFile || (anchored && profileFile.index !== 0)) return null;
+  return p.endsWith('.env') ? 'secrets' : 'profile';
+}
+
+function isWritable(filePath, ctx = {}) {
+  return writeKind(filePath, ctx) !== null;
 }
 
 // ---------------------------------------------------------------------------
@@ -141,17 +191,44 @@ const DB_HELPER_RE = new RegExp(`(^|${SEP})${DB_HELPER_RE_PART}(?:${SEP}index\\.
 const ENV_NAME_RE = /^[A-Za-z0-9_-]{1,64}$/;
 // The skill launcher: uv run [--no-cache] <…/render_skill.py> --project-root <p> --skill <p>
 const LAUNCHER_RE = new RegExp(
-  `^uv run(?: --no-cache)? (?:"[^"]*render_skill\\.py"|'[^']*render_skill\\.py'|\\S*render_skill\\.py) --project-root ${ARG} --skill ${ARG}$`,
+  `^uv run(?: --no-cache)? ("[^"]*render_skill\\.py"|'[^']*render_skill\\.py'|\\S*render_skill\\.py) --project-root ${ARG} --skill ${ARG}$`,
 );
+// `cd <folder> && …`: the folder the rest of the command runs in
+const LEADING_CD_RE = /^cd\s+("[^"]*"|'[^']*'|\S+)\s*&&\s*/;
+
+/**
+ * Where a shell command runs. Without `ctx.root` nothing can be resolved (`runDir` is null)
+ * and only the shape of a path is checked.
+ */
+function locate(raw, ctx) {
+  if (!ctx.root) return { root: null, runDir: null };
+  const base = ctx.cwd || ctx.root;
+  const cd = LEADING_CD_RE.exec(raw);
+  return { root: ctx.root, runDir: cd ? toAbsolute(cd[1], base) : base };
+}
 
 /**
  * `node <db-query helper> --env <name> (--query "<sql>" | --file <path>) [--print]`
  * @returns {null | {allow: boolean, ask?: boolean, grant?: boolean, reason?: string}}
  *   null when the command is not the helper at all.
  */
-function checkDbHelper(tokens, isProduction) {
+function checkDbHelper(tokens, isProduction, where = {}) {
   if (tokens[0] !== 'node' || tokens.length < 2) return null;
   if (!DB_HELPER_RE.test(normalizePath(unquote(tokens[1])))) return null;
+
+  // Only the helper of this project runs, and only from inside the project: a copy
+  // somewhere else is the agent's own code, and another folder has another profile.
+  if (where.root) {
+    const typed = toAbsolute(tokens[1], where.runDir);
+    const helper = paths.dbHelperDir(where.root);
+    const isHelper = samePath(helper, typed) || samePath(path.join(helper, 'index.js'), typed);
+    if (!isHelper || !isInside(where.root, where.runDir)) {
+      return {
+        allow: false,
+        reason: `db-query must be the helper of this project (${paths.DB_HELPER_LABEL}), run from inside the project`,
+      };
+    }
+  }
 
   let env = null;
   let sources = 0;
@@ -179,6 +256,8 @@ function checkDbHelper(tokens, isProduction) {
     return { allow: false, reason: 'db-query needs --env <environment name>' };
   }
   if (sources !== 1) return { allow: false, reason: 'db-query takes one of --query or --file' };
+  // the helper reads the file from the folder it runs in; the prompt must show that file
+  if (file && where.runDir) file = toAbsolute(file, where.runDir);
 
   // --print runs nothing. A production run always goes to the user for a yes.
   if (!print && isProduction(env)) {
@@ -247,9 +326,23 @@ function checkBash(rawCommand, ctx = {}) {
   }
 
   const tokens = tokenize(cmd);
-  if (LAUNCHER_RE.test(cmd)) return { allow: true };
+  const where = locate(raw, ctx);
 
-  const db = checkDbHelper(tokens, isProduction);
+  const launcher = LAUNCHER_RE.exec(cmd);
+  if (launcher) {
+    if (
+      where.root &&
+      !samePath(paths.launcherFile(where.root), toAbsolute(launcher[1], where.runDir))
+    ) {
+      return {
+        allow: false,
+        reason: `the skill launcher must be the one of this project (${paths.LAUNCHER_LABEL})`,
+      };
+    }
+    return { allow: true };
+  }
+
+  const db = checkDbHelper(tokens, isProduction, where);
   if (db) return db;
 
   if (
@@ -273,7 +366,9 @@ function checkBash(rawCommand, ctx = {}) {
  * Policy entry point for an active investigation.
  * @param {string} toolName
  * @param {object} toolInput
- * @param {{isProduction?: (env: string) => boolean}} [ctx]
+ * @param {{isProduction?: (env: string) => boolean, root?: string, cwd?: string}} [ctx]
+ *   `root` = the project folder, `cwd` = the folder the tool call runs in. With a root,
+ *   paths are resolved and must be the ones of this project.
  * @returns {{allow: boolean, ask?: boolean, grant?: boolean, reason?: string}}
  */
 function decide(toolName, toolInput, ctx = {}) {
@@ -288,7 +383,9 @@ function decide(toolName, toolInput, ctx = {}) {
     case 'Edit':
     case 'MultiEdit':
     case 'Write': {
-      if (isWritable(input.file_path)) return { allow: true };
+      const kind = writeKind(input.file_path, ctx);
+      if (kind === 'profile') return { allow: true, ask: true, reason: PROFILE_ASK };
+      if (kind) return { allow: true };
       return {
         allow: false,
         reason: `${toolName} is allowed only under ${paths.INVESTIGATIONS_LABEL}/ and for the stella-investigate profile in ${paths.CUSTOM_LABEL}/`,

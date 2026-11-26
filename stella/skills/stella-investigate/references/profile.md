@@ -67,7 +67,7 @@ roots = ["<absolute folder>"]
 # no [db] table: nobody here can reach the production database
 ```
 
-- A source of kind `branch` or `tag` may carry `repo = "<folder>"` when that repository is not the project folder.
+- A source of kind `working-tree`, `branch` or `tag` may carry `repo = "<folder>"` when that repository is not the project folder, for example when the project folder holds several repositories.
 - An environment may have several sources, of different kinds.
 - `layout` is free text: where the business logic, the validation, the screens and the endpoints are in that environment's code. Fill it in the first time you learn it.
 - `production`: an environment named `prod`, `production`, `prd` or `live` (alone or as one part of the name, like `prod-eu`) is production also without this line. Write `production = true` for any other production-like environment, and `production = false` only when the user says such a name is not production.

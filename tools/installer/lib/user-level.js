@@ -383,6 +383,13 @@ function sessionCheck(cwd, { home, source } = {}) {
   if (current.id !== template.id) {
     try {
       applyTemplate(found.root, { home });
+      // New hook files and helpers need the matcher and permission rules that came
+      // with them. Failing here must not undo or hide the refresh that just worked.
+      try {
+        lazy.layer.refreshSettings(found.root, { home });
+      } catch {
+        /* settings stay as they were; `init` rewrites them */
+      }
       return { message: MESSAGES.refreshed(current.id, template.id), action: 'refreshed' };
     } catch (error) {
       if (error.code === 'LOCKED') return null; // another session is doing it right now
