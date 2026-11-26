@@ -30,7 +30,14 @@ activation_steps_append = []
 #     (glob patterns are supported; matching files load in lexical path order as facts).
 # Overrides append.
 
-persistent_facts = []
+#
+# The first entry is the skill's own learnings file: corrections the user
+# confirmed in earlier runs (see resources/learnings.md). The skill writes it;
+# a missing file loads nothing.
+
+persistent_facts = [
+  "file:{project-root}/_bmad/custom/stella-tea-live-testing.learnings.md",
+]
 
 # Scalar: executed when the workflow reaches its terminal step in any
 # mode (create, validate, edit), after the final outputs are produced.
@@ -43,7 +50,9 @@ on_complete = ""
 # [workflow.defaults]
 #   environment      = "staging"      # default execution environment
 #   user             = "admin"        # default role-keyed login user
-#   flow_mode        = ""             # "", "qa", or "dev" — personal default flow
+#   flow_mode        = ""             # "", "qa", or "dev" — default flow; saved by the skill when empty, never overwritten
+#   explore_code     = true           # true or false — QA flow: explore code or not; saved by the skill on first ask
+#   code_path        = ""             # "" = project root, a folder path, or "invalid" (no code, never ask again)
 #   module_publish   = ""             # "", "confluence", "jira", or "files"
 #   report_format    = ""             # "md", "html", or "pdf" — saved by the skill on first ask
 #   report_theme     = ""             # "light" (default) or "dark" — saved only when the user asks for dark

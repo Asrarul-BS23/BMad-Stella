@@ -40,11 +40,12 @@ Criteria for Validate mode (`steps-v/step-01-validate.md`). Evaluate each item t
 - [ ] Frontmatter carries `mode` (`qa` or `dev`), `environment`, `datetime`, `executed_as` (role, not credential), `source_sha` or an explicit unresolved note
 - [ ] Results table has an Expected Results column, filled verbatim from the case, before Actual Results
 - [ ] Every case has a status from: Pass, Fail, Partly Pass, Blocked, Not Run
+- [ ] Every Fail / Partly Pass case has a severity (Critical, High, Medium, Low) in the Results table and in its Failure Detail; no other status carries one
 - [ ] Every Fail / Partly Pass case has Failure Detail: steps to reproduce, expected vs actual, per-step results, embedded evidence resolving to files in `../stella/{key}/evidence/{datetime}/`
 - [ ] Every executed case (Pass included) has at least one screenshot; Pass screenshots sit embedded under `## Evidence — Passed Cases`; Blocked / Not Run cases have none
 - [ ] Every screenshot in the report is an embedded markdown image (`![...](../stella/{key}/evidence/{datetime}/...)`) — no bare evidence links or paths anywhere; the Results table's Evidence/Comments column carries notes only
 - [ ] Evidence filenames match `tc-{n}.png` / `tc-{n}-step-{m}.png`; with viewports, `tc-{n}-{viewport}.png` / `tc-{n}-{viewport}-step-{m}.png` (viewport before step)
-- [ ] When `report_format` is `html`/`pdf`: a self-contained formatted copy exists beside each run report (screenshots inlined, no external references), and an `issues-{env}-{datetime}` file exists exactly when the run had Fail / Partly Pass cases
+- [ ] When `report_format` is `html`/`pdf`: a self-contained formatted copy exists beside each run report (screenshots inlined, no external references), and an `issues-{env}-{datetime}` file exists exactly when the run had Fail / Partly Pass cases, ordered by severity with known issues last
 - [ ] Blocked vs Not Run semantics respected: precondition/env failure = Blocked; never attempted = Not Run; dependents of a blocker name the blocking case
 - [ ] Summary counts sum to the total case count (× combinations when viewports ran)
 
@@ -62,3 +63,9 @@ Criteria for Validate mode (`steps-v/step-01-validate.md`). Evaluate each item t
 - [ ] Published case sheets (when Confluence/Jira publication happened) contain empty verdict columns and no run results
 - [ ] `confluencePageId` saved in `progress.md` when a Confluence page was created
 - [ ] `jiraCaseTicketKey` saved in `progress.md` when a Jira case ticket was created
+
+## 8. Learnings (when `_bmad/custom/stella-tea-live-testing.learnings.md` exists)
+
+- [ ] Every entry has an `LR-n` id, a type (`skip`, `priority`, `known-issue`, `fact`), a scope from the fixed list, a rule, a reason, and a source; ids are unique
+- [ ] No entry is scoped to a single ticket, and no entry holds a credential value
+- [ ] No report hides or re-statuses a failed case because of a learning — a known issue is still Fail / Partly Pass

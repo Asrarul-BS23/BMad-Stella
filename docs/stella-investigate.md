@@ -60,3 +60,4 @@ In `investigate` mode it confirms the problem and the environment with you befor
 - The skill runs no project code: no tests, no build, no app start. It proves a cause from the code and, where it can, from a read-only query. Each case ends with steps to reproduce that you can follow in the product; tell the skill what you saw.
 - The skill starts no subagents. All reading happens in your session.
 - The profile and the secrets file are personal and never committed.
+- You get a confirm prompt each time the skill changes the profile, because the profile says which environments are production. This happens during setup, and later when the skill adds a database or a note about where the code is.

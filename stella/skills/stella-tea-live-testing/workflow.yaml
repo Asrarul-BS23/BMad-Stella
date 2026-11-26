@@ -14,7 +14,7 @@ template: "./templates/test-cases-template.md"
 
 # Variables and inputs
 variables:
-  flow_mode: "auto-detect" # auto-detect (default), qa, dev — see SKILL.md Flow Mode priority order
+  flow_mode: "auto-detect" # auto-detect (default), qa, dev — see SKILL.md Flow Mode priority order; qa when nothing decides, never asked
   environment: "" # execution environment name; empty = {workflow.defaults.environment}, ask if unset
   user: "" # role-keyed login user; empty = {workflow.defaults.user}, ask if unset
   viewports: "" # empty = desktop only (default); comma list enables on-request responsive runs,
@@ -55,6 +55,11 @@ outputs:
     description: "Live coverage evidence merged into the root-level file TEA trace reads; QA runs only, never dev runs"
     path: "{test_artifacts}/live-verification-results.json"
     flow: qa
+
+  - id: validation-report
+    description: "Validate mode findings against checklist.md; one file per validation, never overwritten"
+    path: "{test_artifacts}/stella/{key}/validation-report-{run_timestamp}.md"
+    flow: both
 
   - id: progress-checkpoint
     description: "Per-key resume checkpoint; also stores flowMode and the Confluence page id"

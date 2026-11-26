@@ -9,6 +9,8 @@ liveResultsFile: '{test_artifacts}/live-verification-results.json'
 casesFile: '{test_artifacts}/{key}/test-cases.md'
 evidenceDir: '{test_artifacts}/stella/{key}/evidence/{datetime}/'
 reportStyle: '{skill-root}/resources/report-style.css'
+executionRules: '{skill-root}/resources/execution-rules.md'
+learningsRules: '{skill-root}/resources/learnings.md'
 ---
 
 # Step 7: Report, Trace Record, Publication
@@ -49,13 +51,15 @@ Turn the execution notes into the timestamped run report, merge this run's recor
 
 ### 1. Write the Run Report
 
-Fill `{reportTemplate}` into `{reportFile}` (`{env}` and `{datetime}` from step-06's run setup): frontmatter (`mode: qa`), the per-case results table — including its Expected Results column, copied verbatim from the case, never reworded, and an Evidence/Comments column carrying **notes only, never a path or link** — a Failure Detail subsection for every `Fail` / `Partly Pass` case (steps to reproduce, expected vs actual, per-step results), an `## Evidence — Passed Cases` section (one subsection per `Pass` case), the Blocked / Not Run table with reasons, and the summary line `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n` whose counts sum to the total. **Every screenshot of every executed case appears embedded as a rendered markdown image** — `![...](../stella/{key}/evidence/{datetime}/...)`, one line per file, never a bare link. `{casesFile}` stays untouched. **Scoped run (step-06 ran only a subset):** the report covers only the executed cases — the total is the subset's size, not the full case count; unexecuted cases are not listed as `Not Run` filler, they simply are not part of this report. Run history is append-only: never delete or overwrite a previous run's report. Format reference: `{skill-root}/resources/test-execution.example.md` — a worked example of a filled report.
+Fill `{reportTemplate}` into `{reportFile}` (`{env}` and `{datetime}` from step-06's run setup): frontmatter (`mode: qa`), the per-case results table — including its Expected Results column, copied verbatim from the case, never reworded, a Severity column (`{executionRules}` section 10 — filled for `Fail` / `Partly Pass` rows, empty for every other status), and an Evidence/Comments column carrying **notes only, never a path or link** — a Failure Detail subsection for every `Fail` / `Partly Pass` case (severity, steps to reproduce, expected vs actual, per-step results), an `## Evidence — Passed Cases` section (one subsection per `Pass` case), the Blocked / Not Run table with reasons, and the summary line `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n` whose counts sum to the total. **Every screenshot of every executed case appears embedded as a rendered markdown image** — `![...](../stella/{key}/evidence/{datetime}/...)`, one line per file, never a bare link. `{casesFile}` stays untouched. **Scoped run (step-06 ran only a subset):** the report covers only the executed cases — the total is the subset's size, not the full case count; unexecuted cases are not listed as `Not Run` filler, they simply are not part of this report. Run history is append-only: never delete or overwrite a previous run's report. Format reference: `{skill-root}/resources/test-execution.example.md` — a worked example of a filled report.
+
+**Known issues:** a failed case that matches a saved `known-issue` learning (`{learningsRules}`) keeps its status, severity, evidence, and Failure Detail unchanged; it gains the note "Known issue: {rule}" in Evidence/Comments. A learning never changes a verdict.
 
 ### 1b. Formatted Reports and the Issues Report (`report_format`)
 
 Resolve the preference: `{workflow.defaults.report_format}` (`md` | `html` | `pdf`). When absent, ask once (interactive, per the `SKILL.md` convention — options: HTML / PDF / None) — "Besides markdown, which format do you want run reports in?" — and autosave the answer to `[workflow.defaults] report_format` in the `.user.toml` with a one-line notice (§6 ask-fallback; §9 stops any re-ask). One preference covers both the execution report and the issues report. On `md`, skip this whole section.
 
-1. **Build the HTML**: write a single self-contained HTML file next to `{reportFile}` with the same base name (`.html`) — every evidence screenshot inlined as a base64 `data:` URI, no external references — so the file is a standalone document deliverable to anyone. Content mirrors the markdown report one-to-one. **Styling is fixed, never improvised:** inline the canonical stylesheet `{reportStyle}` verbatim into the `<style>` block and use its classes (header band, `.meta-card`, `.badge` statuses, `figure.evidence` cards). The report opens with a `header.report` (title + subtitle) followed by the **labeled metadata card**, using **exactly this markup** — never a plain text strip, never raw frontmatter key names (`base_url:`, `executed_as:`, `key:`):
+1. **Build the HTML**: write a single self-contained HTML file next to `{reportFile}` with the same base name (`.html`) — every evidence screenshot inlined as a base64 `data:` URI, no external references — so the file is a standalone document deliverable to anyone. Content mirrors the markdown report one-to-one. **Styling is fixed, never improvised:** inline the canonical stylesheet `{reportStyle}` verbatim into the `<style>` block and use its classes (header band, `.meta-card`, `.badge` statuses, `.badge.sev-critical` / `.sev-high` / `.sev-medium` / `.sev-low` severities, `figure.evidence` cards). The report opens with a `header.report` (title + subtitle) followed by the **labeled metadata card**, using **exactly this markup** — never a plain text strip, never raw frontmatter key names (`base_url:`, `executed_as:`, `key:`):
 
    ```html
    <dl class="meta-card">
@@ -79,7 +83,7 @@ Resolve the preference: `{workflow.defaults.report_format}` (`md` | `html` | `pd
    **Tables:** auto layout only — never `table-layout: fixed`. **Set column widths wisely by content** (per-column `width` hints where needed): no column squeezed too narrow, no empty or short column taking excess width — the table reads evenly spaced. Headers of short/empty columns may wrap to two lines (`Actual<br>Results`, `Evidence/<br>Comments`) so those columns shrink. These rules apply to every generated table — execution report, issues report, and the step-05 case-sheet copy.
 
 2. **PDF (when preference is `pdf`)**: open that HTML via its `file://` URL in the Playwright MCP browser and save it with `browser_pdf_save` to the same base name (`.pdf`); then delete the intermediate `.html`. **Page fit:** never set a table wider than the content width of the page layout the PDF is saved with (e.g. A4) — print has no scrollbars, so anything wider gets cut off at the edge. A report carrying the wide Results/cases table (execution report, step-05 case sheet) may use `@page { size: A4 landscape; margin: 12mm }` for extra room; the issues report stays portrait. When `browser_pdf_save` is not available on the connected server, keep and deliver the `.html` instead and say so in one line — **never block the run on format export**.
-3. **Issues report — only when the run has `Fail` / `Partly Pass` cases**: build `{issuesFile}.{html|pdf}` the same way (self-contained, preferred format, canonical `{reportStyle}` inlined, no `.md` twin). It opens with the same **labeled metadata card** as item 1 (`Env Url:`, `Role(s):`, `Environment:`, `Run:`, `Key:`, `Source SHA:`). Content after the card: one section per failed case — ID + title, numbered reproduce steps exactly as driven, expected vs actual, per-step results, every evidence screenshot embedded full-width. Nothing else: no passed cases, no summary table beyond a count line.
+3. **Issues report — only when the run has `Fail` / `Partly Pass` cases**: build `{issuesFile}.{html|pdf}` the same way (self-contained, preferred format, canonical `{reportStyle}` inlined, no `.md` twin). It opens with the same **labeled metadata card** as item 1 (`Env Url:`, `Role(s):`, `Environment:`, `Run:`, `Key:`, `Source SHA:`). Content after the card: one section per failed case, **ordered by severity, highest first** — ID + title, severity badge, numbered reproduce steps exactly as driven, expected vs actual, per-step results, every evidence screenshot embedded full-width. Failed cases that match a `known-issue` learning go last, under their own `Known issues` heading, each naming its rule — they are never left out. Nothing else: no passed cases, no summary table beyond a count line.
 
 ### 2. Merge the Trace Record
 
@@ -90,7 +94,7 @@ Every QA run emits live coverage evidence into `{liveResultsFile}` — the root-
 3. Append one record per case **in this run's scope** (full run: every case; scoped run: only the chosen subset) — including `Blocked` and `Not Run` cases:
    - `id`: `{key}-LIVE-{NNN}`, zero-padded, `NNN` = the case's position in `{casesFile}`'s full file order (not the scoped subset's own order) — so a case's record id stays stable whether it was covered by a full or a scoped run.
    - `requirement_id`: the `AC-n` the case verifies (from its Description); when the case verifies no numbered AC (module runs), use the `SC-n` scenario id the case's Description names.
-   - `status`: map `Pass`→`pass`, `Fail`→`fail`, `Partly Pass`→`fail` (a partly failing requirement is not verified), `Blocked`→`blocked`, `Not Run`→`skipped`. When viewports ran, a case still gets **one** record: its status is the worst of its combinations (worst to best: `fail`, `blocked`, `skipped`, `pass`), with the per-combination outcomes named in `evidence`.
+   - `status`: map `Pass`→`pass`, `Fail`→`fail`, `Partly Pass`→`fail` (a partly failing requirement is not verified; severity and a known-issue label change nothing here — a failed case is `fail`), `Blocked`→`blocked`, `Not Run`→`skipped`. When viewports ran, a case still gets **one** record: its status is the worst of its combinations (worst to best: `fail`, `blocked`, `skipped`, `pass`), with the per-combination outcomes named in `evidence`.
    - `title`: the case title. `evidence`: one line of what was observed, plus the evidence path for failures.
    - `source_sha`: the sha under which **that case** was executed, **per record** (not top-level — records from different keys and commits coexist in this file, and a resumed run may span two commits). `observed_at`: run time, ISO 8601.
 4. Set top-level `observed_at` to now and `producer` to `stella-tea-live-testing qa run {key} {datetime}`. Do not write a top-level `source_sha`.
@@ -102,6 +106,15 @@ Every QA run emits live coverage evidence into `{liveResultsFile}` — the root-
 
 Display the report to the user, ending with the count summary line. When a formatted file was produced (§1b), open it in the **OS default browser** — the execution report's `.html`/`.pdf`, and the issues report when one exists — via an OS open command on the `file://` URL (`Start-Process` on Windows, `open` on macOS, `xdg-open` on Linux). Never open it in the Playwright test browser, and never force a new browser window — a file URL lands as a new tab of the user's existing window. Preference `md` → nothing opens.
 
+### 3b. Learnings
+
+Per `{learningsRules}`:
+
+- When the user says a reported failure is known or can be ignored, propose a `known-issue` learning (section 4 there — one interactive question event). The report already written stays as it is; the label shows from the next run on.
+- A saved `known-issue` entry whose case passed in this run: offer once to remove the entry ("Remove" / "Keep").
+
+Nothing to propose and nothing passed → no question.
+
 ### 4. Offer Publication (On Request Only)
 
 **Nothing reaches Jira or Confluence without an explicit yes in this run** — a saved destination or a previously created page/ticket never substitutes for one.
@@ -109,8 +122,8 @@ Display the report to the user, ending with the count summary line. When a forma
 - **Ticket run:** offer one thing, interactively (options: Post / Skip) — a Jira comment on `{key}` via the Atlassian MCP containing the summary counts and the report's project-relative path. Post only on a yes.
 - **Module run, saved page/ticket exists** (checkpoint carries `confluencePageId` or `jiraCaseTicketKey` from step-05): ask interactively — "Update the published page/ticket with the current case sheet?" (Update / Skip). Update only on a yes; never silently.
 - **Module run, nothing published yet:** two-stage interactive ask. Stage 1: "Publish the case sheet?" (yes/no). Stage 2, on yes: "Where?" — options Confluence page / new Jira ticket / files only, with the saved `{workflow.defaults.module_publish}` first as the recommended option when it exists, **never silently applied**. On an answer, autosave it to `[workflow.defaults] module_publish` in the `.user.toml`.
-  - **Published content is the case sheet, not the report:** the sectioned test-case tables with ID, Title, Description, Precondition, Steps, Expected Results — verdict columns empty. Results stay in run reports. One H2 per section, table under each, mirroring `test-cases.md` one-to-one. No scenarios (open item 7).
-  - **Published IDs drop the module prefix (open item 7):** render case IDs on the published page/ticket as `TC-01 … TC-NN` — strip the `{key}-` prefix, continuous numbering, no section scoping — because the page/ticket header already names the module. `{casesFile}`, run reports, and trace records are unaffected: they keep the full `TC-{key}-NN` always. The number itself is identical; only the prefix is stripped on publish.
+  - **Published content is the case sheet, not the report:** the sectioned test-case tables with ID, Title, Description, Precondition, Steps, Expected Results — verdict columns empty. Results stay in run reports. One H2 per section, table under each, mirroring `test-cases.md` one-to-one. No scenarios.
+  - **Published IDs drop the module prefix:** render case IDs on the published page/ticket as `TC-01 … TC-NN` — strip the `{key}-` prefix, continuous numbering, no section scoping — because the page/ticket header already names the module. `{casesFile}`, run reports, and trace records are unaffected: they keep the full `TC-{key}-NN` always. The number itself is identical; only the prefix is stripped on publish.
   - **Confluence — anchor, explore, propose:** ask for one **high-level anchor** only — a Confluence folder/page link under which test cases live (e.g. `.../wiki/spaces/L/folder/965607425`) — presenting the saved `[workflow.confluence] anchor_url` as the recommended option when it exists, never silently applied. No flat `space_key`/`parent_page_id` questions. Then **explore the tree under the anchor** via the Atlassian MCP (folders and pages, arbitrarily nested) together with the saved `convention_brief` when one exists: learn how modules map to folders, features to pages, and the naming style. **Propose the placement** — an existing page to update, or a new folder/page — and for anything **new**, show its parent location, its proposed **name** (per the observed convention), and the **content** to be published, all **before** the yes; the user approves or adjusts (different name or parent). Autosave to `.user.toml`: the `anchor_url` and a refreshed `convention_brief` (a few lines describing the observed structure and naming rules — so future runs place new modules correctly without re-exploring from scratch). Save the created page id as `confluencePageId` in the checkpoint so a later update (always after a this-run yes) targets the same page instead of creating a duplicate.
   - **Jira ticket — same pattern:** ask for the anchor — a Jira **project or sprint** — presenting the saved `[workflow.jira] anchor` as the recommended option when it exists, never silently applied. Explore the existing tickets under it for naming conventions, then propose the new ticket's **name and content before the yes** (title per the observed convention — default `Test Cases — {module name}` — with the case sheet as description: same H2-per-section structure, verdict columns empty, IDs prefix-stripped). Autosave the anchor and a refreshed `convention_brief` to `[workflow.jira]`. Save the created ticket key as `jiraCaseTicketKey` in the checkpoint; a consented re-publish **updates** that ticket's description instead of creating a new ticket.
 
@@ -128,6 +141,7 @@ If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute
 
 ### ✅ SUCCESS:
 
+- Every failed case carries a severity; the issues report is ordered by it, with known issues listed last under their own heading
 - Report written with full failure detail, embedded evidence images for every executed case (passed ones included), and a summary whose counts sum to the total
 - Preferred-format report (and issues report, when failures exist) produced self-contained and opened in the OS default browser; `report_format` asked at most once and saved
 - Root `{liveResultsFile}` merged: full run replaces this key's records, scoped run replaces only the executed subset's, other keys' preserved, per-record `source_sha`
@@ -139,6 +153,7 @@ If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute
 ### ❌ SYSTEM FAILURE:
 
 - Auto-posting anywhere
+- A known-issue label or a severity used to soften, hide, or drop a failed case
 - Overwriting other keys' records in `{liveResultsFile}`, or writing it from a dev run
 - A scoped run erasing trace records for cases outside its own scope
 - Publishing verdict columns or results to Confluence/Jira

@@ -33,7 +33,7 @@ Pin down exactly what to edit — which `{key}`, which artifact (`scenarios.md` 
 
 ## CONTEXT BOUNDARIES:
 
-- Available context: artifacts under `{test_artifacts}/stella/*/`
+- Available context: `scenarios.md` under `{test_artifacts}/stella/*/` and `test-cases.md` under `{test_artifacts}/*/`
 - Focus: assessment only
 - Limits: run reports and evidence are history — they are never edit targets
 

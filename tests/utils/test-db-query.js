@@ -88,6 +88,14 @@ refuse("SELECT $$'$$", { dialect: 'postgresql' }, 'dollar quoting');
 refuse("SELECT $tag$'$tag$", { dialect: 'postgresql' }, 'tagged dollar quoting');
 refuse('SELECT /*! 1 */ 2', { dialect: 'mysql' }, 'mysql executable comment');
 refuse(String.raw`SELECT 'a\'`, { dialect: 'mysql' }, 'backslash on mysql');
+// PostgreSQL E'..' strings (and plain strings on old settings) read \' as a quote
+refuse(
+  String.raw`SELECT * FROM (SELECT E'a\'') AS q; DELETE FROM Orders; SELECT * FROM (SELECT 1 -- '`,
+  { dialect: 'postgresql' },
+  'postgresql: E-string hides a second statement',
+);
+refuse(String.raw`SELECT E'a\'b'`, { dialect: 'postgresql' }, 'backslash on postgresql');
+refuse(String.raw`SELECT Id FROM t WHERE n LIKE 'a\_b'`, { dialect: 'psql' }, 'backslash on psql');
 
 // a second statement hidden behind a quote the server reads differently
 refuse('SELECT * FROM #t; DROP TABLE x', { dialect: 'tsql' }, 'tsql: # is not a comment');

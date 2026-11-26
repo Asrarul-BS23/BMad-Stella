@@ -4,6 +4,7 @@ description: 'In-chat show -> refine -> approve loop; on approval flip scenarios
 nextStepFile: '{skill-root}/steps-c/step-05-generate-cases.md'
 checkpointFile: '{test_artifacts}/stella/{key}/progress.md'
 scenariosFile: '{test_artifacts}/stella/{key}/scenarios.md'
+learningsRules: '{skill-root}/resources/learnings.md'
 ---
 
 # Step 4: Lock Scenarios
@@ -47,7 +48,7 @@ Run the human approval loop on `{scenariosFile}` until QA approves, then flip it
 
 ### 1. Show
 
-Display the scenario list from `{scenariosFile}` **in chat, immediately before the verdict prompt** — concise enough to judge without opening any file: grouped by its `##` sections, one line per scenario — `SC-n` — title — the `AC-n` it verifies (when present) — a short gist. Offer the full text of any scenario on request.
+Display the scenario list from `{scenariosFile}` **in chat, immediately before the verdict prompt** — concise enough to judge without opening any file: grouped by its `##` sections, one line per scenario — `SC-n` — title — the `AC-n` it verifies (when present) — a short gist. Offer the full text of any scenario on request. When step-03 applied learnings, add one line under the list — "Applied {n} learnings" with each entry's `LR-n` and rule (`{learningsRules}` section 5) — so the user can object.
 
 ### 2. Refine Loop
 
@@ -67,6 +68,7 @@ On an explicit approval:
 
 1. Edit `{scenariosFile}` frontmatter: `status: draft` → `status: approved`, and add `approved: '{date}T{HH:mm}'` (full timestamp — step-05's staleness check compares it against `generated_from`, and day granularity would hide a same-day re-approval).
 2. Confirm: "Scenarios for `{key}` locked ({n} scenarios in {m} sections). Test-case generation runs only from this approved file."
+3. **Learnings:** when this loop's corrections hold a candidate rule, propose it now per `{learningsRules}` section 4 — one interactive question event, after the lock, never during the loop. No candidate → no question.
 
 ### 4. Save Progress
 
@@ -86,5 +88,6 @@ Load next step: `{nextStepFile}`
 - Flipping to `approved` without an explicit user approval
 - Proceeding to case generation on a `draft` file
 - Dropping a requested change without saying so
+- Asking to save a learning in the middle of the refine loop, or for a one-off edit
 
 **Master Rule:** The approval gate is a real halt. Skipping it is FORBIDDEN.

@@ -11,7 +11,7 @@
 //
 // The same hook guards `stella-investigate` (lib/investigate-policy.js): read-only
 // on the code, writes only to its case folder and profile, a database only through
-// the db-query helper. A production query is sent to the user for a yes.
+// the db-query helper. A production query and a profile change are sent to the user for a yes.
 //
 // Exit 0 = allow. Exit 2 = block; stderr is shown to the agent as the reason.
 // Exit 0 with a JSON permission decision on stdout = ask the user, or skip the prompt.
@@ -121,9 +121,13 @@ function productionPrompt(verdict, cwd) {
 function guardInvestigation(root, toolName, toolInput, cwd) {
   const verdict = investigate.decide(toolName, toolInput, {
     isProduction: (envName) => isProductionEnv(root, envName),
+    root,
+    cwd,
   });
   if (verdict.allow) {
-    if (verdict.ask) permission('ask', productionPrompt(verdict, cwd));
+    // two things go to the user: a production query, and a change to the profile
+    const isQuery = Boolean(verdict.query || verdict.file);
+    if (verdict.ask) permission('ask', isQuery ? productionPrompt(verdict, cwd) : verdict.reason);
     else if (verdict.grant) permission('allow', 'read-only query through the db-query helper');
     return 0;
   }

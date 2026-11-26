@@ -6,6 +6,7 @@ issuesFile: '{test_artifacts}/{key}/issues-{env}-{datetime}' # extension from re
 reportTemplate: '{skill-root}/templates/test-execution-template.md'
 evidenceDir: '{test_artifacts}/stella/{key}/evidence/{datetime}/'
 executionRules: '{skill-root}/resources/execution-rules.md'
+learningsRules: '{skill-root}/resources/learnings.md'
 ---
 
 # Dev Step 3: Execute & Triage
@@ -57,19 +58,20 @@ For each scenario, in order:
 
 1. Announce it, drive its steps through Playwright MCP, and assign a status per `{executionRules}` (integrity rule included: unperformed = `Not Run`). While driving, note visual defects on the changed screens — misaligned, overlapping, clipped, or unstyled components — as observations, even when the functional check passes; they never change the scenario's status.
 2. On `Pass`: record and move on.
-3. On `Fail` / `Partly Pass`: capture evidence per the rules, then **triage with the dev immediately** (interactive, per the `SKILL.md` convention — options: "A — real bug" / "B — wrong scenario"):
+3. On `Fail` / `Partly Pass`: capture evidence per the rules, give the failure a severity (`{executionRules}` section 10), then **triage with the dev immediately** (interactive, per the `SKILL.md` convention — options: "A — real bug" / "B — wrong scenario"):
 
-   > "{scenario}: expected {expected}, observed {actual} (evidence: {path}). Is this (A) a real bug, or (B) a wrong scenario?"
+   > "{scenario}: expected {expected}, observed {actual} — severity {severity} (evidence: {path}). Is this (A) a real bug, or (B) a wrong scenario?"
    - **(A) Bug accepted:** state the fix you intend — the file/function suspects from the spec's changed code and the change in one or two lines, never a patch dump — and ask the dev to approve it (interactive, options: "Fix it" / "I'll fix it myself" / "Leave it open"). On **"Fix it"**, apply the fix yourself, then re-execute this scenario and any scenario the fix could affect, and update their results. On **"I'll fix it myself"**, wait; on "re-run", re-execute the same set. On **"Leave it open"**, keep the failure and move on. Never edit code before that approval. The pre-fix failure stays in the run notes as a found bug.
    - **(B) Scenario wrong:** correct the scenario per the dev's reading of the spec, re-run it, and record the corrected result. Note the correction.
 
 4. Keep the loop going — execute, triage, fix, re-run — until every scenario has a final status or the dev says stop.
+5. **Learnings:** when the loop has ended and a "B — wrong scenario" answer holds a rule that reaches beyond this ticket, propose it per `{learningsRules}` section 4 — one interactive question event. This is the only place the dev flow saves a learning; nothing is asked during the loop.
 
 ### 3. Write the Report
 
-Fill `{reportTemplate}` into `{reportFile}` with frontmatter `mode: dev`. Include: final per-scenario results; a **Bugs Found** list (each with steps to reproduce, expected vs actual, evidence, fixed-in-session or still open); **visual observations** noted during execution (observations only — they alter no status); scenario corrections made; Failure Detail per `Fail` / `Partly Pass` with per-step results; an `## Evidence — Passed Cases` section per `{executionRules}` §4; and the count summary `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n`. Every screenshot appears **embedded as a rendered image** (`![...](../stella/{key}/evidence/{datetime}/...)`), never a bare link. Statuses reflect the **final** state after fixes; found-then-fixed bugs live in the Bugs Found list. Dev run reports never count as QA coverage.
+Fill `{reportTemplate}` into `{reportFile}` with frontmatter `mode: dev`. Include: final per-scenario results; a **Bugs Found** list (each with its severity, steps to reproduce, expected vs actual, evidence, fixed-in-session or still open); the Severity column and Failure Detail severity line per `{executionRules}` section 10; **visual observations** noted during execution (observations only — they alter no status); scenario corrections made; Failure Detail per `Fail` / `Partly Pass` with per-step results; an `## Evidence — Passed Cases` section per `{executionRules}` §4; and the count summary `Pass x, Fail y, Partly Pass z, Blocked b, Not Run n`. Every screenshot appears **embedded as a rendered image** (`![...](../stella/{key}/evidence/{datetime}/...)`), never a bare link. Statuses reflect the **final** state after fixes; found-then-fixed bugs live in the Bugs Found list. Dev run reports never count as QA coverage.
 
-**Formatted reports:** apply the QA flow's §1b of `steps-c/step-07-report.md` unchanged — resolve/ask `{workflow.defaults.report_format}` once, build the self-contained HTML (base64-embedded screenshots) or PDF (via `browser_pdf_save`, HTML fallback, never blocking), and when `Fail` / `Partly Pass` scenarios remain, build `{issuesFile}.{html|pdf}` with the failed scenarios only. Then open the produced `.html`/`.pdf` file(s) in the OS default browser (OS open on the `file://` URL — never the Playwright test browser, never a forced new window).
+**Formatted reports:** apply the QA flow's §1b of `steps-c/step-07-report.md` unchanged — resolve/ask `{workflow.defaults.report_format}` once, build the self-contained HTML (base64-embedded screenshots) or PDF (via `browser_pdf_save`, HTML fallback, never blocking), and when `Fail` / `Partly Pass` scenarios remain, build `{issuesFile}.{html|pdf}` with the failed scenarios only, ordered by severity. Then open the produced `.html`/`.pdf` file(s) in the OS default browser (OS open on the `file://` URL — never the Playwright test browser, never a forced new window).
 
 **The report (plus its formatted copies) is the only artifact a dev run writes.** Never write a cases file — test cases are a QA-flow artifact, and dev output must never pre-seed QA's own case design. End the run with the report path and the offer to re-run the hunt after further fixes.
 

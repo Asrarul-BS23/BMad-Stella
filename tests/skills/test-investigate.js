@@ -71,6 +71,15 @@ const read = (...p) => fs.readFileSync(path.join(SKILL_DIR, ...p), 'utf8');
     ok(allow.includes(`Bash(${rule})`), `permission: Bash(${rule})`);
     ok(allow.includes(`PowerShell(${rule})`), `permission: PowerShell(${rule})`);
   }
+  // a wildcard after `git branch -r` would also match a delete (git branch -r -D origin/x)
+  for (const tool of ['Bash', 'PowerShell']) {
+    ok(!allow.includes(`${tool}(git branch -r *)`), `permission: no ${tool}(git branch -r *)`);
+    for (const rule of ['git branch -r --contains *', 'git branch -r --list *']) {
+      ok(allow.includes(`${tool}(${rule})`), `permission: ${tool}(${rule})`);
+    }
+    const loose = allow.filter((r) => r.startsWith(`${tool}(git branch`) && /-[dDmMcC]\b/.test(r));
+    ok(loose.length === 0, `permission: no ${tool} rule names a branch delete or move`);
+  }
   // the guard hook decides each query; an allow rule here would skip the production prompt
   ok(!allow.some((r) => r.includes('db-query')), 'permission: db-query is not on the allow list');
   ok(
@@ -255,6 +264,7 @@ const COMMANDS = [
   'git -C "{root}" rev-parse HEAD',
   'git -C "{root}" fetch origin',
   'git -C "{root}" status --short --branch',
+  'git status --short --branch',
   'git show {sha}:{path}',
   'git grep -n -e "{term}" {sha}',
   'git ls-tree -r --name-only {sha} -- {folder}',
@@ -710,6 +720,49 @@ ok(
   /Never split, rename or re-encode a query to get past a refusal/.test(workflow),
   'database: a refusal is not worked around',
 );
+
+// ---- found in the second live run (2026-11-26) ----
+ok(
+  /`working-tree` — pin:[^\n]*behind its remote branch → say by how many commits/.test(workflow),
+  'working-tree: a checkout behind its remote is reported',
+);
+ok(
+  /A `working-tree`, `branch` or `tag` source with a `repo` value/.test(workflow),
+  'workflow: repo applies to working-tree, branch and tag sources',
+);
+ok(
+  /kind `working-tree`, `branch` or `tag` may carry `repo/.test(refs.profile),
+  'profile.md: repo is documented for working-tree too',
+);
+ok(
+  policy.checkBash('git -C "C:/work/app" status --short --branch', { isProduction: () => false })
+    .allow === true,
+  'the guard allows the behind check in a repo folder',
+);
+ok(
+  /the one file `_bmad-output\/stella\/investigations\/\.scratch\/query\.sql`, written over each time/.test(
+    workflow,
+  ),
+  'scratch: one query file, written over',
+);
+ok(
+  /Never delete one: the guard allows no delete/.test(workflow),
+  'scratch: the skill is told not to delete',
+);
+ok(
+  policy.isWritable('/p/_bmad-output/stella/investigations/.scratch/query.sql'),
+  'scratch: the guard lets the skill write the scratch query file',
+);
+for (const cmd of [
+  'rm _bmad-output/stella/investigations/.scratch/query.sql',
+  'del query.sql',
+  'Remove-Item query.sql',
+]) {
+  ok(
+    policy.checkBash(cmd, { isProduction: () => false }).allow === false,
+    `scratch: no delete command is allowed (${cmd.split(' ')[0]})`,
+  );
+}
 
 // ---- plain words: no upstream metaphors, no v4 strings ----
 const JARGON =

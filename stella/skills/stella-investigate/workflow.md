@@ -32,10 +32,11 @@
 
 A hook is active from the first command until the user types `*exit` or starts another BMad or Stella skill. A blocked call means choose an allowed one, not retry, and not another tool that does the same thing.
 
-- Files: `Write` and `Edit` only under `_bmad-output/stella/investigations/` and for the profile and secrets files named above.
+- Files: `Write` and `Edit` only under `_bmad-output/stella/investigations/` and for the profile and secrets files named above. The user gets a confirm prompt for each change to the profile: put all changes of one step in one write. Never create a `_bmad` folder inside a case folder.
 - Shell, one plain command per call. No pipes, no redirects, no `&&` except one leading `cd <folder> &&`. Only these:
   `git fetch origin` · `git rev-parse` · `git tag --list` · `git branch -r` · `git status` · `git ls-tree {sha}` · `git cat-file -t` · `git show {sha}:{path}` · `git grep -n -e` · `git log` · `git diff {sha} {sha}` · `node _bmad/custom/stella/utils/db-query` · `node _bmad/custom/stella/utils/jira-attachments {KEY}`
   For a repository in another folder, the same git commands as `git -C "<repo folder>" …`.
+  The two `node` helpers run from `{project-root}`. Only this project's own copy runs.
 - Never: `git pull`, `merge`, `checkout`, `switch`, or any git command that changes something. Never a database client directly (`sqlcmd`, `psql`, `mysql`). Never a subagent.
 - Never tests, builds, app starts or scripts. See "Proving a cause".
 - Only the user ends the guard, by typing `*exit` or a skill command. Starting another skill yourself does not end it.
@@ -92,12 +93,12 @@ Choose in this order: named in the input → the environment of the case being c
 
 Then pin every source of each chosen environment, by its `kind`:
 
-- `working-tree` — pin: `git rev-parse HEAD`, then `git status --porcelain` to see if there are uncommitted changes. Read: `Read` / `Grep` / `Glob` on the project.
+- `working-tree` — pin: `git rev-parse HEAD`, then `git status --porcelain` to see if there are uncommitted changes. Then `git fetch origin` and `git status --short --branch`: behind its remote branch → say by how many commits in its line. Read: `Read` / `Grep` / `Glob` on the project, or under the `repo` folder when the source has one.
 - `branch` — pin: `git fetch origin` once per run, then `git rev-parse {ref}`. `{ref}` is always the remote name, like `origin/staging`, never a local branch: a local branch can be old or hold the developer's own commits. Read: `git show {sha}:{path}` · `git grep -n -e "{term}" {sha}` · `git ls-tree -r --name-only {sha} -- {folder}`.
 - `tag` — pin: `git fetch origin --tags`, then the exact `tag`, or for a `pattern` the first line of `git tag --list "{pattern}" --sort=-v:refname` (highest version). Then `git rev-parse {tag}`. Read: as `branch`.
 - `path` — pin: for each root `git -C "{root}" rev-parse HEAD`; not a git folder → version unknown. Read: `Read` / `Grep` / `Glob` under the roots only, as they are on disk; never update them. A git folder may be old: `git -C "{root}" fetch origin`, then `git -C "{root}" status --short --branch`; behind its remote → say so in its line.
 
-A source with a `repo` value lives in another folder: use `git -C "{repo}" …` for it.
+A `working-tree`, `branch` or `tag` source with a `repo` value lives in another folder: use `git -C "{repo}" …` for every git command on it.
 
 Work out one line per source, for example: `production = tag release-2.3.1 → a1b2c3d (2026-11-20)`. Get the date with `git log -1 --format=%cI {sha}`. For `working-tree` add "with uncommitted changes" when there are any. For a `path` source with no git, say "version unknown". These lines go in the opening message; they let the user catch a wrong version early.
 
@@ -140,7 +141,7 @@ node _bmad/custom/stella/utils/db-query --env {environment} --query "{one SELECT
 node _bmad/custom/stella/utils/db-query --env {environment} --file {path to a .sql file}
 ```
 
-- One statement, `SELECT` or `WITH` only. Write it in the language of the environment's `db.tool` (`sqlcmd` → T-SQL, `psql` → PostgreSQL, `mysql` → MySQL); with no database entry, in `workflow.defaults.sql_dialect`. Use `--file` when the query has quotes: inside a case write it to the case's `queries/` folder, otherwise to `_bmad-output/stella/investigations/.scratch/`. A query file is working data, not a result.
+- One statement, `SELECT` or `WITH` only. Write it in the language of the environment's `db.tool` (`sqlcmd` → T-SQL, `psql` → PostgreSQL, `mysql` → MySQL); with no database entry, in `workflow.defaults.sql_dialect`. Use `--file` when the query has quotes: inside a case write it to the case's `queries/` folder, otherwise to the one file `_bmad-output/stella/investigations/.scratch/query.sql`, written over each time. A query file is working data, not a result. Never delete one: the guard allows no delete, and none is needed.
 - The helper adds the row limit and the time limit; do not add your own. A refusal names its reason: change the query to meet it. Never split, rename or re-encode a query to get past a refusal.
 - A result is true for that environment at the time printed on its last line. Data changes: quote that time with the finding.
 - **Production.** Never select a personal-data column (name, email, phone, address, identity or payment numbers, free-text notes about a person) and never `SELECT *`. Use counts, or primary keys in place of the personal values. Claude Code shows each production query to the user and asks for a yes by itself: do not ask again in chat, and do not treat a refusal as an error.

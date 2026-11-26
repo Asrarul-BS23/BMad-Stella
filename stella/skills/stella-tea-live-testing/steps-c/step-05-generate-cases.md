@@ -7,6 +7,7 @@ scenariosFile: '{test_artifacts}/stella/{key}/scenarios.md'
 casesFile: '{test_artifacts}/{key}/test-cases.md'
 casesTemplate: '{skill-root}/templates/test-cases-template.md'
 attachmentsDir: '{test_artifacts}/stella/{key}/attachments/'
+learningsRules: '{skill-root}/resources/learnings.md'
 ---
 
 # Step 5: Generate Test Cases
@@ -68,21 +69,24 @@ Using `{casesTemplate}` (read its embedded rules, then delete the comment block 
 1. One `## Section` per scenario section, same names, same order.
 2. One or more cases per scenario. IDs `TC-{key}-01`, `TC-{key}-02`, … continuous across the whole file — numbering never restarts per section.
 3. Each case: Title; Description (what/why, naming the `SC-n` scenario and, where present, the `AC-n` it verifies); Precondition (data, role, app state — runnable from its own row); numbered plain-language Test Steps addressing users by role; observable Expected Results. Verdict columns empty.
-4. Frontmatter: `status: draft`, `key`, `generated_from: 'scenarios.md @ {scenarios approved timestamp}'` (the full `{date}T{HH:mm}` value from the scenarios frontmatter), `date`.
+4. Follow the saved learnings whose scope matches this run (`{learningsRules}` section 5): a kind of case a `skip` learning rules out is not written; a `fact` is respected in preconditions and steps.
+5. Frontmatter: `status: draft`, `key`, `generated_from: 'scenarios.md @ {scenarios approved timestamp}'` (the full `{date}T{HH:mm}` value from the scenarios frontmatter), `date`.
 
 ### 4. Show → Refine → Approve Loop
 
-Show a summary **in chat, immediately before the verdict prompt** — concise enough to judge without opening any file: case count, then grouped by section, **one line per case: `TC-{key}-NN` — title — expected result** (full rows on request). Ask the verdict interactively (per the `SKILL.md` convention): "Review the test cases." Options: **"Approved"** (lock) / **"Refine"** / **"Show full rows first"** — on "Refine", collect the changes in normal chat. Apply the same loop discipline as step-04: apply each change, keep `status: draft`, re-show marked changes, **halt** between iterations, and flip to `status: approved` + `approved: '{date}T{HH:mm}'` only on an explicit approval.
+Show a summary **in chat, immediately before the verdict prompt** — concise enough to judge without opening any file: case count, then grouped by section, **one line per case: `TC-{key}-NN` — title — expected result** (full rows on request). When learnings were applied, add the one line "Applied {n} learnings" with each entry's `LR-n` and rule. Ask the verdict interactively (per the `SKILL.md` convention): "Review the test cases." Options: **"Approved"** (lock) / **"Refine"** / **"Show full rows first"** — on "Refine", collect the changes in normal chat. Apply the same loop discipline as step-04: apply each change, keep `status: draft`, re-show marked changes, **halt** between iterations, and flip to `status: approved` + `approved: '{date}T{HH:mm}'` only on an explicit approval.
 
 Case-level edits here do not touch `{scenariosFile}`. If a requested change contradicts an approved scenario, say so and ask whether to edit the scenario instead (that re-opens step-04 for the changed scenario, then propagates per section 2).
 
 ### 5. On Approval
 
+**Learnings:** when this loop's corrections hold a candidate rule, propose it per `{learningsRules}` section 4 — one interactive question event, after the approval flip, never during the loop. No candidate → no question.
+
 **Formatted copy of the case sheet:** resolve `{workflow.defaults.report_format}` (`md` | `html` | `pdf`); when absent, ask once (interactive, per the `SKILL.md` convention — options: HTML / PDF / None) — "Besides markdown, which format do you want run reports and case sheets in?" — and autosave the answer to `[workflow.defaults] report_format` in the `.user.toml` with a one-line notice (§6 ask-fallback; §9 stops any re-ask — step-07 asks the same question only when it was never asked). On `html`/`pdf`, write `test-cases.{html|pdf}` beside `{casesFile}` as a single self-contained file (the canonical stylesheet `{skill-root}/resources/report-style.css` inlined verbatim — never improvised CSS; PDF via Playwright MCP `browser_pdf_save` on the intermediate `file://` HTML, HTML kept instead when the tool is unavailable — never block on it). Regenerate this copy **only here, at the approval flip** — never per propagation iteration.
 
 **Ticket runs — attachment cleanup:** run `node {project-root}/_bmad/custom/stella/utils/jira-attachments {key} --purge`, then delete `{attachmentsDir}` (the copy made at intake). Attachments are scenario-design input only; once cases are locked, they serve no further purpose. The brief's Context section keeps the text record that they existed — only the files are removed.
 
-**Module runs — pre-run publish offer:** two-stage interactive ask, exactly as step-07 §4 defines it. Stage 1: "Publish the case sheet?" (yes/no). Stage 2, on yes: destination (Confluence / new Jira ticket / files only), with the saved `module_publish` first as the recommended option when it exists — never silently applied; autosave the answer. Then follow step-07 §4's anchor flow for the chosen backend: one high-level anchor (Confluence folder/page link, or Jira project/sprint; saved anchor recommended), explore the nested tree under it for structure and naming conventions, and propose the placement — any **new** folder/page/ticket is shown with its parent, proposed name, and content **before** the yes. Autosave the anchor and refreshed `convention_brief`. Publish the case sheet as `{casesFile}` now reads (verdict columns empty) — identical content to what step-07 would publish later. Save the created `confluencePageId` / `jiraCaseTicketKey` to the checkpoint. This destination ask runs **once** per key, here; step-07 does not repeat it — its own publish step later **offers** an update of the same saved page/ticket (explicit yes required), never a silent one.
+**Module runs — pre-run publish offer:** two-stage interactive ask, exactly as step-07 §4 defines it. Stage 1: "Publish the case sheet?" (yes/no). Stage 2, on yes: destination (Confluence / new Jira ticket / files only), with the saved `module_publish` first as the recommended option when it exists — never silently applied; autosave the answer. Then follow step-07 §4's anchor flow for the chosen backend: one high-level anchor (Confluence folder/page link, or Jira project/sprint; saved anchor recommended), explore the nested tree under it for structure and naming conventions, and propose the placement — any **new** folder/page/ticket is shown with its parent, proposed name, and content **before** the yes. Autosave the anchor and refreshed `convention_brief`. Publish the case sheet as `{casesFile}` now reads (verdict columns empty) — identical content to what step-07 would publish later. Save the created `confluencePageId` / `jiraCaseTicketKey` to the checkpoint. When a page or ticket is published here, step-07 does not ask for the destination again — its own publish step later **offers** an update of the same saved page/ticket (explicit yes required), never a silent one. When nothing is published here, step-07 makes the same offer once more after the run.
 
 ### 6. Save Progress
 
@@ -98,7 +102,7 @@ Load next step: `{nextStepFile}`
 - Continuous IDs, sectioned tables, empty verdict columns
 - Re-entry propagated only changed scenarios, with a cause-linked change summary; `generated_from` refreshed on every propagation
 - Lock flipped only on explicit approval
-- Ticket-run approval purges fetched attachments; module-run approval offers publish once, consistent with step-07's defaults
+- Ticket-run approval purges fetched attachments; module-run approval offers publish, consistent with step-07's defaults
 
 ### ❌ SYSTEM FAILURE:
 

@@ -246,6 +246,53 @@ function registerSettings(root, { hooks = true } = {}) {
   return writeSettings(root, settings);
 }
 
+/**
+ * The same settings update as `init`, for the refresh at session start: a project
+ * that got new helpers and hook files must also get the hook matcher and the
+ * permission rules that go with them. Nobody watches this run, so it is careful:
+ * - a settings file that cannot be read is left alone (never replaced by ours);
+ * - hooks are registered only when their files are in the project and no plugin
+ *   provides them;
+ * - the file is written only when its content really changes. Settings that are
+ *   already current stay byte for byte as they were.
+ * @returns {string|null} the file written, or null when nothing was changed
+ */
+function refreshSettings(root, { home = os.homedir() } = {}) {
+  const file = rel(root, SETTINGS_LOCAL);
+  const isObject = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+  let text = '{}';
+  if (fs.existsSync(file)) {
+    text = fs.readFileSync(file, 'utf8');
+    try {
+      if (!isObject(cjson.parse(text))) return null;
+    } catch {
+      return null;
+    }
+  }
+  const hooks = !pluginEnabled(root, { home }) && fs.existsSync(rel(root, STELLA_HOOKS_DIR));
+  const next = mergePermissions(mergeHooks(cjson.parse(text), { register: hooks }));
+  if (fs.existsSync(file) && sameSettings(cjson.parse(text), next)) return null;
+  return writeSettings(root, next);
+}
+
+// Two settings objects with the same content. The order of the permission rules
+// carries no meaning, and a merge can change it, so it is ignored.
+function sameSettings(a, b) {
+  const canonical = (settings) => {
+    const copy = { ...settings };
+    if (copy.permissions && typeof copy.permissions === 'object') {
+      copy.permissions = { ...copy.permissions };
+      for (const list of ['allow', 'deny']) {
+        if (Array.isArray(copy.permissions[list])) {
+          copy.permissions[list] = [...copy.permissions[list]].sort();
+        }
+      }
+    }
+    return JSON.stringify(copy);
+  };
+  return canonical(a) === canonical(b);
+}
+
 /** Removes our hook entries and our permission rules; everything else stays. */
 function unregisterSettings(root) {
   const file = rel(root, SETTINGS_LOCAL);
@@ -355,6 +402,7 @@ module.exports = {
   copySkills,
   copyHooks,
   registerSettings,
+  refreshSettings,
   unregisterSettings,
   ensureOutputFolders,
   removeStellaClaudeParts,

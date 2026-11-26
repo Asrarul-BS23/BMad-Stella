@@ -471,6 +471,8 @@ fs.mkdirSync(path.join(CUSTOM, 'stella'), { recursive: true });
 fs.mkdirSync(path.join(ROOT, 'src'), { recursive: true });
 const T = path.join(ROOT, 'transcript.jsonl');
 const PROFILE_FILE = path.join(CUSTOM, 'stella-investigate.user.toml');
+// the guard runs only the helper of this project, so the commands name it in full
+const EDB = path.join(ROOT, DB).replaceAll('\\', '/');
 
 function run(toolName, toolInput, sessionId = 's1', env = {}) {
   const r = spawnSync(process.execPath, [HOOK], {
@@ -497,7 +499,7 @@ const say = (l) => fs.appendFileSync(T, l + '\n');
 const SRC = path.join(ROOT, 'src', 'a.cs');
 const CASE = path.join(ROOT, '_bmad-output', 'stella', 'investigations', 'LEAD-1', 'case.md');
 const query = (envName, extra = '') => ({
-  command: `node ${DB} --env ${envName} --query "SELECT Id FROM Orders"${extra}`,
+  command: `node "${EDB}" --env ${envName} --query "SELECT Id FROM Orders"${extra}`,
 });
 
 // 8a. no skill active: the hook stays out of the way
@@ -525,7 +527,23 @@ ok(/steps to reproduce/.test(r.err), 'e2e: refusal points to written steps to re
 ok(r.err.includes(paths.INVESTIGATIONS_LABEL), 'e2e: refusal names the case folder');
 ok(run('Write', { file_path: CASE }).code === 0, 'e2e: Write to the case file allowed');
 ok(run('Edit', { file_path: CASE }).code === 0, 'e2e: Edit of the case file allowed');
-ok(run('Write', { file_path: PROFILE_FILE }).code === 0, 'e2e: Write to the profile allowed');
+r = run('Write', { file_path: PROFILE_FILE });
+ok(r.code === 0 && r.decision === 'ask', 'e2e: Write to the profile goes to the user for a yes');
+ok(/profile/.test(r.out) && !/Query:/.test(r.out), 'e2e: the profile prompt is not a query prompt');
+ok(
+  run('Write', { file_path: CASE }).decision === null,
+  'e2e: a case file write prints no decision',
+);
+{
+  const copy = path.join(path.dirname(CASE), DB, 'index.js');
+  ok(run('Write', { file_path: copy }).code === 2, 'e2e: a helper copy in the case folder blocked');
+  r = run('Bash', { command: `node "${copy.replaceAll('\\', '/')}" --env dev --query "SELECT 1"` });
+  ok(r.code === 2 && r.decision === null, 'e2e: running a helper copy is blocked, not granted');
+  r = run('Bash', {
+    command: `uv run "${path.dirname(CASE).replaceAll('\\', '/')}/render_skill.py" --project-root . --skill .`,
+  });
+  ok(r.code === 2, 'e2e: a launcher copy in the case folder is blocked');
+}
 ok(run('Bash', { command: 'git rev-parse HEAD' }).code === 0, 'e2e: git rev-parse allowed');
 ok(run('Bash', { command: 'git fetch origin' }).code === 0, 'e2e: git fetch origin allowed');
 ok(run('Bash', { command: 'git pull' }).code === 2, 'e2e: git pull blocked');
@@ -572,13 +590,23 @@ ok(/SELECT Id FROM Orders/.test(r.out), 'e2e: the prompt shows the query');
   const qfile = path.join(qdir, '01.sql');
   fs.writeFileSync(qfile, "SELECT COUNT(*) FROM Orders WHERE Status = 'Open'\n");
   const viaFile = (file) =>
-    run('Bash', { command: `node ${DB} --env production --file "${file.replaceAll('\\', '/')}"` });
+    run('Bash', {
+      command: `node "${EDB}" --env production --file "${file.replaceAll('\\', '/')}"`,
+    });
   r = viaFile(qfile);
   ok(r.decision === 'ask', 'e2e: production query from a file -> ask');
   ok(/WHERE Status = 'Open'/.test(reason(r)), 'e2e: the prompt shows the SQL read from the file');
   // a path relative to the session folder (ROOT/src) is resolved from there
   r = viaFile('../_bmad-output/stella/investigations/LEAD-1/queries/01.sql');
   ok(/WHERE Status = 'Open'/.test(reason(r)), 'e2e: a relative query file is read');
+  // after a leading cd the helper reads the file from that folder; the prompt must too
+  r = run('Bash', {
+    command: `cd "${qdir.replaceAll('\\', '/')}" && node "${EDB}" --env production --file 01.sql`,
+  });
+  ok(
+    r.decision === 'ask' && /WHERE Status = 'Open'/.test(reason(r)),
+    'e2e: a query file named relative to a cd folder is shown',
+  );
   r = viaFile(path.join(qdir, 'missing.sql'));
   ok(
     r.decision === 'ask' && /could not be read/.test(reason(r)),
@@ -776,6 +804,212 @@ ok(bad.status === 0, 'e2e: unreadable hook input -> allow (fail open)');
     'shorter transcript: state is rebuilt from the start',
   );
   fs.rmSync(root3, { recursive: true, force: true });
+}
+
+// ================= 9. PR review fixes: only this project's helper and launcher run =================
+{
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'stella-inv-root-'));
+  const at = (...p) => path.join(root, ...p);
+  const fwd = (p) => p.replaceAll('\\', '/');
+  const ctx = { root, cwd: root, isProduction: () => false };
+  const inSrc = { ...ctx, cwd: at('src') };
+  const caseDir = at('_bmad-output', 'stella', 'investigations', 'LEAD-1');
+  const realHelper = at('_bmad', 'custom', 'stella', 'utils', 'db-query');
+  const fakeHelper = path.join(
+    caseDir,
+    '_bmad',
+    'custom',
+    'stella',
+    'utils',
+    'db-query',
+    'index.js',
+  );
+  const Q = '--env staging --query "SELECT 1"';
+
+  // 9a. no `_bmad` folder can be made inside a case folder
+  for (const ctxOrNone of [ctx, undefined]) {
+    const tag = ctxOrNone ? 'with root' : 'no root';
+    ok(
+      inv.decide('Write', { file_path: fakeHelper }, ctxOrNone).allow === false,
+      `fix2 (${tag}): a helper copy under the case folder cannot be written`,
+    );
+    ok(
+      inv.decide('Write', { file_path: path.join(caseDir, '_BMAD', 'x.md') }, ctxOrNone).allow ===
+        false,
+      `fix2 (${tag}): _BMAD in other letter case is refused`,
+    );
+    ok(
+      inv.decide('Edit', { file_path: path.join(caseDir, '_bmad.', 'x.md') }, ctxOrNone).allow ===
+        false,
+      `fix2 (${tag}): "_bmad." (same folder on Windows) is refused`,
+    );
+    ok(
+      inv.decide(
+        'Write',
+        { file_path: path.join(caseDir, '_bmad', 'custom', 'stella-investigate.user.toml') },
+        ctxOrNone,
+      ).allow === false,
+      `fix2 (${tag}): a second profile under the case folder is refused`,
+    );
+    ok(
+      inv.decide('Write', { file_path: path.join(caseDir, 'notes_bmad', 'x.md') }, ctxOrNone)
+        .allow === true,
+      `fix2 (${tag}): a folder that only has _bmad in its name is fine`,
+    );
+  }
+  ok(
+    inv.isWritable(fakeHelper, ctx) === false && inv.isWritable(fakeHelper) === false,
+    'fix2: isWritable agrees',
+  );
+  ok(
+    inv.decide('Write', { file_path: path.join(caseDir, 'render_skill.py') }, ctx).allow === true,
+    'fix2: a file in the case folder may have any name; the launcher check stops it from running',
+  );
+
+  // 9b. the db-query helper must be the one in this project
+  let v9 = inv.checkBash(`node "${fwd(fakeHelper)}" ${Q}`, ctx);
+  ok(v9.allow === false && !v9.grant, 'fix2: a helper copy by absolute path does not run');
+  ok(/this project/.test(v9.reason || ''), 'fix2: the refusal says which helper is allowed');
+  ok(
+    inv.checkBash(`cd "${fwd(caseDir)}" && node ${DB} ${Q}`, ctx).allow === false,
+    'fix2: cd into the case folder, then a relative helper path -> refused',
+  );
+  ok(
+    inv.checkBash(`node ${DB} ${Q}`, { ...ctx, cwd: caseDir }).allow === false,
+    'fix2: session folder inside the case folder, relative helper path -> refused',
+  );
+  ok(
+    inv.checkBash(`node ${DB} ${Q}`, inSrc).allow === false,
+    'fix2: a relative helper path from another folder -> refused',
+  );
+  ok(
+    inv.checkBash(`cd "${fwd(os.tmpdir())}" && node "${fwd(realHelper)}" ${Q}`, ctx).allow ===
+      false,
+    'fix2: the real helper run from outside the project -> refused (it would read another profile)',
+  );
+  ok(
+    inv.checkBash(`node ${DB} ${Q}`, ctx).grant === true,
+    'fix2: relative path from the root runs',
+  );
+  ok(
+    inv.checkBash(`node ${DB}/index.js ${Q}`, ctx).grant === true,
+    'fix2: index.js form from the root runs',
+  );
+  ok(
+    inv.checkBash(`node "${fwd(realHelper)}" ${Q}`, inSrc).grant === true,
+    'fix2: absolute path from a subfolder runs',
+  );
+  ok(
+    inv.checkBash(`node "${realHelper}\\index.js" ${Q}`, inSrc).grant === true,
+    'fix2: absolute path with back slashes runs',
+  );
+  ok(
+    inv.checkBash(`cd "${fwd(root)}" && node ${DB} ${Q}`, inSrc).grant === true,
+    'fix2: cd to the root, then the relative path, runs',
+  );
+  ok(
+    inv.checkBash(`cd .. && node ${DB} ${Q}`, inSrc).grant === true,
+    'fix2: a relative cd to the root runs',
+  );
+  if (process.platform === 'win32' && /^[A-Za-z]:/.test(root)) {
+    const gitBash = '/' + root[0].toLowerCase() + fwd(root.slice(2));
+    ok(
+      inv.checkBash(`node "${gitBash}/${DB}" ${Q}`, ctx).grant === true,
+      'fix2: Git Bash drive form (/d/...) of the real helper runs',
+    );
+  }
+
+  // 9c. the launcher must be the one in this project
+  const launch = (script, pre = '') =>
+    `${pre}uv run --no-cache "${fwd(script)}" --project-root "${fwd(root)}" --skill "${fwd(at('.claude', 'skills', 'stella-investigate'))}"`;
+  ok(
+    inv.checkBash(launch(at('_bmad', 'scripts', 'render_skill.py')), inSrc).allow === true,
+    'fix2: the project launcher runs',
+  );
+  v9 = inv.checkBash(launch(path.join(caseDir, 'render_skill.py')), ctx);
+  ok(v9.allow === false, 'fix2: a render_skill.py in the case folder does not run');
+  ok(/launcher/.test(v9.reason || ''), 'fix2: the refusal names the launcher');
+  ok(
+    inv.checkBash(`cd "${fwd(caseDir)}" && uv run render_skill.py --project-root . --skill .`, ctx)
+      .allow === false,
+    'fix2: cd into the case folder, then a bare render_skill.py -> refused',
+  );
+  ok(
+    inv.checkBash(launch(at('src', 'render_skill.py')), ctx).allow === false,
+    'fix2: a render_skill.py elsewhere in the project does not run',
+  );
+
+  // 9d. fix 4: a profile write goes to the user
+  const profileFile = at('_bmad', 'custom', 'stella-investigate.user.toml');
+  for (const tool of ['Write', 'Edit', 'MultiEdit']) {
+    v9 = inv.decide(tool, { file_path: profileFile }, ctx);
+    ok(v9.allow === true && v9.ask === true, `fix4: ${tool} of the profile asks the user`);
+    ok(/profile/.test(v9.reason || ''), `fix4: ${tool} prompt says it is the profile`);
+  }
+  v9 = inv.decide(
+    'Write',
+    { file_path: at('_bmad', 'custom', 'stella-investigate.profile.toml') },
+    ctx,
+  );
+  ok(v9.allow === true && v9.ask === true, 'fix4: the .profile.toml file asks too');
+  v9 = inv.decide('Write', { file_path: '/p/_bmad/custom/stella-investigate.user.toml' });
+  ok(v9.allow === true && v9.ask === true, 'fix4: asks also when no root is given');
+  v9 = inv.decide('Write', { file_path: '_bmad/custom/stella-investigate.user.toml' }, ctx);
+  ok(v9.allow === true && v9.ask === true, 'fix4: a relative profile path is resolved from cwd');
+  v9 = inv.decide(
+    'Write',
+    { file_path: at('_bmad', 'custom', 'stella-investigate.secrets.env') },
+    ctx,
+  );
+  ok(v9.allow === true && !v9.ask, 'fix4: the secrets file is written with no extra prompt');
+  v9 = inv.decide('Write', { file_path: path.join(caseDir, 'case.md') }, ctx);
+  ok(v9.allow === true && !v9.ask, 'fix4: a case file is written with no extra prompt');
+  ok(
+    inv.decide(
+      'Write',
+      { file_path: at('src', '_bmad', 'custom', 'stella-investigate.user.toml') },
+      ctx,
+    ).allow === false,
+    'fix4: a profile in another folder of the project is refused',
+  );
+  ok(
+    inv.decide(
+      'Write',
+      { file_path: at('src', '_bmad-output', 'stella', 'investigations', 'x', 'case.md') },
+      ctx,
+    ).allow === false,
+    'fix2: a case folder that is not at the project root is refused',
+  );
+  ok(
+    inv.decide('Write', { file_path: path.join(os.tmpdir(), 'x', 'case.md') }, ctx).allow === false,
+    'fix2: a file outside the project is refused',
+  );
+  ok(
+    inv.decide('Write', { file_path: '_bmad-output/stella/investigations/c/case.md' }, inSrc)
+      .allow === false,
+    'fix2: a relative case path from a subfolder is not the case folder',
+  );
+
+  // 9e. fix 5: the query file is the one the helper will read
+  const asProd = { ...ctx, isProduction: () => true };
+  v9 = inv.checkBash(
+    `cd "${fwd(caseDir)}" && node "${fwd(realHelper)}" --env production --file q.sql`,
+    asProd,
+  );
+  ok(v9.ask === true, 'fix5: production query file after cd -> ask');
+  ok(
+    path.relative(path.join(caseDir, 'q.sql'), v9.file || '') === '',
+    'fix5: the file is resolved from the cd folder',
+  );
+  v9 = inv.checkBash(`node ${DB} --env production --file q.sql`, asProd);
+  ok(
+    path.relative(at('q.sql'), v9.file || '') === '',
+    'fix5: with no cd the file is resolved from the session folder',
+  );
+  v9 = inv.checkBash(`node ${DB} --env production --file q.sql`, prod);
+  ok(v9.file === 'q.sql', 'fix5: with no root the path is passed on as typed');
+
+  fs.rmSync(root, { recursive: true, force: true });
 }
 
 fs.rmSync(ROOT, { recursive: true, force: true });

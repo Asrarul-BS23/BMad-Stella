@@ -16,6 +16,7 @@ const JIRA_FETCH_HELPER_PATH = ['_bmad', 'custom', 'stella', 'utils', 'jira-atta
 const INVESTIGATIONS_DIR = ['_bmad-output', 'stella', 'investigations'];
 const DB_HELPER_PATH = ['_bmad', 'custom', 'stella', 'utils', 'db-query'];
 const CUSTOM_DIR = ['_bmad', 'custom'];
+const LAUNCHER_FILE = ['_bmad', 'scripts', 'render_skill.py']; // renders a skill at its start
 // `.profile.toml` wins when both exist (same order as the db-query helper)
 const PROFILE_FILES = ['stella-investigate.profile.toml', 'stella-investigate.user.toml'];
 const SECRETS_FILE = 'stella-investigate.secrets.env';
@@ -36,6 +37,8 @@ const configFile = (root) => path.join(root, ...CONFIG_FILE);
 const reviewerDir = (root) => path.join(root, ...REVIEWER_DIR);
 const scratchDir = (root) => path.join(root, ...SCRATCH_DIR);
 const stateDir = (root) => path.join(root, ...STATE_DIR);
+const dbHelperDir = (root) => path.join(root, ...DB_HELPER_PATH);
+const launcherFile = (root) => path.join(root, ...LAUNCHER_FILE);
 const profileFiles = (root) => PROFILE_FILES.map((name) => path.join(root, ...CUSTOM_DIR, name));
 
 module.exports = {
@@ -45,6 +48,8 @@ module.exports = {
   scratchDir,
   stateDir,
   profileFiles,
+  dbHelperDir,
+  launcherFile,
   SEP,
   REVIEWER_RE_PART,
   HELPER_RE_PART,
@@ -56,6 +61,7 @@ module.exports = {
   SECRETS_FILE,
   INVESTIGATIONS_LABEL: INVESTIGATIONS_DIR.join('/'),
   DB_HELPER_LABEL: DB_HELPER_PATH.join('/'),
+  LAUNCHER_LABEL: LAUNCHER_FILE.join('/'),
   CUSTOM_LABEL: CUSTOM_DIR.join('/'),
   REVIEWER_LABEL: REVIEWER_DIR.join('/'),
   SCRATCH_LABEL: SCRATCH_DIR.join('/'),

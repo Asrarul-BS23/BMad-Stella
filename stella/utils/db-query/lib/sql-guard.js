@@ -111,7 +111,7 @@ function normalizeDialect(name) {
  * - "--" starts a comment; on MySQL only when a space or the line end follows.
  * - "#" starts a comment on MySQL only.
  * - Double quotes and backticks are quoted regions everywhere; [..] on SQL Server only.
- * - A backslash is never an escape here (checkReadOnly rejects it on MySQL).
+ * - A backslash is never an escape here (checkReadOnly rejects it on MySQL and PostgreSQL).
  */
 function stripLiterals(sql, dialect = 'tsql') {
   const text = String(sql);
@@ -207,8 +207,11 @@ function checkReadOnly(sql, options = {}) {
   if (raw.includes('/*!')) {
     return { ok: false, reason: 'MySQL executable comments are not allowed' };
   }
-  if (dialect === 'mysql' && raw.includes('\\')) {
-    return { ok: false, reason: 'a backslash is not allowed in a MySQL query' };
+  // MySQL strings, PostgreSQL E'..' strings and (on old settings) plain PostgreSQL strings
+  // read \' as a quote; this code does not. SQL Server has no such escape.
+  if (dialect !== 'tsql' && raw.includes('\\')) {
+    const name = dialect === 'mysql' ? 'MySQL' : 'PostgreSQL';
+    return { ok: false, reason: `a backslash is not allowed in a ${name} query` };
   }
 
   const stripped = stripLiterals(raw, dialect);

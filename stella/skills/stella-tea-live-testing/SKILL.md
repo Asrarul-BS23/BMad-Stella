@@ -23,6 +23,7 @@ You will continue to operate with your given name, identity, and communication_s
 - Per-key artifacts split in two: deliverables (test cases, run reports, issues reports) under `{test_artifacts}/{key}/`; internal artifacts under `{test_artifacts}/stella/{key}/`.
 - 🚫 Never suggest writing automation code or an `automate` handoff — in any flow, at any step, including after a report. Automation code writing is not part of the QA or dev flow.
 - 🚫 Never re-ask a value already supplied this run (invocation, config, or checkpoint) — ask only when it's missing from all three. Gates (approval locks, derived-AC confirmation, blocked cascade, SD-escape notice) are not questions and stay regardless.
+- 💾 **Learnings:** corrections the user confirmed in earlier runs live in `{project-root}/_bmad/custom/stella-tea-live-testing.learnings.md` and load at activation as persistent facts. `{skill-root}/resources/learnings.md` is the rulebook: how a learning is proposed and saved (one question, contradictions settled inside it) and how later runs follow it. A learning never changes a verdict.
 - ❓ **Interactive questions:** every question this skill asks goes through the runtime's interactive question tool when one exists (Claude Code: `AskUserQuestion` — 2–4 selectable options, recommended default first; custom input arrives via the tool's built-in "Other" field). Never leave a question as plain text at the end of a response. Approval gates prompt the **verdict** as options ("Approved" / "Refine" / "Show full rows first"); on "Refine", collect the change details in normal chat, apply, re-show, prompt again — long free-form edits never go through the small "Other" field. A runtime without such a tool falls back to the plain-text question unchanged. Gates stay gates: the interactive prompt **is** the halt.
 
 ## On Activation
@@ -41,7 +42,7 @@ Run: `uv run {project-root}/_bmad/scripts/resolve_customization.py --skill {skil
 
 Any missing file is skipped. Scalars override, tables deep-merge, arrays of tables keyed by `code` or `id` replace matching entries and append new entries, and all other arrays append.
 
-The merged block carries this skill's run configuration: `workflow.defaults` (environment, user, flow_mode, module_publish, spec_path), `workflow.environments.*` (base URLs and role-keyed users), `workflow.confluence`, and `workflow.app`. A missing table is not an error at activation — steps ask for missing values when they first need them (see `{skill-root}/resources/execution-rules.md`, Config fallback).
+The merged block carries this skill's run configuration: `workflow.defaults` (environment, user, flow_mode, explore_code, code_path, module_publish, spec_path), `workflow.environments.*` (base URLs and role-keyed users), `workflow.confluence`, and `workflow.app`. A missing table is not an error at activation — steps ask for missing values when they first need them (see `{skill-root}/resources/execution-rules.md`, Config fallback).
 
 ### Step 2: Execute Prepend Steps
 
@@ -90,14 +91,14 @@ This workflow uses **tri-modal step-file architecture** with **two routed flows*
 
 ### 1. Mode Determination
 
-"Welcome to the workflow. What would you like to do?"
+The operation comes from the invocation; it is never asked for:
 
-- **[C] Create** — Run the workflow from the beginning
-- **[R] Resume** — Resume an interrupted QA Create run
-- **[V] Validate** — Validate existing outputs
-- **[E] Edit** — Edit existing scenarios or test cases
+- **[C] Create** — Run the workflow from the beginning. This is the default: an invocation with an input (menu code, ticket key, module name, spec path) or with no input at all starts Create.
+- **[R] Resume** — Resume an interrupted QA Create run, when the user asks to resume
+- **[V] Validate** — Validate existing outputs, when the user asks to validate
+- **[E] Edit** — Edit existing scenarios or test cases, when the user asks to edit
 
-When the invocation already carries an operation or an input (`flow_mode` preset by a menu code, a ticket key, a module name, or a spec path), skip this question and start Create. Do not ask a second mode question.
+A run with no input asks one thing only — the ticket key or module name (`steps-c/step-01-detect-mode.md`, section 3).
 
 ### 2. Route to First Step
 
@@ -108,7 +109,7 @@ When the invocation already carries an operation or an input (`flow_mode` preset
 
 ## Flow Mode (`flow_mode`)
 
-`flow_mode` is `qa` or `dev`. The priority order that resolves it lives in exactly one place: `{skill-root}/steps-c/step-01-detect-mode.md`, section 1 (single source — do not restate it elsewhere). In short: menu codes `SQ`/`SD` preset it, an existing QA checkpoint for the named key keeps it `qa`, otherwise the input decides, then the personal default, then one question. A QA-started key never silently continues as a dev run.
+`flow_mode` is `qa` or `dev`. The priority order that resolves it lives in exactly one place: `{skill-root}/steps-c/step-01-detect-mode.md`, section 1 (single source — do not restate it elsewhere). In short: menu codes `SQ`/`SD` preset it, an existing QA checkpoint for the named key keeps it `qa`, otherwise the input decides, then the personal default, then `qa` — the skill never asks which mode to run. The resolved mode is saved as the default when none is saved yet. A QA-started key never silently continues as a dev run.
 
 ## Outputs
 
@@ -129,6 +130,7 @@ Each `{key}`'s outputs split in two. **Deliverables** — files handed to the te
   exploration/                           <- exploration images copied with scenarios.md, links rewritten
   evidence/{datetime}/tc-{n}.png         <- screenshots for EVERY executed case (Pass included); tc-{n}-step-{m}.png for per-step shots
   progress.md                            <- this key's progress checkpoint (stores flowMode and Confluence page id)
+  validation-report-{run_timestamp}.md   <- Validate mode findings; one per validation, never overwritten
 ```
 
 QA execute runs additionally merge their results into `{test_artifacts}/live-verification-results.json` — the root-level file TEA's `trace` reads. Dev runs never write it: dev runs never count as QA coverage. `test-cases.md` is likewise a QA-flow artifact only — dev runs never write it; the `mode: dev` execution report is a dev run's only artifact.

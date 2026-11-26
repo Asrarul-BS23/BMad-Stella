@@ -132,13 +132,15 @@ class ClaudePermissionsManager {
       // commit. `git fetch origin` only updates the remote copies (origin/<branch>) and tags;
       // no local branch and no checked-out file changes. The db-query helper is NOT listed:
       // the guard hook decides each query (allow outside production, ask on production).
+      // `git branch -r` gets no open wildcard: `git branch -r -D origin/x` deletes.
       'Bash(git fetch origin)',
       'Bash(git fetch origin --tags)',
       'Bash(git rev-parse *)',
       'Bash(git tag --list)',
       'Bash(git tag --list *)',
       'Bash(git branch -r)',
-      'Bash(git branch -r *)',
+      'Bash(git branch -r --contains *)',
+      'Bash(git branch -r --list *)',
       'Bash(git status)',
       'Bash(git status *)',
       'Bash(git ls-tree *)',
@@ -169,7 +171,8 @@ class ClaudePermissionsManager {
       'PowerShell(git tag --list)',
       'PowerShell(git tag --list *)',
       'PowerShell(git branch -r)',
-      'PowerShell(git branch -r *)',
+      'PowerShell(git branch -r --contains *)',
+      'PowerShell(git branch -r --list *)',
       'PowerShell(git status)',
       'PowerShell(git status *)',
       'PowerShell(git ls-tree *)',

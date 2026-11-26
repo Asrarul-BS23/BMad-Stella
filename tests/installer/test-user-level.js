@@ -526,7 +526,55 @@ const hookCommands = (settings) =>
     write(HOME, '.claude/stella/bmad-template/_bmad/scripts/new_script.py', '# new\n');
     write(proj, '_bmad/scripts/stale.py', '# dropped upstream\n');
     ok(projectInit.status(proj, { home: HOME }).upToDate === false, 'status: update pending');
+    // The project still has the settings of the older build: an old hook matcher and
+    // one rule missing. It also holds the developer's own hook and permission.
+    const settingsFile = at(proj, '.claude/settings.local.json');
+    const stale = JSON.parse(read(proj, '.claude/settings.local.json'));
+    const NEW_MATCHER = C.PROJECT_HOOKS.find((h) => h.name === 'pr-review-guard').events.PreToolUse
+      .matcher;
+    stale.hooks.PreToolUse[0].matcher = 'Edit|MultiEdit|Write|Bash|PowerShell';
+    stale.hooks.PreToolUse.push({
+      matcher: 'Bash',
+      hooks: [{ type: 'command', command: 'node my-own-hook.js' }],
+    });
+    stale.permissions.allow = stale.permissions.allow.filter(
+      (r0) => r0 !== 'Bash(git rev-parse *)',
+    );
+    stale.permissions.allow.push('Bash(my-own-tool *)');
+    stale.myOwnKey = { keep: true };
+    fs.writeFileSync(settingsFile, JSON.stringify(stale, null, 2));
     const r = userLevel.sessionCheck(proj, { home: HOME });
+    {
+      const fresh = JSON.parse(read(proj, '.claude/settings.local.json'));
+      const ours = fresh.hooks.PreToolUse.filter((e) =>
+        e.hooks.some((h) => h.command.includes('pr-review-guard')),
+      );
+      ok(
+        ours.length === 1 && ours[0].matcher === NEW_MATCHER,
+        'refresh: the guard hook matcher is brought up to date, once',
+      );
+      ok(
+        fresh.permissions.allow.includes('Bash(git rev-parse *)'),
+        'refresh: a permission rule missing from the older build is added',
+      );
+      ok(
+        fresh.hooks.PreToolUse.some((e) =>
+          e.hooks.some((h) => h.command === 'node my-own-hook.js'),
+        ),
+        "refresh: the developer's own hook is kept",
+      );
+      ok(
+        fresh.permissions.allow.includes('Bash(my-own-tool *)') && fresh.myOwnKey.keep === true,
+        "refresh: the developer's own permission and other keys are kept",
+      );
+      const allCommands = Object.values(fresh.hooks)
+        .flat()
+        .flatMap((e) => e.hooks.map((h) => h.command));
+      ok(
+        new Set(allCommands).size === allCommands.length,
+        'refresh: no hook command is registered twice',
+      );
+    }
     ok(
       r && r.action === 'refreshed' && r.message.includes('newer-id'),
       'sessionCheck: stale project → refreshed, one line',
@@ -555,6 +603,84 @@ const hookCommands = (settings) =>
       userLevel.sessionCheck(proj, { home: HOME }) === null,
       'sessionCheck: silent again after the refresh',
     );
+
+    // refreshSettings on its own: the careful cases
+    const layer = require(path.join(REPO, 'tools', 'installer', 'lib', 'stella-layer.js'));
+    const hasGuard = (root) => {
+      const s = JSON.parse(read(root, '.claude/settings.local.json'));
+      return Object.values(s.hooks || {})
+        .flat()
+        .some((e) => e.hooks.some((h) => h.command.includes('pr-review-guard')));
+    };
+    {
+      // a settings file that cannot be read is never replaced
+      const broken = tmp('rs-broken');
+      write(broken, '.claude/stella/hooks/pr-review-guard/pre-tool-use.js', '// x\n');
+      write(broken, '.claude/settings.local.json', '{ "hooks": { not json');
+      ok(
+        layer.refreshSettings(broken, { home: HOME }) === null,
+        'refreshSettings: unreadable file → nothing written',
+      );
+      ok(
+        read(broken, '.claude/settings.local.json') === '{ "hooks": { not json',
+        'refreshSettings: the unreadable file is left exactly as it was',
+      );
+      write(broken, '.claude/settings.local.json', '["a list, not an object"]');
+      ok(
+        layer.refreshSettings(broken, { home: HOME }) === null,
+        'refreshSettings: a file that is not an object is left alone',
+      );
+      write(broken, '.claude/settings.local.json', '');
+      ok(
+        layer.refreshSettings(broken, { home: HOME }) === null,
+        'refreshSettings: an empty file is left alone',
+      );
+    }
+    {
+      // no settings file yet, hooks in the project → created with the hooks
+      const none = tmp('rs-none');
+      write(none, '.claude/stella/hooks/pr-review-guard/pre-tool-use.js', '// x\n');
+      ok(
+        typeof layer.refreshSettings(none, { home: HOME }) === 'string',
+        'refreshSettings: missing file is created',
+      );
+      ok(hasGuard(none), 'refreshSettings: hooks in the project → registered');
+      layer.refreshSettings(none, { home: HOME });
+      const twice = JSON.parse(read(none, '.claude/settings.local.json'));
+      ok(twice.hooks.PreToolUse.length === 1, 'refreshSettings: a second run adds nothing');
+    }
+    {
+      // no hook files in the project → rules only, no hook entry pointing at nothing
+      const noHooks = tmp('rs-nohooks');
+      write(noHooks, '.claude/settings.local.json', '{}');
+      layer.refreshSettings(noHooks, { home: HOME });
+      const s = JSON.parse(read(noHooks, '.claude/settings.local.json'));
+      ok(!s.hooks, 'refreshSettings: no hook files → no hook entries');
+      ok(
+        s.permissions.allow.includes('Bash(git rev-parse *)'),
+        'refreshSettings: permission rules are still merged',
+      );
+    }
+    {
+      // a plugin provides the hooks → the project must not register them a second time
+      const withPlugin = tmp('rs-plugin');
+      write(withPlugin, '.claude/stella/hooks/pr-review-guard/pre-tool-use.js', '// x\n');
+      write(
+        withPlugin,
+        '.claude/settings.local.json',
+        JSON.stringify({ enabledPlugins: { 'bmad-stella@stella': true } }),
+      );
+      layer.refreshSettings(withPlugin, { home: HOME });
+      ok(
+        !hasGuard(withPlugin),
+        'refreshSettings: plugin enabled → project hooks are not registered',
+      );
+      const s = JSON.parse(read(withPlugin, '.claude/settings.local.json'));
+      ok(
+        s.enabledPlugins['bmad-stella@stella'] === true,
+        'refreshSettings: the plugin setting is kept',
+      );
+    }
   }
 
   // ================= project from the per-project installer → hint, then switched by init =================
